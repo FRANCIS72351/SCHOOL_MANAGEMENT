@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>{{ action }} Academic Year</h2>
+
+<form method="POST">
+    <div class="mb-3">
+        <label class="form-label">Name</label>
+        <input type="text" name="name" class="form-control" value="{{ year.name if year else '' }}" required>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Start Date</label>
+        <input type="date" name="start_date" class="form-control" value="{{ year.start_date if year else '' }}" required>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">End Date</label>
+        <input type="date" name="end_date" class="form-control" value="{{ year.end_date if year else '' }}" required>
+    </div>
+    <div class="form-check mb-3">
+        <input type="checkbox" name="is_active" class="form-check-input" {% if year and year.is_active %}checked{% endif %}>
+        <label class="form-check-label">Active</label>
+    </div>
+    <button type="submit" class="btn btn-success">{{ action }}</button>
+    <a href="{{ url_for('academic_years') }}" class="btn btn-secondary">Cancel</a>
+</form>
+{% endblock %}

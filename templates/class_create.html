@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+{% block title %}Class Management{% endblock %}
+{% block content %}
+<div class="container mt-4">
+  <h2>Assign Teacher to Class</h2>
+  <div class="row">
+    <div class="col-lg-4">
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="mb-0">Assign Teacher</h5>
+        </div>
+        <div class="card-body">
+          <form method="post">
+            {{ form.hidden_tag() }}
+            <div class="mb-3">
+              {{ form.class_id.label(class_='form-label') }}
+              {{ form.class_id(class_='form-select') }}
+            </div>
+            <div class="mb-3">
+              {{ form.teacher_id.label(class_='form-label') }}
+              {{ form.teacher_id(class_='form-select') }}
+            </div>
+            <div class="d-grid">
+              {{ form.submit(class_='btn btn-primary') }}
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-8">
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="mb-0">Existing Classes</h5>
+          <span class="badge bg-light text-dark">{{ classes|length }} total</span>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-striped align-middle mb-0">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Teacher</th>
+                <th>Description</th>
+                <th>Students</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for c in classes %}
+              <tr>
+                <td class="fw-semibold">{{ c.name }}</td>
+                <td>
+                  {% if c.teacher %}
+                    {{ c.teacher.first_name }} {{ c.teacher.last_name }}
+                  {% else %}
+                    <span class="text-muted">Unassigned</span>
+                  {% endif %}
+                </td>
+                <td>{{ c.description or '—' }}</td>
+                <td>{{ c.students.count() if c.students else 0 }}</td>
+              </tr>
+              {% else %}
+              <tr>
+                <td colspan="4" class="text-center py-4 text-muted">No classes created yet.</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,22 @@
+# Flask/Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+env/
+venv/
+instance/
+.env
+.flaskenv
+
+# Database
+*.db
+*.sqlite3
+
+# IDEs
+.vscode/
+.idea/
+
+# Static/Uploads (Usually don't want to commit these)
+static/uploads/*
+!static/uploads/placeholder.txt

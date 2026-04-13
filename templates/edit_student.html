@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% block title %}Edit Student{% endblock %}
+{% block content %}
+<div class="container mt-4">
+  <h2>Edit Student</h2>
+  <form method="POST">
+    {{ form.hidden_tag() }}
+    <div class="row">
+      <div class="col-md-4 mb-2">{{ form.student_id.label }} {{ form.student_id(class_='form-control') }}</div>
+      <div class="col-md-4 mb-2">{{ form.first_name.label }} {{ form.first_name(class_='form-control') }}</div>
+      <div class="col-md-4 mb-2">{{ form.last_name.label }} {{ form.last_name(class_='form-control') }}</div>
+    </div>
+    <div class="row">
+      <div class="col-md-4 mb-2">{{ form.dob.label }} {{ form.dob(class_='form-control') }}</div>
+      <div class="col-md-4 mb-2">{{ form.gender.label }} {{ form.gender(class_='form-control') }}</div>
+      <div class="col-md-4 mb-2">{{ form.parent_email.label }} {{ form.parent_email(class_='form-control') }}</div>
+    </div>
+    <div class="row">
+      <div class="col-md-4 mb-2">{{ form.klass.label }} {{ form.klass(class_='form-control') }}</div>
+    </div>
+    <div class="mb-2"><button type="submit" class="btn btn-primary">Save Changes</button></div>
+  </form>
+  <a href="{{ url_for('dashboard_registrar') }}" class="btn btn-secondary mt-2">Back to Registrar Dashboard</a>
+</div>
+{% endblock %}

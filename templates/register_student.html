@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+{% block content %}
+<h3>Register Student</h3>
+<form method="post" enctype="multipart/form-data">
+  {{ form.hidden_tag() }}
+  <div class="mb-3">{{ form.first_name.label }} {{ form.first_name(class_="form-control") }}</div>
+  <div class="mb-3">{{ form.last_name.label }} {{ form.last_name(class_="form-control") }}</div>
+  <div class="mb-3">{{ form.email.label }} {{ form.email(class_="form-control") }}</div>
+  <div class="mb-3">{{ form.password.label }} {{ form.password(class_="form-control") }}</div>
+  <div class="mb-3">{{ form.dob.label }} {{ form.dob(class_="form-control") }}</div>
+  <div class="mb-3">{{ form.gender.label }} {{ form.gender(class_="form-control") }}</div>
+  <div class="mb-3">{{ form.student_id.label }} {{ form.student_id(class_="form-control") }}</div>
+  <div class="mb-3">{{ form.parent_email.label }} {{ form.parent_email(class_="form-control") }}</div>
+  <div class="mb-3">{{ form.photo.label }} {{ form.photo(class_="form-control") }}</div>
+  <div class="mb-3">{{ form.klass.label }} {{ form.klass(class_="form-control") }}</div>
+  <div>{{ form.submit(class_="btn btn-primary") }}</div>
+</form>
+{% endblock %}

@@ -1,0 +1,8 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Parent Dashboard</h2>
+{% if student %}
+  <p>Child: {{ student.first_name }} {{ student.last_name }}</p>
+  <a class="btn btn-primary" href="{{ url_for('transcript_pdf', student_id=student.id) }}">Transcript PDF</a>
+{% else %}<p>No linked child found.</p>{% endif %}
+{% endblock %}

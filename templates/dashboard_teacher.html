@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4">
+  <h2>Teacher Dashboard</h2>
+  
+  <h4>Your Classes</h4>
+  <ul>
+    {% for c in classes %}
+      <li>{{ c.name }} — {{ c.description }}</li>
+    {% else %}
+      <li>No classes assigned</li>
+    {% endfor %}
+  </ul>
+
+  <hr>
+
+  <h4>Submit Grades</h4>
+  <form method="POST" action="{{ url_for('add_grade') }}">
+    {{ csrf_token() }}
+    <div class="mb-3">
+      <label for="student" class="form-label">Student</label>
+      <select id="student" name="student_id" class="form-select" required>
+        <option value="">-- Select Student --</option>
+        {% for s in students %}
+          <option value="{{ s.id }}">{{ s.full_name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="mb-3">
+      <label for="subject" class="form-label">Subject</label>
+      <input type="text" id="subject" name="subject" class="form-control" placeholder="e.g. Mathematics" required>
+    </div>
+
+    <div class="mb-3">
+      <label for="period" class="form-label">Period</label>
+      <select id="period" name="period" class="form-select" required>
+        <option value="">-- Select Period --</option>
+        {% for i in range(1, 7) %}
+          <option value="{{ i }}">Period {{ i }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="mb-3">
+      <label for="activity_type" class="form-label">Activity Type</label>
+      <select id="activity_type" name="activity_type" class="form-select" required>
+        <option value="">-- Select Activity --</option>
+        <option value="Assignment">Assignment</option>
+        <option value="Class Work">Class Work</option>
+        <option value="Test">Test</option>
+      </select>
+    </div>
+
+    <div class="mb-3">
+      <label for="score" class="form-label">Grade / Score</label>
+      <input type="number" step="0.01" min="0" max="100" id="score" name="score" class="form-control" required>
+    </div>
+
+    <div class="mb-3 form-check">
+      <input type="checkbox" class="form-check-input" id="submitCheck" name="submitted">
+      <label class="form-check-label" for="submitCheck">Submit (uncheck to save as draft)</label>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Save Grade</button>
+  </form>
+
+<hr>
+<h4>Existing Grades (Current Academic Year)</h4>
+<table class="table">
+  <thead>
+    <tr>
+      <th>Student</th>
+      <th>Period</th>
+      <th>Activity</th>
+      <th>Score</th>
+      <th>Status</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for g in grades %}
+    <tr>
+      <td>{{ g.student.full_name }}</td>
+      <td>Period {{ g.period }}</td>
+      <td>{{ g.activity_type }}</td>
+      <td>{{ g.score }}</td>
+      <td>
+        {% if g.submitted %}
+          Submitted
+        {% else %}
+          Draft
+        {% endif %}
+      </td>
+    </tr>
+    {% else %}
+    <tr>
+      <td colspan="5">No grades recorded yet.</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+<hr>
+
+{% endblock %}

@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+{% block content %}
+<h3>Announcements</h3>
+<form method="post">
+  {{ form.hidden_tag() }}
+  <div class="mb-3">{{ form.title.label }} {{ form.title(class_="form-control") }}</div>
+  <div class="mb-3">{{ form.body.label }} {{ form.body(class_="form-control") }}</div>
+  <div class="mb-3">{{ form.audience.label }} {{ form.audience(class_="form-control") }}</div>
+  <div>{{ form.submit(class_="btn btn-primary") }}</div>
+</form>
+<hr>
+<ul>
+{% for a in items %}<li><strong>{{ a.title }}</strong> — {{ a.body[:150] }} ({{ a.audience }})</li>{% else %}<li>No announcements</li>{% endfor %}
+</ul>
+{% endblock %}

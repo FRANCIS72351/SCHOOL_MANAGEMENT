@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+{% block title %}Business Dashboard{% endblock %}
+{% block content %}
+<div class="container mt-4">
+  <div class="d-flex align-items-center justify-content-between mb-3">
+    <h2 class="mb-0">Business Dashboard</h2>
+    <a href="{{ url_for('business_management') }}" class="btn btn-primary">Go to Business Management</a>
+  </div>
+  <div class="card">
+    <div class="card-body">
+      <h5 class="card-title">Financial Overview</h5>
+      <p class="card-text text-muted">
+        We're still building detailed analytics for business managers. Check back soon for income and expense summaries, charts, and alerts.
+      </p>
+      <ul class="mb-0">
+        <li>Track recent transactions and balances</li>
+        <li>Export finance statements and receipts</li>
+        <li>Monitor outstanding invoices and sponsorships</li>
+      </ul>
+    </div>
+  </div>
+</div>
+{% endblock %}

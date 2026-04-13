@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Admin Dashboard</h2>
+<div class="mb-3">
+  <a href="{{ url_for('business_management') }}" class="btn btn-success">Business Management</a>
+  <a href="{{ url_for('academic_years') }}" class="btn btn-primary ms-2">Academic Year Management</a>
+  <div class="btn-group ms-2" role="group">
+    <button id="exportsDropdown" type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+      Data Exports
+    </button>
+    <ul class="dropdown-menu" aria-labelledby="exportsDropdown">
+      <li><a class="dropdown-item" href="{{ url_for('export_students', year=selected_year) }}">Students CSV</a></li>
+      <li><a class="dropdown-item" href="{{ url_for('export_payments', year=selected_year) }}">Payments CSV</a></li>
+      <li><a class="dropdown-item" href="{{ url_for('export_grades', year=selected_year) }}">Grades CSV</a></li>
+      <li><a class="dropdown-item" href="{{ url_for('export_attendance', year=selected_year) }}">Attendance CSV</a></li>
+      <li><a class="dropdown-item" href="{{ url_for('export_sponsors', year=selected_year) }}">Sponsors CSV</a></li>
+
+    </ul>
+  </div>
+  <a href="{{ url_for('class_create') }}" class="btn btn-outline-secondary ms-2">Class Management</a>
+  <a href="{{ url_for('admin_users') }}" class="btn btn-outline-secondary ms-2">User Management</a>
+
+  <!-- ✅ Fixed PDF button -->
+  <a href="{{ url_for('report_students_pdf', year=selected_year) }}" class="btn btn-outline-primary ms-2">Download Students PDF</a>
+</div>
+
+<form method="get" class="mb-3">
+  <div class="row">
+    <div class="col-md-4">
+      <select name="year" class="form-select" onchange="this.form.submit()">
+        <option value="">All Academic Years</option>
+        {% for y in years %}
+          <option value="{{ y.name }}" {% if selected_year==y.name %}selected{% endif %}>{{ y.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+</form>
+
+<div class="row">
+  <div class="col-md-3"><div class="card p-3">Students: {{ counts.students }}</div></div>
+  <div class="col-md-3"><div class="card p-3">Teachers: {{ counts.teachers }}</div></div>
+  <div class="col-md-3"><div class="card p-3">Classes: {{ counts.classes }}</div></div>
+  <div class="col-md-3"><div class="card p-3">Sponsors: {{ counts.sponsors }}</div></div>
+</div>
+<hr>
+
+<div class="row">
+  <div class="col-md-4">
+    <h5>Gender Distribution</h5>
+    <canvas id="genderChart" width="300" height="200"></canvas>
+  </div>
+  <div class="col-md-4">
+    <h5>Enrollment by Year</h5>
+    <canvas id="enrollChart" width="300" height="200"></canvas>
+  </div>
+  <div class="col-md-4">
+    <h5>Payments by Year</h5>
+    <canvas id="payChart" width="300" height="200"></canvas>
+  </div>
+</div>
+
+<div class="row mt-4">
+  <div class="col-md-6">
+    <h5>Average Grades by Year</h5>
+    <canvas id="gradeChart" width="400" height="200"></canvas>
+  </div>
+  <div class="col-md-6">
+    <h5>Recent Payments</h5>
+    <table class="table">
+      <thead>
+        <tr><th>ID</th><th>Student</th><th>Amount</th><th>Date</th></tr>
+      </thead>
+      <tbody>
+        {% for p in payments %}
+          <tr><td>{{ p.id }}</td><td>{{ p.student_id }}</td><td>{{ p.amount }}</td><td>{{ p.paid_on }}</td></tr>
+        {% else %}
+          <tr><td colspan="4">No payments</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+fetch('{{ url_for('analytics_gender') }}').then(r=>r.json()).then(data=>{
+  const ctx = document.getElementById('genderChart');
+  new Chart(ctx, {type:'pie', data:{labels:['Male','Female','Other'], datasets:[{data:[data.male,data.female,data.other]}]}});
+});
+fetch('{{ url_for('analytics_enrollment')}}').then(r=>r.json()).then(data=>{
+  const ctx = document.getElementById('enrollChart');
+  new Chart(ctx, {type:'bar', data:{labels:data.map(d=>d.year), datasets:[{label:'Students',data:data.map(d=>d.count)}]}});
+});
+fetch('{{ url_for('analytics_payments') }}').then(r=>r.json()).then(data=>{
+  const ctx = document.getElementById('payChart');
+  new Chart(ctx, {type:'bar', data:{labels:data.map(d=>d.year), datasets:[{label:'Payments',data:data.map(d=>d.total)}]}});
+});
+fetch('{{ url_for('analytics_grades') }}').then(r=>r.json()).then(data=>{
+  const ctx = document.getElementById('gradeChart');
+  new Chart(ctx, {type:'line', data:{labels:data.map(d=>d.year), datasets:[{label:'Avg Grade',data:data.map(d=>d.average)}]}});
+});
+</script>
+{% endblock %}

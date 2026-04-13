@@ -1,0 +1,8 @@
+{% extends 'base.html' %}
+{% block content %}
+<h3>Students</h3>
+<a class="btn btn-success" href="{{ url_for('student_register') }}">Register Student</a>
+<table class="table mt-3"><thead><tr><th>ID</th><th>Name</th><th>Class</th></tr></thead><tbody>
+{% for s in students %}<tr><td>{{ s.student_id }}</td><td>{{ s.first_name }} {{ s.last_name }}</td><td>{{ s.klass }}</td></tr>{% else %}<tr><td colspan="3">No students</td></tr>{% endfor %}
+</tbody></table>
+{% endblock %}

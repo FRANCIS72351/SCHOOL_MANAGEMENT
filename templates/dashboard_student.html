@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Student Dashboard</h2>
+{% if student %}
+  <div class="row">
+    <div class="col-md-4">
+      {% if student.photo %}<img src="{{ url_for('static', filename='uploads/' ~ student.photo) }}" class="img-fluid" alt="photo">{% endif %}
+    </div>
+    <div class="col-md-8">
+      <h3>{{ student.first_name }} {{ student.last_name }}</h3>
+      <p>ID: {{ student.student_id }}</p>
+      <a class="btn btn-outline-primary" href="{{ url_for('transcript_pdf', student_id=student.id) }}">Download Transcript (PDF)</a>
+    </div>
+  </div>
+  <h4>Grades</h4>
+  <ul>
+    {% for g in grades %}<li>{{ g.subject }} — {{ g.score }} ({{ g.remarks }})</li>{% else %}<li>No grades yet.</li>{% endfor %}
+  </ul>
+{% else %}<p>No student profile linked.</p>{% endif %}
+{% endblock %}

@@ -1,0 +1,154 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Principal Oversight Dashboard</h1>
+        <span class="badge bg-dark">System Status: Secure 🛡️</span>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h6 class="card-title">Total Revenue (VPI)</h6>
+                    <h3>₱{{ "{:,.2f}".format(financial_stats.total_revenue) }}</h3>
+                    <small>Net: ₱{{ "{:,.2f}".format(financial_stats.net_profit) }}</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h6 class="card-title">Academic Passing Rate</h6>
+                    <h3>{{ academic_stats.passing_rate }}%</h3>
+                    <small>{{ academic_stats.failing_count }} Students At Risk</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-dark">
+                <div class="card-body">
+                    <h6 class="card-title">Active Suspensions</h6>
+                    <h3>{{ disciplinary_stats.active_suspensions }}</h3>
+                    <small>Dean's Current Watchlist</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-danger text-white">
+                <div class="card-body">
+                    <h6 class="card-title">Blocked IP Attempts</h6>
+                    <h3>{{ security_stats.blocked_ips }}</h3>
+                    <small>Last 24 Hours</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Student Status Monitor</h5>
+                </div>
+                <div class="card-body">
+                    <form method="get" class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <input type="text" name="search" class="form-control" placeholder="Search name or ID..." value="{{ request.args.get('search', '') }}">
+                        </div>
+                        <div class="col-md-4">
+                            <select name="status" class="form-select">
+                                <option value="">Filter by Status</option>
+                                <option value="failing" {% if request.args.get('status') == 'failing' %}selected{% endif %}>Failing (Academic Alert)</option>
+                                <option value="suspended" {% if request.args.get('status') == 'suspended' %}selected{% endif %}>Suspended (Disciplinary)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <button type="submit" class="btn btn-outline-primary w-100">Sync</button>
+                        </div>
+                    </form>
+
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Student</th>
+                                    <th>Class</th>
+                                    <th>Academic Avg</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for student in students %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ student.full_name }}</strong><br>
+                                        <small class="text-muted">ID: {{ student.student_id }}</small>
+                                    </td>
+                                    <td>{{ student.klass.name if student.klass else '-' }}</td>
+                                    <td>
+                                        <span class="text-{{ 'danger' if student.average < 70 else 'success' }}">
+                                            {{ student.average }}%
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if student.status == 'SUSPENDED' %}
+                                            <span class="badge bg-danger">Suspended</span>
+                                        {% elif student.average < 70 %}
+                                            <span class="badge bg-warning text-dark">At Risk</span>
+                                        {% else %}
+                                            <span class="badge bg-success">Active</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <a href="#" class="btn btn-sm btn-light border">Report</a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Financial Pulse</h5>
+                </div>
+                <div class="card-body p-0">
+                    <ul class="list-group list-group-flush">
+                        {% for transaction in recent_transactions %}
+                        <li class="list-group-item">
+                            <div class="d-flex justify-content-between">
+                                <small class="text-muted">{{ transaction.date }}</small>
+                                <small class="{{ 'text-success' if transaction.type == 'income' else 'text-danger' }}">
+                                    {{ '+' if transaction.type == 'income' else '-' }}₱{{ "{:,.2f}".format(transaction.amount) }}
+                                </small>
+                            </div>
+                            <div class="fw-bold">{{ transaction.description }}</div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+
+            <div class="card shadow-sm border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0">Security Events</h5>
+                </div>
+                <div class="card-body">
+                    {% for event in security_events %}
+                    <div class="mb-2 pb-2 border-bottom">
+                        <small class="d-block text-muted">{{ event.timestamp.strftime('%Y-%m-%d %H:%M') }}</small>
+                        <span class="text-danger">●</span> {{ event.event }}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

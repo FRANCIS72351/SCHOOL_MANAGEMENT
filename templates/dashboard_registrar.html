@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+{% block title %}Registrar Dashboard{% endblock %}
+{% block content %}
+<div class="container mt-4">
+  <h2>Registrar Dashboard</h2>
+  <div class="card mb-4">
+    <div class="card-body">
+      <h4>Register New Student</h4>
+      <form method="POST" enctype="multipart/form-data">
+        {{ form.hidden_tag() }}
+        <div class="row">
+          <div class="col-md-4 mb-2">{{ form.student_id.label }} {{ form.student_id(class_='form-control') }}</div>
+          <div class="col-md-4 mb-2">{{ form.first_name.label }} {{ form.first_name(class_='form-control') }}</div>
+          <div class="col-md-4 mb-2">{{ form.last_name.label }} {{ form.last_name(class_='form-control') }}</div>
+        </div>
+        <div class="row">
+          <div class="col-md-4 mb-2">{{ form.dob.label }} {{ form.dob(class_='form-control') }}</div>
+          <div class="col-md-4 mb-2">{{ form.gender.label }} {{ form.gender(class_='form-select') }}</div>
+          <div class="col-md-4 mb-2">{{ form.parent_email.label }} {{ form.parent_email(class_='form-control') }}</div>
+        </div>
+        <div class="row">
+          <div class="col-md-4 mb-2">{{ form.klass.label }} {{ form.klass(class_='form-select') }}</div>
+          <div class="col-md-4 mb-2">{{ form.academic_year.label }} {{ form.academic_year(class_='form-select') }}</div>
+          <div class="col-md-4 mb-2">{{ form.email.label }} {{ form.email(class_='form-control') }}</div>
+        </div>
+        <div class="row">
+          <div class="col-md-4 mb-2">{{ form.password.label }} {{ form.password(class_='form-control') }}</div>
+          <div class="col-md-4 mb-2">{{ form.photo.label }} {{ form.photo(class_='form-control') }}</div>
+        </div>
+        <div class="mb-2">{{ form.submit(class_='btn btn-primary') }}</div>
+      </form>
+    </div>
+  </div>
+  <form method="get" class="mb-3"> 
+    <div class="row">
+      <div class="col-md-4">
+        <select name="year" class="form-select" onchange="this.form.submit()">
+          <option value="">All Academic Years</option>
+          {% for y in years %}
+            <option value="{{ y.name }}" {% if selected_year==y.name %}selected{% endif %}>{{ y.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+  </form>
+  <div class="mb-3">
+    <a href="{{ url_for('export_students', year=selected_year) }}" class="btn btn-outline-secondary">Export Students CSV</a>
+    <a href="{{ url_for('report_students_pdf', year=selected_year) }}" class="btn btn-outline-primary ms-2">Download Students PDF</a>
+   
+  
+  </div>
+  <h4>Registered Students</h4>
+  <table class="table table-bordered table-striped">
+    <thead>
+      <tr><th>Photo</th><th>ID</th><th>Name</th><th>Class</th><th>Email</th><th>Year</th><th>Edit</th></tr>
+    </thead>
+    <tbody>
+      {% for s in students %}
+      <tr>
+        <td>
+          <img src="{{ s.photo_url }}" alt="{{ s.first_name }} {{ s.last_name }}" class="img-thumbnail" style="max-width: 60px;">
+        </td>
+        <td>{{ s.student_id }}</td>
+        <td>{{ s.first_name }} {{ s.last_name }}</td>
+        <td>{{ s.klass }}</td>
+        <td>{{ s.email }}</td>
+        <td>{{ s.current_year or '-' }}</td>
+        <td><a href="{{ url_for('edit_student', student_id=s.id) }}" class="btn btn-sm btn-warning">Edit</a></td>
+      </tr>
+      {% else %}
+      <tr><td colspan="7" class="text-center">No students registered yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

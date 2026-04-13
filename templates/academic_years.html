@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+{% block title %}Academic Years{% endblock %}
+{% block content %}
+<div class="container mt-4">
+  <h2>Academic Years</h2>
+  <div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <h5 class="mb-0">Create New Academic Year</h5>
+      <div class="text-muted small">Keep your calendar up to date</div>
+    </div>
+    <div class="card-body">
+      <form method="POST" class="row g-3">
+        {{ form.hidden_tag() }}
+        <div class="col-md-4">
+          {{ form.name.label(class_='form-label') }}
+          {{ form.name(class_='form-control', placeholder='2025-2026') }}
+        </div>
+        <div class="col-md-3">
+          {{ form.start_date.label(class_='form-label') }}
+          {{ form.start_date(class_='form-control') }}
+        </div>
+        <div class="col-md-3">
+          {{ form.end_date.label(class_='form-label') }}
+          {{ form.end_date(class_='form-control') }}
+        </div>
+        <div class="col-md-1 d-flex align-items-end">
+          <div class="form-check form-switch">
+            {{ form.is_active(class_='form-check-input', id='is_active_toggle') }}
+            <label class="form-check-label" for="is_active_toggle">Active</label>
+          </div>
+        </div>
+        <div class="col-md-1 d-flex align-items-end">
+          {{ form.submit(class_='btn btn-primary w-100') }}
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h5 class="mb-0">Academic Year History</h5>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-striped align-middle mb-0">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Start</th>
+            <th>End</th>
+            <th>Status</th>
+            <th style="width: 220px;">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for y in years %}
+          <tr>
+            <td>
+              <div class="fw-semibold">{{ y.name }}</div>
+              <div class="text-muted small">Created {{ y.created_on.strftime('%b %d, %Y') if y.created_on else '—' }}</div>
+            </td>
+            <td>{{ y.start_date.strftime('%b %d, %Y') if y.start_date else '-' }}</td>
+            <td>{{ y.end_date.strftime('%b %d, %Y') if y.end_date else '—' }}</td>
+            <td>
+              {% if y.is_active %}
+                <span class="badge bg-success">Active</span>
+              {% else %}
+                <span class="badge bg-secondary">Ended</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if y.is_active %}
+                <div class="d-flex gap-2">
+                  <form method="POST" action="{{ url_for('end_academic_year', year_id=y.id) }}">
+                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Mark {{ y.name }} as ended?')">End Year</button>
+                  </form>
+                  <form method="POST" action="{{ url_for('reregister_students') }}">
+                    <button type="submit" class="btn btn-sm btn-outline-primary" onclick="return confirm('Move all students to the current active year?')">Re-register Students</button>
+                  </form>
+                </div>
+              {% else %}
+                <span class="text-muted small">No actions available</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="5" class="text-center py-4 text-muted">
+              No academic years yet. Start by creating one above.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

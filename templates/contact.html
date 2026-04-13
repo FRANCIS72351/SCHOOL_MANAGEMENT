@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}Contact Us - Modern School System{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+  <div class="row g-4 align-items-center">
+    <div class="col-lg-6">
+      <h1 class="fw-bold text-primary mb-3">Get in Touch</h1>
+      <p class="text-muted mb-4">
+        Have questions or need assistance? Our team is here to support your academic journey.
+        Reach out using the details below or send us a message.
+      </p>
+      <div class="d-flex align-items-start mb-3">
+        <div class="me-3 text-primary fs-3">
+          <span class="material-symbols-rounded">call</span>
+        </div>
+        <div>
+          <h5 class="fw-semibold mb-1">Phone</h5>
+          <p class="mb-0">+231---775--275--959</p>
+        </div>
+      </div>
+      <div class="d-flex align-items-start mb-3">
+        <div class="me-3 text-primary fs-3">
+          <span class="material-symbols-rounded">mail</span>
+        </div>
+        <div>
+          <h5 class="fw-semibold mb-1">Email</h5>
+          <p class="mb-0">xhangocharm@gmail.com</p>
+        </div>
+      </div>
+      <div class="d-flex align-items-start mb-3">
+        <div class="me-3 text-primary fs-3">
+          <span class="material-symbols-rounded">location_on</span>
+        </div>
+        <div>
+          <h5 class="fw-semibold mb-1">Location</h5>
+          <p class="mb-0">Monrovia, Liberia<br>Muslin Congress high School</p>
+        </div>
+      </div>
+      <div class="mt-4">
+        <h5 class="fw-semibold">Office Hours</h5>
+        <p class="mb-1">Monday - Friday: 8:00 AM - 5:00 PM</p>
+        <p class="mb-0">Saturday: 9:00 AM - 1:00 PM</p>
+      </div>
+    </div>
+
+    <div class="col-lg-6">
+      <div class="card shadow-lg border-0 rounded-4">
+        <div class="card-body p-4">
+          <h4 class="fw-semibold text-primary mb-3">Send Us a Message</h4>
+          <form>
+            <div class="mb-3">
+              <label for="contactName" class="form-label">Full Name</label>
+              <input type="text" class="form-control" id="contactName" placeholder="Your Name" required>
+            </div>
+            <div class="mb-3">
+              <label for="contactEmail" class="form-label">Email Address</label>
+              <input type="email" class="form-control" id="contactEmail" placeholder="name@example.com" required>
+            </div>
+            <div class="mb-3">
+              <label for="contactSubject" class="form-label">Subject</label>
+              <input type="text" class="form-control" id="contactSubject" placeholder="How can we help?">
+            </div>
+            <div class="mb-3">
+              <label for="contactMessage" class="form-label">Message</label>
+              <textarea class="form-control" id="contactMessage" rows="4" placeholder="Enter your message" required></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary w-100">Submit</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row mt-5">
+    <div class="col-12">
+      <div class="ratio ratio-16x9 shadow rounded" style="overflow: hidden;">
+        <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3937.409967785771!2d-10.796655684827467!3d6.3162859273765725!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x101f3f39eded10f1%3A0xc38b3c205b5b6189!2sMonrovia%2C%20Liberia!5e0!3m2!1sen!2s!4v1700000000000!5m2!1sen!2s"
+                width="600" height="450" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
