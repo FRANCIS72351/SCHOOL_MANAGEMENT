@@ -3,9 +3,94 @@
 {% block content %}
 <div class="container mt-4">
   <h2>Registrar Dashboard</h2>
+
+  <!-- User Profile Section -->
+  <div class="card mb-4" style="background: rgba(10, 10, 25, 0.8); border: 1px solid #00f2ff; color: white;">
+    <div class="card-body">
+      <h5 class="card-title" style="color: #00f2ff;">My Profile</h5>
+      <div class="row">
+        <div class="col-md-3">
+          {% if current_user.photo %}
+            <img src="{{ url_for('static', filename=current_user.photo) }}" class="img-fluid rounded" alt="Profile Photo">
+          {% else %}
+            <img src="{{ url_for('static', filename='images/default-user.png') }}" class="img-fluid rounded" alt="Default Profile">
+          {% endif %}
+        </div>
+        <div class="col-md-9">
+          <h4>{{ current_user.full_name }}</h4>
+          <p><strong>Email:</strong> {{ current_user.email }}</p>
+          {% if current_user.home_address %}
+          <p><strong>Home Address:</strong> {{ current_user.home_address }}</p>
+          {% endif %}
+          {% if current_user.telephone_number %}
+          <p><strong>Telephone:</strong> {{ current_user.telephone_number }}</p>
+          {% endif %}
+          <p><strong>Role:</strong> {{ current_user.role|title }}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Active Academic Year -->
+  <div class="alert alert-info mb-4" style="background: rgba(0, 123, 255, 0.1); border: 1px solid #00f2ff; color: #00f2ff;">
+    <strong>Active Academic Year:</strong> {{ active_year.name }} ({{ active_year.start_date }} - {{ active_year.end_date }})
+  </div>
+    <div class="col-md-4">
+      <div class="card p-3 shadow-sm border-primary">
+        <div class="fw-bold text-primary">Total Students</div>
+        <div class="h3 mb-0">{{ counts.students }}</div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card p-3 shadow-sm border-success">
+        <div class="fw-bold text-success">New Students</div>
+        <div class="h3 mb-0">{{ counts.new_students }}</div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card p-3 shadow-sm border-info">
+        <div class="fw-bold text-info">Returning Students</div>
+        <div class="h3 mb-0">{{ counts.returning_students }}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card mb-4">
+    <div class="card-body">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4 class="mb-0">Class Folders</h4>
+        <form method="get" class="d-flex" style="gap: 0.5rem;">
+          <input type="text" name="search_class" class="form-control form-control-sm" placeholder="Search classes..." value="{{ search_class }}" />
+          <button type="submit" class="btn btn-sm btn-primary">Search</button>
+        </form>
+      </div>
+      <div class="row">
+        {% if classes %}
+          {% for klass in classes %}
+            <div class="col-md-4 mb-3">
+              <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                  <h5 class="card-title">{{ klass.name }}</h5>
+                  <p class="card-text text-muted">{{ klass.description or 'No description' }}</p>
+                  <p class="mb-2"><strong>Students:</strong> {{ klass.student_count }}</p>
+                  <a href="{{ url_for('registrar_class_students', class_id=klass.id) }}" class="btn btn-sm btn-primary">View Students</a>
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        {% else %}
+          <div class="col-12">
+            <p class="text-muted">No classes match your search.</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
   <div class="card mb-4">
     <div class="card-body">
       <h4>Register New Student</h4>
+      <p><a href="{{ url_for('register_student') }}" class="btn btn-outline-primary">Go to Full Registration Form</a></p>
       <form method="POST" enctype="multipart/form-data">
         {{ form.hidden_tag() }}
         <div class="row">
@@ -16,15 +101,19 @@
         <div class="row">
           <div class="col-md-4 mb-2">{{ form.dob.label }} {{ form.dob(class_='form-control') }}</div>
           <div class="col-md-4 mb-2">{{ form.gender.label }} {{ form.gender(class_='form-select') }}</div>
+          <div class="col-md-4 mb-2">{{ form.level.label }} {{ form.level(class_='form-select') }}</div>
+        </div>
+        <div class="row">
           <div class="col-md-4 mb-2">{{ form.parent_email.label }} {{ form.parent_email(class_='form-control') }}</div>
-        </div>
-        <div class="row">
-          <div class="col-md-4 mb-2">{{ form.klass.label }} {{ form.klass(class_='form-select') }}</div>
-          <div class="col-md-4 mb-2">{{ form.academic_year.label }} {{ form.academic_year(class_='form-select') }}</div>
           <div class="col-md-4 mb-2">{{ form.email.label }} {{ form.email(class_='form-control') }}</div>
+          <div class="col-md-4 mb-2">{{ form.klass.label }} {{ form.klass(class_='form-select') }}</div>
         </div>
         <div class="row">
+          <div class="col-md-4 mb-2">{{ form.registration_fees.label }} {{ form.registration_fees(class_='form-control') }}</div>
           <div class="col-md-4 mb-2">{{ form.password.label }} {{ form.password(class_='form-control') }}</div>
+          <div class="col-md-4 mb-2">{{ form.academic_year.label }} {{ form.academic_year(class_='form-select') }}</div>
+        </div>
+        <div class="row">
           <div class="col-md-4 mb-2">{{ form.photo.label }} {{ form.photo(class_='form-control') }}</div>
         </div>
         <div class="mb-2">{{ form.submit(class_='btn btn-primary') }}</div>

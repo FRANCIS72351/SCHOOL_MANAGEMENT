@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+{% block title %}Class Students - Fee Management - {{ klass.name }}{% endblock %}
+{% block content %}
+<div class="container mt-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h2>Class Folder: {{ klass.name }} - Fee Management</h2>
+      <p class="text-muted mb-0">{{ klass.description or 'No description provided.' }}</p>
+      {% if active_year %}
+        <small class="text-muted">Active Academic Year: {{ active_year.name }}</small>
+      {% endif %}
+    </div>
+    <div>
+      <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Back to Business Dashboard</a>
+      <a href="{{ url_for('business_management') }}" class="btn btn-primary">Go to Payment System</a>
+    </div>
+  </div>
+
+  <div class="card mb-4">
+    <div class="card-body">
+      <h5>Students in {{ klass.name }} - Fee Management</h5>
+      <table class="table table-striped mt-3">
+        <thead>
+          <tr>
+            <th>Photo</th>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Year</th>
+            <th>Registration Fees</th>
+            <th>Total Paid</th>
+            <th>Payment Count</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for student in students %}
+            <tr>
+              <td>
+                {% if student.photo_url %}
+                  <img src="{{ student.photo_url }}" alt="{{ student.first_name }} {{ student.last_name }}" class="img-thumbnail" style="max-width: 50px;" />
+                {% else %}
+                  <span class="text-muted">No photo</span>
+                {% endif %}
+              </td>
+              <td>{{ student.student_id }}</td>
+              <td>{{ student.first_name }} {{ student.last_name }}</td>
+              <td>{{ student.email }}</td>
+              <td>{{ student.academic_year }}</td>
+              <td>${{ "{:.2f}".format(student.registration_fees) }}</td>
+              <td>${{ "{:.2f}".format(student.total_paid) }}</td>
+              <td>{{ student.payment_count }}</td>
+              <td>
+                <a href="{{ url_for('business_management', student_search=student.student_id) }}" class="btn btn-sm btn-success">Record Payment</a>
+              </td>
+            </tr>
+          {% else %}
+            <tr>
+              <td colspan="9" class="text-center">No students are currently assigned to this class.</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

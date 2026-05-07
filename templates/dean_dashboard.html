@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+
+{% block title %}Dean Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Personal Information Section -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-2 text-center">
+                            {% if current_user.photo %}
+                                <img src="{{ url_for('static', filename=current_user.photo) }}" 
+                                     class="rounded-circle img-fluid" 
+                                     style="width: 80px; height: 80px; object-fit: cover;" 
+                                     alt="Profile Photo">
+                            {% else %}
+                                <img src="{{ url_for('static', filename='images/default-user.png') }}" 
+                                     class="rounded-circle img-fluid" 
+                                     style="width: 80px; height: 80px; object-fit: cover;" 
+                                     alt="Default Profile Photo">
+                            {% endif %}
+                        </div>
+                        <div class="col-md-10">
+                            <h3 class="mb-1">{{ current_user.full_name }}</h3>
+                            <p class="text-muted mb-1">{{ current_user.email }}</p>
+                            <span class="badge bg-warning text-dark">{{ current_user.role }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <h1 class="h3 mb-4 text-gray-800">Dean Dashboard - Disciplinary Overview</h1>
+        </div>
+    </div>
+
+    <!-- Disciplinary Summary Cards -->
+    <div class="row">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Active Suspensions</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ active_suspensions }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-exclamation-triangle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-danger shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
+                                Total Suspensions</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_suspensions }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-ban fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Suspensions -->
+    <div class="row">
+        <div class="col-xl-6 col-lg-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Recent Suspensions</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered" width="100%" cellspacing="0">
+                            <thead>
+                                <tr>
+                                    <th>Student</th>
+                                    <th>Reason</th>
+                                    <th>Start Date</th>
+                                    <th>Return Date</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for suspension in recent_suspensions %}
+                                <tr>
+                                    <td>{{ suspension.student.first_name }} {{ suspension.student.last_name }}</td>
+                                    <td>{{ suspension.reason }}</td>
+                                    <td>{{ suspension.start_date.strftime('%Y-%m-%d') }}</td>
+                                    <td>{{ suspension.return_date.strftime('%Y-%m-%d') }}</td>
+                                    <td>
+                                        {% if suspension.return_date > current_time %}
+                                            <span class="badge badge-warning">Active</span>
+                                        {% else %}
+                                            <span class="badge badge-success">Completed</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Discipline Incidents -->
+        <div class="col-xl-6 col-lg-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Recent Discipline Incidents</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered" width="100%" cellspacing="0">
+                            <thead>
+                                <tr>
+                                    <th>Student</th>
+                                    <th>Incident</th>
+                                    <th>Date</th>
+                                    <th>Action Taken</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for incident in discipline_incidents %}
+                                <tr>
+                                    <td>{{ incident.student.first_name }} {{ incident.student.last_name }}</td>
+                                    <td>{{ incident.incident }}</td>
+                                    <td>{{ incident.date.strftime('%Y-%m-%d') }}</td>
+                                    <td>{{ incident.action_taken }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Students with Disciplinary Records -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Students with Disciplinary Records</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                            <thead>
+                                <tr>
+                                    <th>Student Name</th>
+                                    <th>Class</th>
+                                    <th>Number of Incidents</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for student, count in students_with_discipline %}
+                                <tr>
+                                    <td>{{ student.first_name }} {{ student.last_name }}</td>
+                                    <td>{{ student.class_name }}</td>
+                                    <td>{{ count }}</td>
+                                    <td>
+                                        <a href="{{ url_for('student_detail', student_id=student.id) }}" class="btn btn-sm btn-info">View Details</a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

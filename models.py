@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from flask_login import UserMixin
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -23,6 +23,8 @@ class User(db.Model, UserMixin):
     full_name = db.Column(db.String(120), nullable=False)
     photo = db.Column(db.String(200))
     totp_secret = db.Column(db.String(32)) # 2FA
+    home_address = db.Column(db.String(255))
+    telephone_number = db.Column(db.String(20))
                         
     def set_password(self, password):
         """Hash and store the provided plaintext password."""
@@ -41,7 +43,7 @@ class SecurityLog(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     ip_address = db.Column(db.String(45))
     event = db.Column(db.String(100))  # e.g., "FAILED_LOGIN", "SUSPENDED_ENTRY"
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    timestamp = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
 class Suspension(db.Model):
     __tablename__ = "suspensions"
@@ -115,10 +117,18 @@ class Student(db.Model):
     gender = db.Column(db.String(10), nullable=False)
     parent_email = db.Column(db.String(120))
     photo = db.Column(db.String(200))
+    photo_filename = db.Column(db.String(200), default='default_student.png')  # For admissions photos
     status = db.Column(db.String(20), default='ACTIVE')  # ACTIVE, SUSPENDED, REPEAT
     grade_level = db.Column(db.Integer)  # 1-12
+    level = db.Column(db.String(50))  # Elementary, Junior High, Senior High
+    student_id_code = db.Column(db.String(20), unique=True)
     klass_id = db.Column(db.Integer, db.ForeignKey("class.id"))
     academic_year_id = db.Column(db.Integer, db.ForeignKey("academic_year.id"))
+    registration_type = db.Column(db.String(20), default='New')  # 'New' or 'Returning'
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    tuition_cleared = db.Column(db.Boolean, default=False)  # Financial clearance for report cards
+    registrar = db.Column(db.String(100))  # Registrar who registered the student
+    registration_fees = db.Column(db.Float, default=0.0)  # Registration fees paid
 
     user = db.relationship("User", backref=db.backref("student_profile", uselist=False))
     klass = db.relationship("Class", backref=db.backref("students", lazy="dynamic"))
@@ -224,7 +234,9 @@ class StudentPayment(db.Model):
     student_id = db.Column(db.Integer, db.ForeignKey("student.id"), nullable=False)
     academic_year_id = db.Column(db.Integer, db.ForeignKey("academic_year.id"), nullable=False)
     term = db.Column(db.Integer, nullable=False)
+    installment = db.Column(db.Integer, nullable=True)  # 1, 2, 3
     amount_paid = db.Column(db.Float, nullable=False)
+    description = db.Column(db.String(250), nullable=True) # "Tuition", "Uniform", etc.
     paid_on = db.Column(db.DateTime, default=datetime.utcnow)
 
     student = db.relationship("Student", backref="payments")
@@ -287,17 +299,33 @@ class Grade(db.Model):
     student_id = db.Column(db.Integer, db.ForeignKey("student.id"))
     teacher_id = db.Column(db.Integer, db.ForeignKey("teacher.id"))
     subject = db.Column(db.String(120))
+    subject_name = db.Column(db.String(100))
     score = db.Column(db.Float)
     ca_score = db.Column(db.Float)  # 60%
     exam_score = db.Column(db.Float)  # 40%
     marking_period = db.Column(db.Integer)  # 1-6
     period = db.Column(db.Integer)
+    # Liberia MoE 6-Period System
+    p1 = db.Column(db.Integer, default=0)
+    p2 = db.Column(db.Integer, default=0)
+    p3 = db.Column(db.Integer, default=0)
+    p4 = db.Column(db.Integer, default=0)
+    p5 = db.Column(db.Integer, default=0)
+    p6 = db.Column(db.Integer, default=0)
     activity_type = db.Column(db.String(50))
     submitted = db.Column(db.Boolean, default=False)
     remarks = db.Column(db.String(200))
+    is_finalized = db.Column(db.Boolean, default=False)  # Locked by Registrar
 
     student = db.relationship("Student", backref="grades")
     teacher = db.relationship("Teacher", backref="grades")
+
+    @property
+    def final_average(self):
+        scores = [self.p1, self.p2, self.p3, self.p4, self.p5, self.p6]
+        # Only average periods that have a score > 0
+        valid_scores = [s for s in scores if s > 0]
+        return round(sum(valid_scores) / len(valid_scores), 1) if valid_scores else 0
 
 
 # --------------------------------------------------------------
@@ -357,4 +385,78 @@ class Discipline(db.Model):
     action_taken = db.Column(db.String(250))
     notes = db.Column(db.Text)
     created_at = db.Column(db.String(50), default='')
+
+
+# --- VPI (INSTITUTIONAL) LAYER ---
+class Asset(db.Model):
+    __tablename__ = "asset"
+    id = db.Column(db.Integer, primary_key=True)
+    item_name = db.Column(db.String(100))
+    status = db.Column(db.String(50))  # 'Functional', 'Broken'
+
+
+class MaintenanceTicket(db.Model):
+    __tablename__ = "maintenance_ticket"
+    id = db.Column(db.Integer, primary_key=True)
+    asset_id = db.Column(db.Integer, db.ForeignKey("asset.id"))
+    description = db.Column(db.Text)
+    priority = db.Column(db.String(20))  # Low, Medium, High
+    status = db.Column(db.String(20), default='Open')  # Open, In Progress, Closed
+    reported_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+class SchoolPermit(db.Model):
+    __tablename__ = "school_permit"
+    id = db.Column(db.Integer, primary_key=True)
+    permit_type = db.Column(db.String(100))
+    expiry_date = db.Column(db.Date)
+
+
+# --- VPA (ACADEMIC) LAYER ---
+class Course(db.Model):
+    __tablename__ = "course"
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100))
+    code = db.Column(db.String(20))
+
+
+class MarkingPeriod(db.Model):
+    __tablename__ = "marking_period"
+    id = db.Column(db.Integer, primary_key=True)
+    period_number = db.Column(db.Integer)  # 1st Period through 6th Period
+    is_active = db.Column(db.Boolean, default=False)
+    weight_ca = db.Column(db.Float, default=60.0)  # Continuous Assessment %
+    weight_exam = db.Column(db.Float, default=40.0)  # Exam %
+
+
+# --- DEAN (DISCIPLINE) LAYER ---
+class DisciplinaryLog(db.Model):
+    __tablename__ = "disciplinary_log"
+    id = db.Column(db.Integer, primary_key=True)
+    student_id = db.Column(db.Integer, db.ForeignKey("student.id"))
+    infraction = db.Column(db.String(200))
+    action_taken = db.Column(db.String(100))
+    timestamp = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+
+class Activity(db.Model):
+    __tablename__ = "activity"
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(120), nullable=False)
+    description = db.Column(db.Text)
+    file_name = db.Column(db.String(200)) # The task file for students to download
+    klass_id = db.Column(db.Integer, db.ForeignKey("class.id"))
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+
+    klass = db.relationship("Class", backref=db.backref("activities", lazy="dynamic"))
+
+class Submission(db.Model):
+    __tablename__ = "submission"
+    id = db.Column(db.Integer, primary_key=True)
+    activity_id = db.Column(db.Integer, db.ForeignKey("activity.id"))
+    student_id = db.Column(db.Integer, db.ForeignKey("student.id"))
+    file_path = db.Column(db.String(200), nullable=False)
+    submitted_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+
+    activity = db.relationship("Activity", backref=db.backref("submissions", lazy="dynamic"))
+    student = db.relationship("Student", backref=db.backref("submissions", lazy="dynamic"))
 

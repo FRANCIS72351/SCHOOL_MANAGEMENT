@@ -21,6 +21,15 @@ SCHEMA_UPDATES = (
     # Student model updates
     {"table": "student", "description": "Add status column", "sql": "ALTER TABLE student ADD COLUMN status VARCHAR(20) DEFAULT 'ACTIVE';"},
     {"table": "student", "description": "Add grade_level column", "sql": "ALTER TABLE student ADD COLUMN grade_level INTEGER;"},
+    {"table": "student", "description": "Add level column", "sql": "ALTER TABLE student ADD COLUMN level VARCHAR(50);"},
+    {"table": "student", "description": "Add student_id_code column", "sql": "ALTER TABLE student ADD COLUMN student_id_code VARCHAR(20);"},
+    {"table": "student", "description": "Add klass_id column", "sql": "ALTER TABLE student ADD COLUMN klass_id INTEGER REFERENCES class(id);"},
+    {"table": "student", "description": "Add academic_year_id column", "sql": "ALTER TABLE student ADD COLUMN academic_year_id INTEGER REFERENCES academic_year(id);"},
+    {"table": "student", "description": "Add registration_type column", "sql": "ALTER TABLE student ADD COLUMN registration_type VARCHAR(20) DEFAULT 'New';"},
+    {"table": "student", "description": "Add created_at column", "sql": "ALTER TABLE student ADD COLUMN created_at DATETIME DEFAULT CURRENT_TIMESTAMP;"},
+    {"table": "student", "description": "Add tuition_cleared column", "sql": "ALTER TABLE student ADD COLUMN tuition_cleared BOOLEAN DEFAULT 0;"},
+    {"table": "student", "description": "Add registrar column", "sql": "ALTER TABLE student ADD COLUMN registrar VARCHAR(100);"},
+    {"table": "student", "description": "Add registration_fees column", "sql": "ALTER TABLE student ADD COLUMN registration_fees FLOAT DEFAULT 0.0;"},
     
     # BusinessTransaction model updates
     {"table": "business_transaction", "description": "Add academic_year column", "sql": "ALTER TABLE business_transaction ADD COLUMN academic_year VARCHAR(32);"},

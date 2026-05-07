@@ -6,6 +6,11 @@
     <title>{% block title %}School System{% endblock %}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+      .card, .alert, .btn, .form-control, .navbar, .badge, .img-fluid {
+        border-radius: 2px !important;
+      }
+    </style>
   </head>
   <body>
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4">
@@ -23,6 +28,15 @@
               <li class="nav-item"><a class="nav-link" href="{{ url_for('dashboard') }}">Dashboard</a></li>
               {% if current_user.role == "Principal" %}
                 <li class="nav-item"><a class="nav-link" href="{{ url_for('principal_dashboard') }}">Principal Dash</a></li>
+              {% endif %}
+              {% if current_user.role == "VPA" %}
+                <li class="nav-item"><a class="nav-link" href="{{ url_for('vpa_dashboard') }}">VPA Dashboard</a></li>
+              {% endif %}
+              {% if current_user.role == "VPI" %}
+                <li class="nav-item"><a class="nav-link" href="{{ url_for('vpi_dashboard') }}">VPI Dashboard</a></li>
+              {% endif %}
+              {% if current_user.role == "Dean" %}
+                <li class="nav-item"><a class="nav-link" href="{{ url_for('dean_dashboard') }}">Dean Dashboard</a></li>
               {% endif %}
               {% if announcements_link %}
                 <li class="nav-item"><a class="nav-link" href="{{ url_for('announcements') }}">Announcements</a></li>

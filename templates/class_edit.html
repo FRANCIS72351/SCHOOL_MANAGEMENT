@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% block title %}Edit Class{% endblock %}
+{% block content %}
+<div class="container mt-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Edit Class: {{ klass.name }}</h2>
+    <a href="{{ url_for('class_create') }}" class="btn btn-secondary">Back to Class Management</a>
+  </div>
+
+  <div class="row justify-content-center">
+    <div class="col-lg-6">
+      <div class="card shadow">
+        <div class="card-header bg-warning text-dark">
+          <h5 class="mb-0">Class Details</h5>
+        </div>
+        <div class="card-body">
+          <form method="post">
+            {{ form.hidden_tag() }}
+            <div class="mb-3">
+              {{ form.name.label(class_='form-label') }}
+              {{ form.name(class_='form-control', placeholder='Grade 7 A') }}
+            </div>
+            <div class="mb-3">
+              {{ form.description.label(class_='form-label') }}
+              {{ form.description(class_='form-control', rows=3, placeholder='Homeroom class for Grade 7 A') }}
+            </div>
+            <div class="mb-3">
+              {{ form.yearly_fee.label(class_='form-label') }}
+              {{ form.yearly_fee(class_='form-control', placeholder='0.00') }}
+            </div>
+            <div class="mb-3">
+              {{ form.teacher_id.label(class_='form-label') }}
+              {{ form.teacher_id(class_='form-select') }}
+              <div class="form-text">Assign the homeroom teacher (optional)</div>
+            </div>
+            <div class="mb-3">
+              {{ form.sponsor_id.label(class_='form-label') }}
+              {{ form.sponsor_id(class_='form-select') }}
+              <div class="form-text">Attach a class sponsor (optional)</div>
+            </div>
+            <div class="d-grid gap-2">
+              <button type="submit" class="btn btn-primary">Update Class</button>
+              <a href="{{ url_for('class_create') }}" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

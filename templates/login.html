@@ -3,23 +3,24 @@
 
 <style>
   body {
-    background-image: url("/static/images/bg.jpg");
+    background-image: url("{{ url_for('static', filename='images/background.webp') }}");
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
-    height: 100vh;
+    min-height: 100vh;
     margin: 0;
   }
 
   .full-center {
-    height: 100vh;
+    min-height: 100vh;
     display: flex;
     justify-content: center;
     align-items: center;
   }
 
   .login-card {
-    background-image: url(static/images/back.webp);
+    background-image: url("{{ url_for('static', filename='images/back.webp') }}");
+    background-size: cover;
     border-radius: 15px;
     padding: 35px;
     width: 100%;
@@ -38,7 +39,7 @@
   <div class="login-card">
 
     <!-- LOGO -->
-    <img src="/static/images/logo.png" alt="Logo" class="logo">
+    <img src="{{ url_for('static', filename='images/LOGO.png') }}" alt="Logo" class="logo">
 
     <h3 class="text-center mb-4">Login</h3>
 

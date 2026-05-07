@@ -53,17 +53,24 @@ class RegisterStudentForm(FlaskForm):
         choices=[("Male", "Male"), ("Female", "Female"), ("Other", "Other")],
         validators=[DataRequired()]
     )
+    level = SelectField(
+        "Academic Level",
+        choices=[("Senior High", "Senior High"), ("Junior High", "Junior High"), ("Elementary", "Elementary")],
+        validators=[DataRequired()]
+    )
     student_id = StringField("Student ID", validators=[DataRequired()])
     parent_email = StringField("Parent Email", validators=[Optional(), Email()])
     photo = FileField("Photo", validators=[FileAllowed(["jpg", "png", "jpeg"], "Images only!")])
     klass = SelectField("Assign Class", coerce=int, validators=[Optional()])
     academic_year = SelectField("Academic Year", coerce=int, validators=[Optional()])
+    registration_fees = FloatField("Registration Fees", validators=[Optional()])
     submit = SubmitField("Register")
 
 
 class ClassForm(FlaskForm):
     name = StringField("Class Name", validators=[DataRequired()])
     description = TextAreaField("Description", validators=[Optional()])
+    yearly_fee = FloatField("Yearly Fee", validators=[Optional()])
     teacher_id = IntegerField("Teacher Internal ID", validators=[Optional()])
     submit = SubmitField("Save Class")
 
@@ -71,6 +78,7 @@ class ClassForm(FlaskForm):
 class CreateClassForm(FlaskForm):
     name = StringField('Class Name', validators=[DataRequired()])
     description = TextAreaField('Description', validators=[Optional()])
+    yearly_fee = FloatField("Yearly Fee", validators=[Optional()])
     teacher_id = SelectField('Teacher', coerce=int, validators=[Optional()])
     sponsor_id = SelectField('Sponsor', coerce=int, validators=[Optional()])
     submit = SubmitField('Save Class')
@@ -96,10 +104,17 @@ class PaymentForm(FlaskForm):
     academic_year = SelectField("Academic Year", coerce=int, validators=[DataRequired()])
     term = SelectField(
         "Term",
-        choices=[(1, "Term 1"), (2, "Term 2"), (3, "Term 3"), (4, "Term 4")],
+        choices=[(1, "Semester 1"), (2, "Semester 2")],
         coerce=int,
         validators=[DataRequired()]
     )
+    installment = SelectField(
+        "Installment",
+        choices=[(0, "None / Full Payment"), (1, "1st Installment"), (2, "2nd Installment"), (3, "3rd Installment")],
+        coerce=int,
+        validators=[Optional()]
+    )
+    description = StringField("Fee Description (e.g. Tuition, Uniform, Graduation)", validators=[Optional()])
     amount_paid = FloatField("Amount Paid", validators=[DataRequired()])
     submit = SubmitField("Record Payment")
 
@@ -226,9 +241,15 @@ class CreateUserForm(FlaskForm):
         ('teacher', 'Teacher'),
         ('student', 'Student'),
         ('parent', 'Parent'),
-        ('sponsor', 'Sponsor'),
-        ('registrar', 'Registrar')
+        ('business', 'Business Manager'),
+        ('registrar', 'Registrar'),
+        ('Principal', 'Principal'),
+        ('VPI', 'VPI'),
+        ('VPA', 'VPA'),
+        ('Dean', 'Dean')
     ], validators=[DataRequired()])
+    home_address = StringField('Home Address', validators=[Optional()])
+    telephone_number = StringField('Telephone Number', validators=[Optional()])
     photo = FileField('Profile Photo', validators=[FileAllowed(['jpg', 'jpeg', 'png', 'gif'], 'Images only!')])
     submit = SubmitField('Create User')
 

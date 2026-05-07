@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Report Card - {{ data.student_name }}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            padding: 20px;
+        }
+        .report-card {
+            background: white;
+            padding: 40px;
+            max-width: 900px;
+            margin: auto;
+            border: 2px solid #000;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .moe-header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 3px double #000;
+            padding-bottom: 20px;
+        }
+        .moe-header h2 {
+            margin: 5px 0;
+            color: #002D62;
+        }
+        .moe-header h3 {
+            margin: 5px 0;
+            color: #d9534f;
+        }
+        table {
+            width: 100%;
+            border: 2px solid black;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th {
+            background-color: #002D62; /* MoE Blue */
+            color: white;
+            font-size: 12px;
+            padding: 8px;
+            border: 1px solid black;
+        }
+        td {
+            border: 1px solid black;
+            font-size: 14px;
+            height: 30px;
+            text-align: center;
+            padding: 5px;
+        }
+        .subject-name {
+            text-align: left;
+            padding-left: 10px;
+            font-weight: bold;
+        }
+        .footer {
+            margin-top: 50px;
+            display: flex;
+            justify-content: space-around;
+        }
+        .sig {
+            text-align: center;
+            width: 200px;
+        }
+        @media print {
+            body { background: none; padding: 0; }
+            .report-card { border: none; width: 100%; box-shadow: none; }
+            .no-print { display: none; }
+            .moe-header h2 { color: #000 !important; text-transform: uppercase; }
+            .moe-header h3 { color: #000 !important; }
+        }
+    </style>
+</head>
+<body>
+    <div class="no-print" style="margin-bottom: 20px; text-align: right;">
+        <button onclick="window.print()" style="padding: 10px 20px; cursor: pointer;">Print Report Card</button>
+    </div>
+
+    <div class="report-card">
+        <div class="moe-header">
+            <img src="{{ url_for('static', filename='images/LOGO.png') }}" alt="Republic of Liberia" width="80">
+            <h2>STANDERD SCHOOL MANAGEMENT</h2>
+            <h3>MINISTRY OF EDUCATION</h3>
+            <div style="margin-top: 15px; font-weight: bold;">
+                <p>STUDENT PROGRESS REPORT</p>
+                <p>NAME: {{ data.student_name }} | ID: {{ data.student_id }}</p>
+                <p><strong>School Level:</strong> {{ data.level }}</p>
+            </div>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th rowspan="2">Subject</th>
+                    <th colspan="3">1st Semester</th>
+                    <th colspan="3">2nd Semester</th>
+                    <th rowspan="2">Final Avg</th>
+                </tr>
+                <tr>
+                    <th>P1</th><th>P2</th><th>P3</th>
+                    <th>P4</th><th>P5</th><th>P6</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for subject in data.subjects %}
+                <tr>
+                    <td class="subject-name">{{ Physic }}</td>
+                     <td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+                </tr>
+                 <tr>
+                    <td class="subject-name">{{ English }}</td>
+                     <td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+                </tr>
+                 <tr>
+                    <td class="subject-name">{{  Chemistry}}</td>
+                     <td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+                </tr>
+                <tr>
+                    <td class="subject-name">{{ Religious/Education }}</td>
+                     <td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+                </tr>
+                    <tr>
+                    <td class="subject-name">{{ Economic }}</td>
+                     <td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+                </tr>
+                    <tr>
+                    <td class="subject-name">{{ Vocabulary }}</td>
+                     <td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+                </tr>
+                    <tr>
+                    <td class="subject-name">{{ Geography}}</td>
+                     <td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+                </tr>
+                    <tr>
+                    <td class="subject-name">{{Mathematics }}</td>
+                     <td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+                </tr>
+                    <tr>
+                    <td class="subject-name">{{ Accounting }}</td>
+                     <td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+                </tr>
+                    <tr>
+                    <td class="subject-name">{{ Civics }}</td>
+                     <td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+                </tr>
+                    <tr>
+                    <td class="subject-name">{{ History }}</td>
+                     <td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+                </tr>
+                    <tr>
+                    <td class="subject-name">{{ Biology }}</td>
+                     <td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+                </tr>
+                 <tr>
+                    <td class="subject-name">{{ French }}</td>
+                     <td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+                </tr>
+                    <tr>
+                    <td class="subject-name">{{ Physical/Education }}</td>
+                     <td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+                </tr>
+                    <tr>
+                    <td class="subject-name">{{ Home/Art }}</td>
+                     <td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+                </tr>
+                
+                   
+                   
+                   
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <div class="footer">
+            <div class="sig">_______________________<br>Teacher's Signature</div>
+            <div class="sig">_______________________<br>Principal's Signature</div>
+        </div>
+    </div>
+</body>
+</html>

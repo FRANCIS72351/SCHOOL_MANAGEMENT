@@ -1,175 +1,215 @@
 {% extends 'base.html' %}
-{% block title %}Business Management{% endblock %}
+{% block title %}Business & Institutional Management{% endblock %}
 {% block content %}
 
 <div class="container mt-4">
-  <h2>Business Transactions</h2>
-  <form method="get" class="mb-3">
-    <div class="row">
-      <div class="col-md-4">
-        <select name="year" class="form-select" onchange="this.form.submit()">
-          <option value="">All Academic Years</option>
-          {% for y in years %}
-            <option value="{{ y.name }}" {% if selected_year==y.name %}selected{% endif %}>{{ y.name }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="col-md-4 d-flex align-items-center gap-2">
-        <a href="{{ url_for('export_business', year=selected_year) }}" class="btn btn-outline-secondary">Export CSV</a>
-        <a href="{{ url_for('report_business_pdf', year=selected_year) }}" class="btn btn-outline-primary">Download PDF</a>
-        <a href="{{ url_for('business_overview') }}" class="btn btn-outline-info">Overview</a>
-        <a href="{{ url_for('payroll_summary') }}" class="btn btn-outline-info">Payroll Summary</a>
-        <a href="{{ url_for('financial_reports') }}" class="btn btn-outline-info">Reports</a>
-      </div>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Business & Institutional Engine</h2>
+        <span class="badge bg-secondary">VPI Oversight Mode</span>
     </div>
-  </form>
-  <div class="row">
-    <div class="col-md-6">
-      <div class="card mb-3">
-        <div class="card-body">
-          <h5>Total Income: <span class="text-success">₱{{ income_total }}</span></h5>
-          <h5>Total Expense: <span class="text-danger">₱{{ expense_total }}</span></h5>
-          <h5>Net: <span class="fw-bold">₱{{ income_total - expense_total }}</span></h5>
-        </div>
-      </div>
-    </div>
-  </div>
-  <div class="row">
-    <div class="col-md-6">
-      <div class="card mb-4">
-        <div class="card-header bg-light"><h5>Record Daily Transaction</h5></div>
-        <div class="card-body">
-          <form method="post">
-            {{ form.hidden_tag() }}
-            <div class="row g-2">
-              <div class="col-md-6">{{ form.date(class_='form-control') }}</div>
-              <div class="col-md-6">{{ form.type(class_='form-select') }}</div>
-            </div>
-            <div class="row g-2 mt-2">
-              <div class="col-md-6">{{ form.amount(class_='form-control', placeholder='Amount') }}</div>
-              <div class="col-md-6">{{ form.category(class_='form-control', placeholder='Category') }}</div>
-            </div>
-            <div class="mt-2">{{ form.description(class_='form-control', rows='2') }}</div>
-            <button type="submit" class="btn btn-primary w-100 mt-3">Post Transaction</button>
-          </form>
-        </div>
-      </div>
-    </div>
-    <div class="col-md-6">
-      <div class="card mb-4" id="payment-card">
-        <div class="card-header bg-light"><h5>Record Student Payment</h5></div>
-        <div class="card-body">
-          <form method="post">
-            {{ payment_form.hidden_tag() }}
-            <div class="mb-2">{{ payment_form.student(class_='form-select', id='payment_student') }}</div>
-            <div class="row g-2">
-              <div class="col-md-6">{{ payment_form.term(class_='form-select') }}</div>
-              <div class="col-md-6">{{ payment_form.amount_paid(class_='form-control', placeholder='Amount') }}</div>
-            </div>
-            <button type="submit" class="btn btn-success w-100 mt-3">Post Payment</button>
-          </form>
-        </div>
-      </div>
-    </div>
-  </div>
 
-  <hr>
-  <h4>Institutional Enrollment Analytics</h4>
-  <div class="table-responsive">
-    <table class="table table-hover table-striped">
-      <thead class="table-dark">
-        <tr>
-          <th>Class</th>
-          <th>Students</th>
-          <th>Yearly Fee</th>
-          <th>Total Paid</th>
-          <th>Balance</th>
-          <th>Institutional Status</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for klass in class_search_results %}
-        <tr>
-          <td><strong>{{ klass.name }}</strong></td>
-          <td>{{ klass.students_count }}</td>
-          <td>₱{{ "{:,.2f}".format(klass.yearly_fee|float) }}</td>
-          <td>₱{{ "{:,.2f}".format(klass.total_collected|float) }}</td>
-          <td class="text-danger fw-bold">₱{{ "{:,.2f}".format(klass.balance|float) }}</td>
-          <td>
-            <span class="badge {{ 'bg-success' if klass.balance <= 0 else 'bg-warning text-dark' }}">
-              {{ 'Fully Funded' if klass.balance <= 0 else 'Arrears' }}
-            </span>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-  <hr>
-  <h4>Transaction History</h4>
-  <table class="table table-bordered table-striped">
-    <thead>
-      <tr>
-        <th>Date</th>
-        <th>Type</th>
-        <th>Amount</th>
-        <th>Category</th>
-        <th>Description</th>
-        <th>Actions</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for t in transactions %}
-      <tr>
-        <td>{{ t.date }}</td>
-        <td>{{ t.type|capitalize }}</td>
-        <td>₱{{ t.amount }}</td>
-        <td>{{ t.category }}</td>
-        <td>{{ t.description }}</td>
-        <td>
-          <form action="{{ url_for('soft_delete_transaction', id=t.id) }}" method="post" style="display:inline;">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Are you sure you want to remove this transaction from view?')">Delete</button>
-          </form>
-        </td>
-      </tr>
-      {% else %}
-      <tr><td colspan="6" class="text-center">No transactions yet.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
-  <div class="alert alert-info mt-3">
-    <strong>Note:</strong> Admin can only monitor business transactions. No changes allowed.
-  </div>
-</div>
-<div class="card mt-4">
-  <div class="card-header bg-dark text-white">Payroll Management</div>
-  <div class="card-body">
-    <h5>Staff Payroll Records</h5>
-    <a href="{{ url_for('add_payroll') }}" class="btn btn-success mb-3">Add Payroll Record</a>
-    <table class="table table-striped">
-      <thead>
-        <tr><th>Staff</th><th>Occupation</th><th>Month</th><th>Salary</th><th>Status</th><th>Actions</th></tr>
-      </thead>
-      <tbody>
-        {% for p in payrolls %}
-        <tr>
-          <td>{{ p.staff.first_name }} {{ p.staff.last_name }} ({{ p.staff.role }})</td>
-          <td>{{ p.occupation }}</td>
-          <td>{{ p.month }}</td>
-          <td>₱{{ p.salary_amount }}</td>
-          <td>{% if p.paid %}<span class="badge bg-success">Paid</span>{% else %}<span class="badge bg-warning text-dark">Pending</span>{% endif %}</td>
-          <td>
-            <a href="{{ url_for('edit_payroll', payroll_id=p.id) }}" class="btn btn-sm btn-primary">Edit</a>
-            <a href="{{ url_for('delete_payroll', payroll_id=p.id) }}" class="btn btn-sm btn-danger">Delete</a>
-          </td>
-        </tr>
-        {% else %}
-        <tr><td colspan="6" class="text-center">No payroll records yet.</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
+    <!-- Financial Summary Dashboard -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card bg-primary text-white shadow-sm border-0">
+                <div class="card-body">
+                    <h6 class="text-white-50">Total Revenue</h6>
+                    <h3 class="mb-0">₱{{ "{:,.2f}".format(income_total|float) }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-danger text-white shadow-sm border-0">
+                <div class="card-body">
+                    <h6 class="text-white-50">Total Expense</h6>
+                    <h3 class="mb-0">₱{{ "{:,.2f}".format(expense_total|float) }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-dark text-white shadow-sm border-0">
+                <div class="card-body">
+                    <h6 class="text-white-50">Institutional Net</h6>
+                    <h3 class="mb-0">₱{{ "{:,.2f}".format((income_total - expense_total)|float) }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Navigation Links -->
+    <div class="card mb-4 border-0 shadow-sm">
+        <div class="card-body d-flex gap-2 flex-wrap">
+            <a href="{{ url_for('business_overview') }}" class="btn btn-outline-info">Financial Overview</a>
+            <a href="{{ url_for('payroll_summary') }}" class="btn btn-outline-info">Payroll Records</a>
+            <a href="{{ url_for('daily_expense_report') }}" class="btn btn-outline-warning">Daily Expenses</a>
+            <a href="{{ url_for('export_business', year=selected_year) }}" class="btn btn-outline-secondary">Export CSV Data</a>
+        </div>
+    </div>
+
+    <!-- Data Entry Forms -->
+    <div class="row">
+        <!-- Daily Transaction Entry -->
+        <div class="col-md-6">
+            <div class="card mb-4 border-0 shadow-sm h-100">
+                <div class="card-header bg-white border-bottom py-3">
+                    <h5 class="mb-0 text-primary">Record Daily Transaction</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {{ form.hidden_tag() }}
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label small text-muted">Transaction Date</label>
+                                {{ form.date(class_='form-control') }}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small text-muted">Type</label>
+                                {{ form.type(class_='form-select') }}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small text-muted">Amount</label>
+                                {{ form.amount(class_='form-control', placeholder='₱0.00') }}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small text-muted">Category</label>
+                                {{ form.category(class_='form-control', placeholder='e.g. Utility, Salary') }}
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label small text-muted">Description</label>
+                                {{ form.description(class_='form-control', rows='2', placeholder='Details...') }}
+                            </div>
+                        </div>
+                        <button type="submit" name="submit_transaction" class="btn btn-primary w-100 mt-4">Post Transaction</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Student Payment Entry -->
+        <div class="col-md-6">
+             <div class="card mb-4 border-0 shadow-sm h-100" id="payment-card">
+                <div class="card-header bg-white border-bottom py-3">
+                    <h5 class="mb-0 text-success">Record Student Payment</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {{ payment_form.hidden_tag() }}
+                        <div class="mb-3">
+                            <label class="form-label small text-muted">Select Student</label>
+                            {{ payment_form.student(class_='form-select select2-enable', id='payment_student') }}
+                        </div>
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label small text-muted">Academic Year</label>
+                                {{ payment_form.academic_year(class_='form-select') }}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small text-muted">Term</label>
+                                {{ payment_form.term(class_='form-select') }}
+                            </div>
+                        </div>
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label small text-muted">Installment</label>
+                                {{ payment_form.installment(class_='form-select') }}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small text-muted">Amount Paid</label>
+                                {{ payment_form.amount_paid(class_='form-control', placeholder='₱0.00') }}
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small text-muted">Fee Description / Other Activities</label>
+                            {{ payment_form.description(class_='form-control', placeholder='Tuition, Uniform, Graduation, etc.') }}
+                        </div>
+                        <button type="submit" name="submit_payment" class="btn btn-success w-100 mt-2">Post Payment Record</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Institutional Enrollment Analytics -->
+    <div class="card mb-4 border-0 shadow-sm mt-4">
+        <div class="card-header bg-white border-bottom py-3">
+            <h5 class="mb-0">Class-wise Revenue Performance</h5>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light">
+                    <tr>
+                        <th>Class</th>
+                        <th>Student Count</th>
+                        <th>Yearly Fee</th>
+                        <th>Total Collected</th>
+                        <th>Remaining Balance</th>
+                        <th class="text-center">Collection Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for klass in class_search_results %}
+                    <tr>
+                        <td><strong>{{ klass.name }}</strong></td>
+                        <td>{{ klass.students_count }} students</td>
+                        <td>₱{{ "{:,.2f}".format(klass.yearly_fee|float) }}</td>
+                        <td class="text-success">₱{{ "{:,.2f}".format(klass.total_collected|float) }}</td>
+                        <td class="text-danger fw-bold">₱{{ "{:,.2f}".format(klass.balance|float) }}</td>
+                        <td class="text-center">
+                            <span class="badge rounded-pill {{ 'bg-success' if klass.balance <= 0 else 'bg-warning text-dark' }}">
+                                {{ 'Fully Paid' if klass.balance <= 0 else 'Arrears' }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Recent Transactions Log -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Recent Transaction History</h5>
+            <span class="small text-muted">Sorted by Newest First</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-striped align-middle mb-0">
+                <thead class="bg-light">
+                    <tr>
+                        <th>Date</th>
+                        <th>Type</th>
+                        <th>Amount</th>
+                        <th>Category</th>
+                        <th>Description</th>
+                        <th class="text-center">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for t in transactions[:20] %}
+                    <tr>
+                        <td>{{ t.date }}</td>
+                        <td>
+                            <span class="badge {{ 'bg-success' if t.type == 'income' else 'bg-danger' }}">
+                                {{ t.type|capitalize }}
+                            </span>
+                        </td>
+                        <td class="fw-semibold">₱{{ "{:,.2f}".format(t.amount|float) }}</td>
+                        <td><span class="text-muted small">{{ t.category }}</span></td>
+                        <td>{{ t.description }}</td>
+                        <td class="text-center">
+                            <form action="{{ url_for('soft_delete_transaction', id=t.id) }}" method="post" onsubmit="return confirm('Archive this transaction?')">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-link text-danger p-0"><i class="small">Delete</i></button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="6" class="text-center py-4 text-muted">No transactions found for this year.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
 </div>
 
 {% endblock %}

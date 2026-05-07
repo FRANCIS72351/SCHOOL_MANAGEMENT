@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+
+{% block title %}Report Card - {{ student.full_name }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="no-print">
+        <h2>Report Card for {{ student.full_name }}</h2>
+        {% if not student.tuition_cleared and current_user.role not in ['admin', 'teacher', 'registrar'] %}
+            <div class="alert alert-warning">Report card download is blocked due to outstanding tuition fees.</div>
+        {% else %}
+            <div class="mb-3">
+                <a href="{{ url_for('download_report_card', student_id=student.id) }}" class="btn btn-primary">Download PDF</a>
+                <button onclick="window.print()" class="btn btn-secondary">Print Report Card</button>
+            </div>
+        {% endif %}
+    </div>
+
+    <div class="report-card" style="border: 2px solid #000; padding: 30px; background: white;">
+        <div class="moe-header text-center">
+            <img src="{{ url_for('static', filename='images/LOGO.png') }}" alt="Logo" width="80">
+            <h2 style="margin:0;">STANDARD SCHOOL MANAGEMENT</h2>
+            <h3 style="margin:0;">MINISTRY OF EDUCATION</h3>
+            <div style="margin-top: 15px; font-weight: bold; border-top: 1px solid #000; border-bottom: 1px solid #000; padding: 10px 0;">
+                <p style="margin:0;">STUDENT PROGRESS REPORT</p>
+                <p style="margin:0;">NAME: {{ data.student_name }} | ID: {{ data.student_id }}</p>
+                <p style="margin:0;"><strong>School Level:</strong> {{ data.level }}</p>
+            </div>
+        </div>
+
+        <table class="table table-bordered mt-3" style="border: 1px solid black;">
+            <thead>
+                <tr class="text-center bg-light">
+                    <th rowspan="2" style="vertical-align: middle;">Subject</th>
+                    <th colspan="5">1st Semester</th>
+                    <th colspan="5">2nd Semester</th>
+                    <th rowspan="2" style="vertical-align: middle;">Final Avg</th>
+                </tr>
+                <tr class="text-center bg-light">
+                    <!-- 1st Sem -->
+                    <th>P1</th><th>P2</th><th>P3</th><th>Exam</th><th>Avg</th>
+                    <!-- 2nd Sem -->
+                    <th>P4</th><th>P5</th><th>P6</th><th>Exam</th><th>Avg</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for subject in data.subjects %}
+                <tr>
+                    <td class="font-weight-bold">{{ subject.name }}</td>
+                    <!-- 1st Sem Data -->
+                    <td class="text-center">{{ subject.p1 }}</td>
+                    <td class="text-center">{{ subject.p2 }}</td>
+                    <td class="text-center">{{ subject.p3 }}</td>
+                    <td class="text-center">{{ subject.exam }}</td>
+                    <td class="text-center">{{ subject.avg }}</td>
+                    <!-- 2nd Sem Data -->
+                    <td class="text-center">{{ subject.p4 }}</td>
+                    <td class="text-center">{{ subject.p5 }}</td>
+                    <td class="text-center">{{ subject.p6 }}</td>
+                    <td class="text-center">{{ subject.final_exam }}</td>
+                    <td class="text-center">{{ subject.final_avg }}</td>
+                    <!-- Final Column -->
+                    <td class="text-center font-weight-bold bg-light">{{ subject.final_avg }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <div class="footer d-flex justify-content-between mt-5">
+            <div class="text-center">
+                <p>_______________________</p>
+                <p>Teacher's Signature</p>
+            </div>
+            <div class="text-center">
+                <p>_______________________</p>
+                <p>Principal's Signature</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

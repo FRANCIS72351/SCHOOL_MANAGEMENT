@@ -22,6 +22,10 @@
               {{ form.description(class_='form-control', rows=3, placeholder='Homeroom class for Grade 7 A') }}
             </div>
             <div class="mb-3">
+              {{ form.yearly_fee.label(class_='form-label') }}
+              {{ form.yearly_fee(class_='form-control', placeholder='0.00') }}
+            </div>
+            <div class="mb-3">
               {{ form.teacher_id.label(class_='form-label') }}
               {{ form.teacher_id(class_='form-select') }}
               <div class="form-text">Assign the homeroom teacher (optional)</div>
@@ -74,6 +78,7 @@
             <thead>
               <tr>
                 <th>Name</th>
+                <th>Yearly Fee</th>
                 <th>Teacher</th>
                 <th>Sponsor</th>
                 <th>Description</th>
@@ -85,6 +90,7 @@
               {% for c in classes %}
               <tr>
                 <td class="fw-semibold">{{ c.name }}</td>
+                <td>₱{{ "{:,.2f}".format(c.yearly_fee or 0) }}</td>
                 <td>
                   {% if c.teacher %}
                     {{ c.teacher.first_name }} {{ c.teacher.last_name }}
@@ -123,6 +129,7 @@
                       </select>
                       <button class="btn btn-sm btn-outline-success">Set Sponsor</button>
                     </form>
+                    <a href="{{ url_for('class_edit', class_id=c.id) }}" class="btn btn-sm btn-warning">Edit</a>
                   </div>
                 </td>
               </tr>

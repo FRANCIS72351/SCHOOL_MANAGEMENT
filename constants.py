@@ -5,6 +5,7 @@ ROLE_STUDENT = "student"
 ROLE_PARENT = "parent"
 ROLE_REGISTRAR = "registrar"
 ROLE_SPONSOR = "sponsor"
+ROLE_BUSINESS = "business"
 
 # Attendance status
 STATUS_PRESENT = "present"

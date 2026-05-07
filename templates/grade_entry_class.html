@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+{% block title %}Grade Entry - {{ klass.name }}{% endblock %}
+{% block content %}
+<h2>Grade Entry for {{ klass.name }}</h2>
+<form method="post" action="{{ url_for('save_grades', class_id=klass.id) }}">
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Student</th>
+                {% for period in range(1, 7) %}
+                <th>Period {{ period }} CA</th>
+                <th>Period {{ period }} Exam</th>
+                <th>Period {{ period }} Total</th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for student in students %}
+            <tr>
+                <td>{{ student.full_name }}</td>
+                {% for period in range(1, 7) %}
+                <td>
+                    <input type="number" step="0.1" min="0" max="60" name="ca_{{ student.id }}_{{ period }}" 
+                           value="{{ grades[student.id][period].ca_score if grades[student.id][period] else '' }}" class="form-control">
+                </td>
+                <td>
+                    <input type="number" step="0.1" min="0" max="40" name="exam_{{ student.id }}_{{ period }}" 
+                           value="{{ grades[student.id][period].exam_score if grades[student.id][period] else '' }}" class="form-control">
+                </td>
+                <td>
+                    <span id="total_{{ student.id }}_{{ period }}">
+                        {{ grades[student.id][period].score if grades[student.id][period] else '' }}
+                    </span>
+                </td>
+                {% endfor %}
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <button type="submit" class="btn btn-success">Save Grades</button>
+    {% if current_user.role == 'registrar' %}
+    <form method="post" action="{{ url_for('finalize_grades', class_id=klass.id) }}" style="display: inline;">
+        <button type="submit" class="btn btn-warning">Finalize Grades</button>
+    </form>
+    {% endif %}
+</form>
+
+<script>
+document.addEventListener('input', function(e) {
+    if (e.target.name.startsWith('ca_') || e.target.name.startsWith('exam_')) {
+        const parts = e.target.name.split('_');
+        const studentId = parts[1];
+        const period = parts[2];
+        const caInput = document.querySelector(`input[name="ca_${studentId}_${period}"]`);
+        const examInput = document.querySelector(`input[name="exam_${studentId}_${period}"]`);
+        const totalSpan = document.getElementById(`total_${studentId}_${period}`);
+        
+        const ca = parseFloat(caInput.value) || 0;
+        const exam = parseFloat(examInput.value) || 0;
+        
+        if (ca <= 60 && exam <= 40) {
+            totalSpan.textContent = (ca + exam).toFixed(1);
+        } else {
+            totalSpan.textContent = 'Invalid';
+        }
+    }
+});
+</script>
+{% endblock %}

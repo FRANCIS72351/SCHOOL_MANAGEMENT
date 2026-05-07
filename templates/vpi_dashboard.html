@@ -1,0 +1,235 @@
+{% extends "base.html" %}
+
+{% block title %}VPI Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Personal Information Section -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-2 text-center">
+                            {% if current_user.photo %}
+                                <img src="{{ url_for('static', filename=current_user.photo) }}" 
+                                     class="rounded-circle img-fluid" 
+                                     style="width: 80px; height: 80px; object-fit: cover;" 
+                                     alt="Profile Photo">
+                            {% else %}
+                                <img src="{{ url_for('static', filename='images/default-user.png') }}" 
+                                     class="rounded-circle img-fluid" 
+                                     style="width: 80px; height: 80px; object-fit: cover;" 
+                                     alt="Default Profile Photo">
+                            {% endif %}
+                        </div>
+                        <div class="col-md-10">
+                            <h3 class="mb-1">{{ current_user.full_name }}</h3>
+                            <p class="text-muted mb-1">{{ current_user.email }}</p>
+                            <span class="badge bg-success">{{ current_user.role }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <h1 class="h3 mb-4 text-gray-800">VPI Dashboard - Financial Overview</h1>
+        </div>
+    </div>
+
+    <!-- Financial Summary Cards -->
+    <div class="row">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Total Revenue</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">${{ "{:.2f}".format(total_revenue) }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-dollar-sign fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-danger shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
+                                Total Expenses</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">${{ "{:.2f}".format(total_expenses) }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-dollar-sign fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                Net Profit</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">${{ "{:.2f}".format(net_profit) }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-chart-line fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="row">
+        <div class="col-xl-6 col-lg-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Income by Category</h6>
+                </div>
+                <div class="card-body">
+                    <div class="chart-pie pt-4">
+                        <canvas id="incomeChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-6 col-lg-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Expenses by Category</h6>
+                </div>
+                <div class="card-body">
+                    <div class="chart-pie pt-4">
+                        <canvas id="expenseChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Transactions -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Recent Transactions</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Description</th>
+                                    <th>Category</th>
+                                    <th>Type</th>
+                                    <th>Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for transaction in recent_transactions %}
+                                <tr>
+                                    <td>{{ transaction.date.strftime('%Y-%m-%d') }}</td>
+                                    <td>{{ transaction.description }}</td>
+                                    <td>{{ transaction.category }}</td>
+                                    <td>
+                                        {% if transaction.type == 'income' %}
+                                            <span class="badge badge-success">Income</span>
+                                        {% else %}
+                                            <span class="badge badge-danger">Expense</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>${{ "{:.2f}".format(transaction.amount) }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Income Chart
+var ctxIncome = document.getElementById("incomeChart");
+var incomeChart = new Chart(ctxIncome, {
+    type: 'doughnut',
+    data: {
+        labels: {{ income_categories|map(attribute='0')|list|tojson }},
+        datasets: [{
+            data: {{ income_categories|map(attribute='1')|list|tojson }},
+            backgroundColor: ['#4e73df', '#1cc88a', '#36b9cc', '#f6c23e'],
+            hoverBackgroundColor: ['#2e59d9', '#17a673', '#2c9faf', '#f39c12'],
+            hoverBorderColor: "rgba(234, 236, 244, 1)",
+        }],
+    },
+    options: {
+        maintainAspectRatio: false,
+        tooltips: {
+            backgroundColor: "rgb(255,255,255)",
+            bodyFontColor: "#858796",
+            borderColor: '#dddfeb',
+            borderWidth: 1,
+            xPadding: 15,
+            yPadding: 15,
+            displayColors: false,
+            caretPadding: 10,
+        },
+        legend: {
+            display: false
+        },
+        cutoutPercentage: 80,
+    },
+});
+
+// Expense Chart
+var ctxExpense = document.getElementById("expenseChart");
+var expenseChart = new Chart(ctxExpense, {
+    type: 'doughnut',
+    data: {
+        labels: {{ expense_categories|map(attribute='0')|list|tojson }},
+        datasets: [{
+            data: {{ expense_categories|map(attribute='1')|list|tojson }},
+            backgroundColor: ['#e74a3b', '#f6c23e', '#858796', '#5a5c69'],
+            hoverBackgroundColor: ['#be2617', '#f39c12', '#6c757d', '#4e73df'],
+            hoverBorderColor: "rgba(234, 236, 244, 1)",
+        }],
+    },
+    options: {
+        maintainAspectRatio: false,
+        tooltips: {
+            backgroundColor: "rgb(255,255,255)",
+            bodyFontColor: "#858796",
+            borderColor: '#dddfeb',
+            borderWidth: 1,
+            xPadding: 15,
+            yPadding: 15,
+            displayColors: false,
+            caretPadding: 10,
+        },
+        legend: {
+            display: false
+        },
+        cutoutPercentage: 80,
+    },
+});
+</script>
+{% endblock %}

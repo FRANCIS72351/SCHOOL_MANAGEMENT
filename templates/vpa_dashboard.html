@@ -1,0 +1,254 @@
+{% extends "base.html" %}
+
+{% block title %}VPA Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Personal Information Section -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-2 text-center">
+                            {% if current_user.photo %}
+                                <img src="{{ url_for('static', filename=current_user.photo) }}" 
+                                     class="rounded-circle img-fluid" 
+                                     style="width: 80px; height: 80px; object-fit: cover;" 
+                                     alt="Profile Photo">
+                            {% else %}
+                                <img src="{{ url_for('static', filename='images/default-user.png') }}" 
+                                     class="rounded-circle img-fluid" 
+                                     style="width: 80px; height: 80px; object-fit: cover;" 
+                                     alt="Default Profile Photo">
+                            {% endif %}
+                        </div>
+                        <div class="col-md-10">
+                            <h3 class="mb-1">{{ current_user.full_name }}</h3>
+                            <p class="text-muted mb-1">{{ current_user.email }}</p>
+                            <span class="badge bg-info">{{ current_user.role }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <h1 class="h3 mb-4 text-gray-800">VPA Dashboard - Academic Overview</h1>
+        </div>
+    </div>
+
+    <!-- Academic Summary Cards -->
+    <div class="row">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                Total Students</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_students }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-users fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Total Assessments</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_assessments }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-clipboard-check fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                Excellent Students (90%+)</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ excellent_students }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-star fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Needs Improvement (<70%)</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ needs_improvement }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-exclamation-triangle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Performance Distribution -->
+    <div class="row">
+        <div class="col-xl-6 col-lg-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Student Performance Distribution</h6>
+                </div>
+                <div class="card-body">
+                    <div class="chart-pie pt-4">
+                        <canvas id="performanceChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-6 col-lg-6">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Grade Distribution</h6>
+                </div>
+                <div class="card-body">
+                    <div class="chart-bar pt-4">
+                        <canvas id="gradeChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Assessments -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Recent Assessments</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                            <thead>
+                                <tr>
+                                    <th>Student</th>
+                                    <th>Subject</th>
+                                    <th>Assessment Type</th>
+                                    <th>Score</th>
+                                    <th>Grade</th>
+                                    <th>Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for assessment in recent_assessments %}
+                                <tr>
+                                    <td>{{ assessment.student.first_name }} {{ assessment.student.last_name }}</td>
+                                    <td>{{ assessment.subject }}</td>
+                                    <td>{{ assessment.assessment_type.title() }}</td>
+                                    <td>{{ assessment.score }}%</td>
+                                    <td>
+                                        {% if assessment.score >= 90 %}
+                                            <span class="badge badge-success">A</span>
+                                        {% elif assessment.score >= 80 %}
+                                            <span class="badge badge-info">B</span>
+                                        {% elif assessment.score >= 70 %}
+                                            <span class="badge badge-warning">C</span>
+                                        {% elif assessment.score >= 60 %}
+                                            <span class="badge badge-secondary">D</span>
+                                        {% else %}
+                                            <span class="badge badge-danger">F</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ assessment.date.strftime('%Y-%m-%d') }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Performance Distribution Chart
+var ctxPerformance = document.getElementById("performanceChart");
+var performanceChart = new Chart(ctxPerformance, {
+    type: 'doughnut',
+    data: {
+        labels: ['Excellent (90%+)', 'Good (80-89%)', 'Average (70-79%)', 'Needs Improvement (<70%)'],
+        datasets: [{
+            data: [{{ excellent_students }}, {{ good_students }}, {{ average_students }}, {{ needs_improvement }}],
+            backgroundColor: ['#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b'],
+            hoverBackgroundColor: ['#17a673', '#2c9faf', '#f39c12', '#be2617'],
+            hoverBorderColor: "rgba(234, 236, 244, 1)",
+        }],
+    },
+    options: {
+        maintainAspectRatio: false,
+        tooltips: {
+            backgroundColor: "rgb(255,255,255)",
+            bodyFontColor: "#858796",
+            borderColor: '#dddfeb',
+            borderWidth: 1,
+            xPadding: 15,
+            yPadding: 15,
+            displayColors: false,
+            caretPadding: 10,
+        },
+        legend: {
+            display: false
+        },
+        cutoutPercentage: 80,
+    },
+});
+
+// Grade Distribution Chart
+var ctxGrade = document.getElementById("gradeChart");
+var gradeChart = new Chart(ctxGrade, {
+    type: 'bar',
+    data: {
+        labels: {{ grade_distribution|map(attribute='0')|list|tojson }},
+        datasets: [{
+            label: 'Number of Grades',
+            data: {{ grade_distribution|map(attribute='1')|list|tojson }},
+            backgroundColor: '#4e73df',
+            hoverBackgroundColor: '#2e59d9',
+            borderColor: '#4e73df',
+        }],
+    },
+    options: {
+        maintainAspectRatio: false,
+        scales: {
+            yAxes: [{
+                ticks: {
+                    beginAtZero: true
+                }
+            }]
+        }
+    },
+});
+</script>
+{% endblock %}

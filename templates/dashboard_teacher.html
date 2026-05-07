@@ -2,19 +2,59 @@
 {% block content %}
 <div class="container mt-4">
   <h2>Teacher Dashboard</h2>
-  
-  <h4>Your Classes</h4>
+
+  <!-- User Profile Section -->
+  <div class="card mb-4" style="background: rgba(10, 10, 25, 0.8); border: 1px solid #00f2ff; color: white;">
+    <div class="card-body">
+      <h5 class="card-title" style="color: #00f2ff;">My Profile</h5>
+      <div class="row">
+        <div class="col-md-3">
+          {% if current_user.photo %}
+            <img src="{{ url_for('static', filename=current_user.photo) }}" class="img-fluid rounded" alt="Profile Photo">
+          {% else %}
+      
+          {% endif %}
+        </div>
+        <div class="col-md-9">
+          <h4>{{ current_user.full_name }}</h4>
+          <p><strong>Email:</strong> {{ current_user.email }}</p>
+          {% if current_user.home_address %}
+          <p><strong>Home Address:</strong> {{ current_user.home_address }}</p>
+          {% endif %}
+          {% if current_user.telephone_number %}
+          <p><strong>Telephone:</strong> {{ current_user.telephone_number }}</p>
+          {% endif %}
+          <p><strong>Role:</strong> {{ current_user.role|title }}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Active Academic Year -->
+  <div class="alert alert-info mb-4" style="background: rgba(0, 123, 255, 0.1); border: 1px solid #00f2ff; color: #00f2ff;">
+    <strong>Active Academic Year:</strong> {{ active_year.name }} ({{ active_year.start_date }} - {{ active_year.end_date }})
+  </div>
   <ul>
-    {% for c in classes %}
+    {% for c in teaching_classes %}
       <li>{{ c.name }} — {{ c.description }}</li>
     {% else %}
-      <li>No classes assigned</li>
+      <li>No teaching classes assigned</li>
     {% endfor %}
   </ul>
+
+  {% if sponsored_classes %}
+  <h4>Sponsored Classes</h4>
+  <ul>
+    {% for c in sponsored_classes %}
+      <li>{{ c.name }} — {{ c.description }} <span class="badge bg-info">Sponsor</span></li>
+    {% endfor %}
+  </ul>
+  {% endif %}
 
   <hr>
 
   <h4>Submit Grades</h4>
+  <p><a href="{{ url_for('grade_entry') }}" class="btn btn-primary">Enter Grades by Class</a></p>
   <form method="POST" action="{{ url_for('add_grade') }}">
     {{ csrf_token() }}
     <div class="mb-3">
@@ -65,8 +105,176 @@
     <button type="submit" class="btn btn-primary">Save Grade</button>
   </form>
 
-<hr>
-<h4>Existing Grades (Current Academic Year)</h4>
+  <hr>
+  <h4>Student Report Cards</h4>
+  <ul>
+    {% for s in students %}
+      <li>{{ s.full_name }} - <a href="{{ url_for('report_card', student_id=s.id) }}">View Report Card</a></li>
+    {% endfor %}
+  </ul>
+
+  <hr>
+  
+  <!-- AI Grading Portal -->
+  <style>
+    .btn-scan {
+        background: transparent;
+        color: #00f2ff;
+        border: 1px solid #00f2ff;
+        padding: 5px 15px;
+        cursor: pointer;
+        font-family: 'Courier New', monospace;
+        transition: 0.3s;
+    }
+    .btn-scan:hover {
+        background: #00f2ff;
+        color: #000;
+        box-shadow: 0 0 10px #00f2ff;
+    }
+    .drop-zone {
+        width: 100%;
+        height: 60px;
+        border: 1px dashed #00f2ff;
+        border-radius: 8px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: rgba(0, 242, 255, 0.05);
+        transition: all 0.3s ease;
+        cursor: pointer;
+        position: relative;
+        overflow: hidden;
+    }
+    .drop-zone:hover {
+        background: rgba(0, 242, 255, 0.15);
+        box-shadow: 0 0 20px rgba(0, 242, 255, 0.4);
+    }
+    .drop-zone-text {
+        color: #00f2ff;
+        font-family: 'Courier New', Courier, monospace;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        font-size: 0.7rem;
+        text-align: center;
+        padding: 0 5px;
+    }
+    @keyframes pulse-bg {
+        0% { background-color: rgba(10, 10, 25, 0.9); }
+        50% { background-color: rgba(0, 242, 255, 0.1); }
+        100% { background-color: rgba(10, 10, 25, 0.9); }
+    }
+    .dashboard-pulse {
+        animation: pulse-bg 1s ease-in-out 3;
+    }
+  </style>
+
+  <div class="card mb-4" style="background: rgba(10, 10, 25, 0.9); border: 1px solid #00f2ff; color: #fff;">
+    <div class="card-header" style="border-bottom: 1px solid #00f2ff;">
+        <h4 class="mb-0" style="color: #00f2ff;">AI Grading Portal: OCR Vision Scan</h4>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-dark table-hover mb-0" style="background: transparent;">
+                <thead>
+                    <tr style="border-bottom: 1px solid #00f2ff; color: #00f2ff;">
+                        <th>Student Name</th>
+                        <th>Upload Activity</th>
+                        <th>AI Suggestion</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in students %}
+                    <tr>
+                        <td class="align-middle">{{ s.full_name }}</td>
+                        <td class="align-middle">
+                            <div class="drop-zone" id="drop-zone-{{ s.id }}" onclick="document.getElementById('file-{{ s.id }}').click()">
+                                <span class="drop-zone-text" id="text-{{ s.id }}">DROP FILE</span>
+                                <input type="file" id="file-{{ s.id }}" style="display: none;" onchange="handleFileSelect({{ s.id }})">
+                            </div>
+                        </td>
+                        <td class="align-middle" id="suggested-{{ s.id }}" style="color: #00f2ff; font-weight: bold; font-family: 'Courier New', monospace;">--</td>
+                        <td class="align-middle">
+                            <button class="btn-scan" id="btn-{{ s.id }}" onclick="runAIScan({{ s.id }})">SCAN</button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+  </div>
+
+  <script>
+    let selectedFiles = {};
+
+    function handleFileSelect(studentId) {
+        const fileInput = document.getElementById(`file-${studentId}`);
+        if (fileInput.files.length > 0) {
+            selectedFiles[studentId] = fileInput.files[0];
+            document.getElementById(`text-${studentId}`).innerText = fileInput.files[0].name.substring(0, 15) + "...";
+            document.getElementById(`drop-zone-${studentId}`).style.borderColor = "limegreen";
+            document.getElementById(`drop-zone-${studentId}`).style.background = "rgba(50, 205, 50, 0.1)";
+        }
+    }
+
+    function triggerDashboardPulse() {
+        const portal = document.querySelector('.card-header h4').parentElement.parentElement;
+        portal.classList.add('dashboard-pulse');
+        setTimeout(() => portal.classList.remove('dashboard-pulse'), 3000);
+    }
+
+    function runAIScan(studentId) {
+        const file = selectedFiles[studentId];
+        if (!file) {
+            alert("Please upload a file first!");
+            return;
+        }
+
+        const btn = document.getElementById(`btn-${studentId}`);
+        btn.innerText = "SCANNING...";
+        btn.style.borderColor = "yellow";
+        btn.style.color = "yellow";
+        
+        triggerDashboardPulse();
+
+        const formData = new FormData();
+        formData.append('assignment', file);
+
+        fetch(`/teacher/scan-assignment/${studentId}`, { 
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': '{{ csrf_token() }}'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === "Success") {
+                document.getElementById(`suggested-${studentId}`).innerText = data.suggested_grade;
+                btn.innerText = "DONE";
+                btn.style.borderColor = "limegreen";
+                btn.style.color = "limegreen";
+                console.log("AI Detected Text: " + data.detected_text_snippet);
+            } else {
+                alert("Error: " + data.message);
+                btn.innerText = "RETRY";
+                btn.style.borderColor = "red";
+                btn.style.color = "red";
+            }
+        })
+        .catch(error => {
+            console.error(error);
+            btn.innerText = "RETRY";
+            btn.style.borderColor = "red";
+            btn.style.color = "red";
+        });
+    }
+  </script>
+
+  <hr>
+  <h4>Existing Grades (Current Academic Year)</h4>
 <table class="table">
   <thead>
     <tr>

@@ -4,15 +4,15 @@ from io import StringIO, BytesIO
 import csv
 from datetime import datetime
 from reportlab.pdfgen import canvas
-from models import Student, Grade, Attendance, StudentPayment, Sponsor, BusinessTransaction
-from constants import ROLE_ADMIN, ROLE_REGISTRAR, ROLE_TEACHER
+from models import Student, Grade, Attendance, StudentPayment, Sponsor, BusinessTransaction, AcademicYear
+from constants import ROLE_ADMIN, ROLE_REGISTRAR, ROLE_TEACHER, ROLE_BUSINESS
 
 def init_export_routes(app):
     @app.route('/export/students')
     @login_required
     def export_students():
-        # allow admins and registrars
-        if current_user.role not in [ROLE_ADMIN, ROLE_REGISTRAR]:
+        # allow admins, registrars and business
+        if current_user.role not in [ROLE_ADMIN, ROLE_REGISTRAR, ROLE_BUSINESS]:
             flash('Access denied.', 'danger')
             return redirect(url_for('dashboard'))
 
@@ -20,7 +20,7 @@ def init_export_routes(app):
         year = request.args.get('year')
         query = Student.query.options(joinedload(Student.klass), joinedload(Student.academic_year))
         if year:
-            query = query.filter_by(current_year=year)
+            query = query.join(AcademicYear).filter(AcademicYear.name == year)
         students = query.order_by(Student.last_name, Student.first_name).all()
 
         # Stream CSV to avoid large memory usage
@@ -140,30 +140,32 @@ def init_export_routes(app):
             flash('Access denied.', 'danger')
             return redirect(url_for('dashboard'))
 
-        sponsors = Sponsor.query.all()
+        # Get all classes that have sponsors (teachers)
+        sponsored_classes = Class.query.filter(Class.sponsor_id.isnot(None)).all()
 
         def generate():
             buf = StringIO()
             writer = csv.writer(buf)
-            writer.writerow(['Sponsor ID', 'Name', 'Amount'])
+            writer.writerow(['Class Name', 'Teacher Sponsor', 'Class Description'])
             yield buf.getvalue()
             buf.seek(0)
             buf.truncate(0)
-            for s in sponsors:
+            for klass in sponsored_classes:
+                sponsor_name = klass.sponsor.full_name if klass.sponsor else 'Unknown'
                 writer.writerow([
-                    s.id,
-                    getattr(s, 'name', ''),
-                    getattr(s, 'amount', '')
+                    klass.name,
+                    sponsor_name,
+                    klass.description or ''
                 ])
                 yield buf.getvalue()
                 buf.seek(0)
                 buf.truncate(0)
-        return Response(generate(), mimetype='text/csv', headers={'Content-Disposition': 'attachment; filename=sponsors.csv'})
+        return Response(generate(), mimetype='text/csv', headers={'Content-Disposition': 'attachment; filename=class_sponsors.csv'})
 
     @app.route('/export/business')
     @login_required
     def export_business():
-        if current_user.role != ROLE_ADMIN:
+        if current_user.role not in [ROLE_ADMIN, ROLE_BUSINESS]:
             flash('Access denied.', 'danger')
             return redirect(url_for('dashboard'))
 
@@ -201,7 +203,7 @@ def init_export_routes(app):
     @app.route('/report/business/pdf')
     @login_required
     def report_business_pdf():
-        if current_user.role != ROLE_ADMIN:
+        if current_user.role not in [ROLE_ADMIN, ROLE_BUSINESS]:
             flash('Access denied.', 'danger')
             return redirect(url_for('dashboard'))
 

@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+
+{# This block is fine because in the class-specific route, 'klass' IS defined #}
+{% block title %}Grade Entry - {{ klass.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            {# FIXED: Ensure this only renders if klass is passed from Python #}
+            <h3 class="mb-0">Grade Entry: {{ klass.name }}</h3>
+            <a href="{{ url_for('grade_entry') }}" class="btn btn-light btn-sm">
+                <i class="fas fa-arrow-left"></i> Back to Classes
+            </a>
+        </div>
+        <div class="card-body">
+            <!-- The action is empty so it posts back to the same route we are on -->
+            <form method="POST">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover">
+                        <thead class="table-secondary text-center">
+                            <tr>
+                                <th rowspan="2" class="align-middle">Student Name</th>
+                                <th colspan="4">1st Semester</th>
+                                <th colspan="4">2nd Semester</th>
+                            </tr>
+                            <tr>
+                                <th width="80">P1</th>
+                                <th width="80">P2</th>
+                                <th width="80">P3</th>
+                                <th width="80">Exam 1</th>
+                                <th width="80">P4</th>
+                                <th width="80">P5</th>
+                                <th width="80">P6</th>
+                                <th width="80">Exam 2</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for student in students %}
+                            <tr>
+                                <td>
+                                    <strong>{{ student.last_name }}, {{ student.first_name }}</strong>
+                                    <br><small class="text-muted">ID: {{ student.student_id }}</small>
+                                </td>
+                                
+                                {# 1st Semester Inputs #}
+                                <td><input type="number" name="grade_{{ student.id }}_P1" class="form-control form-control-sm text-center" value="{{ grades[student.id]['P1'].score if grades[student.id].get('P1') else '' }}" min="0" max="100"></td>
+                                <td><input type="number" name="grade_{{ student.id }}_P2" class="form-control form-control-sm text-center" value="{{ grades[student.id]['P2'].score if grades[student.id].get('P2') else '' }}" min="0" max="100"></td>
+                                <td><input type="number" name="grade_{{ student.id }}_P3" class="form-control form-control-sm text-center" value="{{ grades[student.id]['P3'].score if grades[student.id].get('P3') else '' }}" min="0" max="100"></td>
+                                <td><input type="number" name="grade_{{ student.id }}_E1" class="form-control form-control-sm text-center" value="{{ grades[student.id]['E1'].score if grades[student.id].get('E1') else '' }}" min="0" max="100"></td>
+
+                                {# 2nd Semester Inputs #}
+                                <td><input type="number" name="grade_{{ student.id }}_P4" class="form-control form-control-sm text-center" value="{{ grades[student.id]['P4'].score if grades[student.id].get('P4') else '' }}" min="0" max="100"></td>
+                                <td><input type="number" name="grade_{{ student.id }}_P5" class="form-control form-control-sm text-center" value="{{ grades[student.id]['P5'].score if grades[student.id].get('P5') else '' }}" min="0" max="100"></td>
+                                <td><input type="number" name="grade_{{ student.id }}_P6" class="form-control form-control-sm text-center" value="{{ grades[student.id]['P6'].score if grades[student.id].get('P6') else '' }}" min="0" max="100"></td>
+                                <td><input type="number" name="grade_{{ student.id }}_E2" class="form-control form-control-sm text-center" value="{{ grades[student.id]['E2'].score if grades[student.id].get('E2') else '' }}" min="0" max="100"></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="text-end mt-3">
+                    <button type="submit" class="btn btn-success btn-lg px-5">
+                        <i class="fas fa-save"></i> Save All Grades
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,9 +1,153 @@
 {% extends 'base.html' %}
+{% block title %}Security Hub{% endblock %}
 {% block content %}
-<h2>Admin Dashboard</h2>
-<div class="mb-3">
-  <a href="{{ url_for('business_management') }}" class="btn btn-success">Business Management</a>
-  <a href="{{ url_for('academic_years') }}" class="btn btn-primary ms-2">Academic Year Management</a>
+<style>
+    body {
+        background-color: #050509; /* Deep Black/Blue */
+        color: #00f2ff; /* Cyber Cyan */
+        font-family: 'Courier New', Courier, monospace; /* Monospace for 'Code' look */
+        margin: 20px;
+    }
+    .dashboard-container {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 20px;
+    }
+    .card {
+        background: rgba(10, 10, 25, 0.8);
+        border: 1px solid #00f2ff;
+        border-radius: 5px;
+        padding: 15px;
+        box-shadow: 0 0 10px rgba(0, 242, 255, 0.2);
+    }
+    h2, h3 { color: #fff; text-transform: uppercase; letter-spacing: 2px; }
+    .glow { text-shadow: 0 0 5px #00f2ff; }
+    
+    /* The Wave Canvas */
+    canvas { width: 100%; height: 200px; }
+
+    /* Security Log Styles */
+    #security-log {
+        height: 400px;
+        overflow-y: scroll;
+        background: #000;
+        border: 1px solid #ff0055; /* Alert Red */
+        padding: 10px;
+        color: #ff0055;
+    }
+    .log-entry { margin-bottom: 8px; border-bottom: 1px solid #222; }
+    .log-time { color: #888; }
+
+    /* Override Bootstrap for cyber theme */
+    .navbar { background: rgba(0, 242, 255, 0.1) !important; border-bottom: 1px solid #00f2ff; }
+    .navbar-brand { color: #00f2ff !important; }
+    .nav-link { color: #00f2ff !important; }
+    .alert { background: rgba(255, 0, 85, 0.1); border: 1px solid #ff0055; color: #ff0055; }
+
+    /* Profile Card Styling */
+    .profile-card {
+        border-left: 4px solid #00f2ff;
+        padding-left: 20px;
+        margin-bottom: 30px;
+        background: linear-gradient(90deg, rgba(0, 242, 255, 0.05) 0%, transparent 100%);
+        color: white;
+    }
+    .profile-name {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: #fff;
+        margin-bottom: 5px;
+    }
+    .profile-title {
+        color: #00f2ff;
+        font-size: 0.9rem;
+        letter-spacing: 1px;
+    }
+    .skill-tag {
+        display: inline-block;
+        background: rgba(0, 242, 255, 0.1);
+        border: 1px solid #00f2ff;
+        padding: 2px 8px;
+        font-size: 0.7rem;
+        margin-top: 10px;
+        margin-right: 5px;
+        border-radius: 3px;
+        color: #00f2ff;
+    }
+    
+    .profile-img-container {
+        position: relative;
+        width: 100px;
+        height: 100px;
+        border: 2px solid #00f2ff;
+        overflow: hidden;
+    }
+    #profile-pic { width: 100%; height: 100%; object-fit: cover; }
+    .scanning-bar {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 2px;
+        background: #00f2ff;
+        box-shadow: 0 0 10px #00f2ff;
+        animation: scan 2s linear infinite;
+    }
+    @keyframes scan {
+        0% { top: 0; }
+        100% { top: 100%; }
+    }
+</style>
+
+<p>Status: <span style="color: limegreen;">ACTIVE - QUANTUM-SAFE (PQC)</span></p>
+<p>License: <span style="color: yellow;">Expires: 2027-04-19</span></p>
+
+<div class="dashboard-container">
+    
+    <div class="card">
+        <h3>School Activity (Student Registrations) - Electric Wave</h3>
+        <canvas id="dbWaveCanvas"></canvas>
+        
+        <h3>System Load (CPU/MEM)</h3>
+        <p style="color: white;">CPU Usage: <span id="cpu-stat">0</span>%</p>
+        <p style="color: white;">Memory Usage: <span id="mem-stat">0</span>%</p>
+
+        <!-- Existing Dashboard Content -->
+        <h3>ADMIN DASHBOARD</h3>
+
+<div class="profile-card">
+    <div style="display: flex; align-items: center; gap: 20px;">
+        <div class="profile-img-container">
+            <img src="{{ url_for('static', filename='images/pro.png') }}" alt="Profile" id="profile-pic">
+            <div class="scanning-bar"></div>
+        </div>
+
+        <div>
+            <div class="profile-name" id="prof-name">FRANCIS BROWNELL</div>
+            <div class="profile-title" id="prof-title">CYBER SECURITY STUDENT</div>
+            <div id="skill-container">Python, Flask, Numpy,Nureul,Cryptography,Network Security</div>
+            <div class="pro-edu">Self Learnin Basic Programming </div>
+            <div class="pro-exprience">(ERP)Enterprise Resource Planning at 3GDESIGNS PRINTING \n(Benson & Newport Street) One year of Adminstrating Linux Servers at Hostinger.<br> Computer Teacher at the Muslin High School\n Full Stack Developer at Personal School Management System </div>
+            <div class="pro-dob">February 22, 2003</div>
+            <div class="pro-,contact">+231 0889358194</div>
+         
+        </div>
+    </div>
+
+    <div class="profile-details mt-3" style="font-size: 0.85rem; color: #aaa;">
+        <div id="prof-exp" class="mb-2"></div>
+        <div id="prof-edu" class="mb-2"></div>
+        <div class="d-flex gap-3">
+            <span id="prof-con"></span>
+            <span id="prof-email"></span>
+            <span id="prof-dob"></span>
+        </div>
+    </div>
+</div>
+
+<div class="mb-3" style="color: white; margin-top: 20px;">
+    <strong>Active Academic Year:</strong> {{ active_year.name }} ({{ active_year.start_date }} - {{ active_year.end_date }})
+</div>
   <div class="btn-group ms-2" role="group">
     <button id="exportsDropdown" type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
       Data Exports
@@ -13,7 +157,7 @@
       <li><a class="dropdown-item" href="{{ url_for('export_payments', year=selected_year) }}">Payments CSV</a></li>
       <li><a class="dropdown-item" href="{{ url_for('export_grades', year=selected_year) }}">Grades CSV</a></li>
       <li><a class="dropdown-item" href="{{ url_for('export_attendance', year=selected_year) }}">Attendance CSV</a></li>
-      <li><a class="dropdown-item" href="{{ url_for('export_sponsors', year=selected_year) }}">Sponsors CSV</a></li>
+      <li><a class="dropdown-item" href="{{ url_for('export_sponsors', year=selected_year) }}">Class Sponsors CSV</a></li>
 
     </ul>
   </div>
@@ -24,38 +168,35 @@
   <a href="{{ url_for('report_students_pdf', year=selected_year) }}" class="btn btn-outline-primary ms-2">Download Students PDF</a>
 </div>
 
-<form method="get" class="mb-3">
-  <div class="row">
-    <div class="col-md-4">
-      <select name="year" class="form-select" onchange="this.form.submit()">
-        <option value="">All Academic Years</option>
-        {% for y in years %}
-          <option value="{{ y.name }}" {% if selected_year==y.name %}selected{% endif %}>{{ y.name }}</option>
-        {% endfor %}
-      </select>
+    <div class="mb-3">
+        <strong style="color: red;">Active Academic Year:</strong> <span style="color: red;">{{ selected_year }}</span>
+    </div>
+
+    <div class="row">
+  <div class="col-md-3">
+    <div class="card p-3 shadow-sm border-primary" style="color: red;">
+      <div class="fw-bold">Students</div>
+      <div class="h3 mb-0">{{ counts.students }}</div>
+      <div class="text-muted small">New: {{ counts.new_students }} | Returning: {{ counts.returning_students }}</div>
     </div>
   </div>
-</form>
-
-<div class="row">
-  <div class="col-md-3"><div class="card p-3">Students: {{ counts.students }}</div></div>
-  <div class="col-md-3"><div class="card p-3">Teachers: {{ counts.teachers }}</div></div>
-  <div class="col-md-3"><div class="card p-3">Classes: {{ counts.classes }}</div></div>
-  <div class="col-md-3"><div class="card p-3">Sponsors: {{ counts.sponsors }}</div></div>
+  <div class="col-md-3"><div class="card p-3 shadow-sm" style="color: red;">Teachers: {{ counts.teachers }}</div></div>
+  <div class="col-md-3"><div class="card p-3 shadow-sm" style="color: red;">Classes: {{ counts.classes }}</div></div>
+  <div class="col-md-3"><div class="card p-3 shadow-sm" style="color: red;">Payments: {{ counts.payments }}</div></div>
 </div>
 <hr>
 
 <div class="row">
   <div class="col-md-4">
-    <h5>Gender Distribution</h5>
+    <h5 style="color: red;">Gender Distribution</h5>
     <canvas id="genderChart" width="300" height="200"></canvas>
   </div>
   <div class="col-md-4">
-    <h5>Enrollment by Year</h5>
+    <h5 style="color: red;">Enrollment by Year</h5>
     <canvas id="enrollChart" width="300" height="200"></canvas>
   </div>
   <div class="col-md-4">
-    <h5>Payments by Year</h5>
+    <h5 style="color: red;">Payments by Year</h5>
     <canvas id="payChart" width="300" height="200"></canvas>
   </div>
 </div>
@@ -79,25 +220,97 @@
         {% endfor %}
       </tbody>
     </table>
-  </div>
+    </div>
+
+    <div class="card" style="border-color: #ff0055;">
+        <h3 style="color: #ff0055;">Security Feed</h3>
+        <div id="security-log">
+            {% for event in announcements %}
+            <div class="log-entry">
+                <span class="log-time">[{{ event.created_at }}]</span> {{ event.title }}: {{ event.body[:50] }}...
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/smoothie/1.35.0/smoothie.min.js"></script>
 <script>
-fetch('{{ url_for('analytics_gender') }}').then(r=>r.json()).then(data=>{
-  const ctx = document.getElementById('genderChart');
-  new Chart(ctx, {type:'pie', data:{labels:['Male','Female','Other'], datasets:[{data:[data.male,data.female,data.other]}]}});
-});
-fetch('{{ url_for('analytics_enrollment')}}').then(r=>r.json()).then(data=>{
-  const ctx = document.getElementById('enrollChart');
-  new Chart(ctx, {type:'bar', data:{labels:data.map(d=>d.year), datasets:[{label:'Students',data:data.map(d=>d.count)}]}});
-});
-fetch('{{ url_for('analytics_payments') }}').then(r=>r.json()).then(data=>{
-  const ctx = document.getElementById('payChart');
-  new Chart(ctx, {type:'bar', data:{labels:data.map(d=>d.year), datasets:[{label:'Payments',data:data.map(d=>d.total)}]}});
-});
-fetch('{{ url_for('analytics_grades') }}').then(r=>r.json()).then(data=>{
-  const ctx = document.getElementById('gradeChart');
-  new Chart(ctx, {type:'line', data:{labels:data.map(d=>d.year), datasets:[{label:'Avg Grade',data:data.map(d=>d.average)}]}});
-});
+    // --- 1. SET UP THE ELECTRIC WAVE CHART ---
+    var activityTimeSeries = new TimeSeries();
+    var chart = new SmoothieChart({
+        grid: { strokeStyle: 'rgba(0, 242, 255, 0.1)', fillStyle: '#050509', lineWidth: 1, millisPerLine: 250, verticalSections: 6 },
+        labels: { fillStyle: '#00f2ff' },
+        responsive: true
+    });
+    
+    // Add the line with the 'Electric Wave' look (Glow and Cyan)
+    chart.addTimeSeries(activityTimeSeries, { strokeStyle: '#00f2ff', fillStyle: 'rgba(0, 242, 255, 0.1)', lineWidth: 2 });
+    chart.streamTo(document.getElementById("dbWaveCanvas"), 500); // Update every 500ms
+
+    // --- 2. POLL THE BACKEND API FOR DATA ---
+    function updateStats() {
+        fetch('/api/stats')
+            .then(response => response.json())
+            .then(data => {
+                // Update the simple text stats
+                document.getElementById('cpu-stat').innerText = data.cpu;
+                document.getElementById('mem-stat').innerText = data.memory;
+
+                // Update the Wave Chart with student count
+                activityTimeSeries.append(new Date().getTime(), data.db_wave);
+            })
+            .catch(error => console.error('Error fetching stats:', error));
+    }
+
+    // Run the update every 1 second
+    setInterval(updateStats, 1000);
+    updateStats(); // Run once immediately
+
+    // Load profile data
+    fetch('{{ url_for('api_profile') }}')
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('profile-pic').src = data['profile-img'];
+            document.getElementById('prof-name').textContent = data.name;
+            document.getElementById('prof-title').textContent = data.title;
+            
+            // Skills as tags
+            const skills = data.skill.split(',').map(skill => skill.trim());
+            const skillContainer = document.getElementById('skill-container');
+            skills.forEach(skill => {
+                const tag = document.createElement('span');
+                tag.className = 'skill-tag';
+                tag.textContent = skill;
+                skillContainer.appendChild(tag);
+            });
+            
+            // Experience
+            document.getElementById('prof-exp').innerHTML = data.Experience.replace(/\n/g, '<br>');
+            
+            // Education
+            document.getElementById('prof-edu').textContent = data.Education;
+            
+            // Contact
+            document.getElementById('prof-con').textContent = data.contact;
+            document.getElementById('prof-email').textContent = data.email;
+            document.getElementById('prof-dob').textContent = data.DoB;
+        })
+        .catch(error => console.error('Error loading profile:', error));
+
+    // Existing charts
+    fetch('{{ url_for('analytics_enrollment')}}').then(r=>r.json()).then(data=>{
+        const ctx = document.getElementById('enrollChart');
+        new Chart(ctx, {type:'bar', data:{labels:data.map(d=>d.year), datasets:[{label:'Students',data:data.map(d=>d.count)}]}});
+    });
+    fetch('{{ url_for('analytics_payments') }}').then(r=>r.json()).then(data=>{
+        const ctx = document.getElementById('payChart');
+        new Chart(ctx, {type:'bar', data:{labels:data.map(d=>d.year), datasets:[{label:'Payments',data:data.map(d=>d.total)}]}});
+    });
+    fetch('{{ url_for('analytics_grades') }}').then(r=>r.json()).then(data=>{
+        const ctx = document.getElementById('gradeChart');
+        new Chart(ctx, {type:'line', data:{labels:data.map(d=>d.year), datasets:[{label:'Avg Grade',data:data.map(d=>d.average)}]}});
+    });
 </script>
 {% endblock %}

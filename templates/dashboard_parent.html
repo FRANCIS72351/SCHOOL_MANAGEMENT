@@ -1,8 +1,40 @@
 {% extends 'base.html' %}
 {% block content %}
 <h2>Parent Dashboard</h2>
-{% if student %}
+
+<!-- User Profile Section -->
+<div class="card mb-4" style="background: rgba(10, 10, 25, 0.8); border: 1px solid #00f2ff; color: white;">
+  <div class="card-body">
+    <h5 class="card-title" style="color: #00f2ff;">My Profile</h5>
+    <div class="row">
+      <div class="col-md-3">
+        {% if current_user.photo %}
+          <img src="{{ url_for('static', filename=current_user.photo) }}" class="img-fluid rounded" alt="Profile Photo">
+        {% else %}
+          <img src="{{ url_for('static', filename='images/default-user.png') }}" class="img-fluid rounded" alt="Default Profile">
+        {% endif %}
+      </div>
+      <div class="col-md-9">
+        <h4>{{ current_user.full_name }}</h4>
+        <p><strong>Email:</strong> {{ current_user.email }}</p>
+        {% if current_user.home_address %}
+        <p><strong>Home Address:</strong> {{ current_user.home_address }}</p>
+        {% endif %}
+        {% if current_user.telephone_number %}
+        <p><strong>Telephone:</strong> {{ current_user.telephone_number }}</p>
+        {% endif %}
+        <p><strong>Role:</strong> {{ current_user.role|title }}</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Active Academic Year -->
+<div class="alert alert-info mb-4" style="background: rgba(0, 123, 255, 0.1); border: 1px solid #00f2ff; color: #00f2ff;">
+  <strong>Active Academic Year:</strong> {{ active_year.name }} ({{ active_year.start_date }} - {{ active_year.end_date }})
+</div>
   <p>Child: {{ student.first_name }} {{ student.last_name }}</p>
-  <a class="btn btn-primary" href="{{ url_for('transcript_pdf', student_id=student.id) }}">Transcript PDF</a>
+  <a class="btn btn-primary" href="{{ url_for('report_card', student_id=student.id) }}">Report Card</a>
+  <a class="btn btn-secondary" href="{{ url_for('transcript', student_id=student.id) }}">Transcript</a>
 {% else %}<p>No linked child found.</p>{% endif %}
 {% endblock %}

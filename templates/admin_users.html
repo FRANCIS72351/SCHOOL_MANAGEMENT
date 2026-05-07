@@ -21,6 +21,14 @@
             {{ form.role(class="form-select") }}
         </div>
         <div class="col-md-6">
+            {{ form.home_address.label(class="form-label") }}
+            {{ form.home_address(class="form-control", placeholder="Enter home address") }}
+        </div>
+        <div class="col-md-6">
+            {{ form.telephone_number.label(class="form-label") }}
+            {{ form.telephone_number(class="form-control", placeholder="e.g. +231 123 456 789") }}
+        </div>
+        <div class="col-md-6">
             {{ form.photo.label(class="form-label") }}
             {{ form.photo(class="form-control") }}
             <div class="form-text">Accepted formats: JPG, JPEG, PNG, GIF.</div>
@@ -33,7 +41,7 @@
 <h3>All Users</h3>
 <table class="table table-bordered">
     <thead>
-        <tr><th>ID</th><th>Email</th><th>Full Name</th><th>Role</th></tr>
+        <tr><th>ID</th><th>Email</th><th>Full Name</th><th>Role</th><th>Home Address</th><th>Telephone</th><th>Actions</th></tr>
     </thead>
     <tbody>
         {% for user in users %}
@@ -42,6 +50,20 @@
             <td>{{ user.email }}</td>
             <td>{{ user.full_name }}</td>
             <td>{{ user.role }}</td>
+            <td>{{ user.home_address or '-' }}</td>
+            <td>{{ user.telephone_number or '-' }}</td>
+            <td>
+                <form method="POST" action="{{ url_for('unlock_user', user_id=user.id) }}" style="display: inline;">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-warning btn-sm" 
+                            onclick="return confirm('Unlock this user account?')">Unlock</button>
+                </form>
+                <form method="POST" action="{{ url_for('delete_user', user_id=user.id) }}" style="display: inline;">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-danger btn-sm" 
+                            onclick="return confirm('Delete this user account?')">Delete</button>
+                </form>
+            </td>
         </tr>
         {% endfor %}
     </tbody>

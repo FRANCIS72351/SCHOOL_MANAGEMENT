@@ -12,3 +12,4 @@ pyotp
 itsdangerous
 waitress
 flask-migrate
+pytesseract
