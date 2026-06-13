@@ -108,6 +108,13 @@ def init_export_routes(app):
             return redirect(url_for('dashboard'))
 
         attendance_query = Attendance.query
+        year = request.args.get('year')
+        if year:
+            attendance_query = (
+                attendance_query.join(Student)
+                .join(AcademicYear)
+                .filter(AcademicYear.name == year)
+            )
         if _export_role_allowed(ROLE_TEACHER) and not _export_role_allowed(ROLE_ADMIN):
             teacher = Teacher.query.filter_by(user_id=current_user.id).first()
             class_ids = set()
@@ -153,7 +160,11 @@ def init_export_routes(app):
             flash('Access denied.', 'danger')
             return redirect(url_for('dashboard'))
 
-        payments = StudentPayment.query.all()
+        year = request.args.get('year')
+        payments_query = StudentPayment.query
+        if year:
+            payments_query = payments_query.join(AcademicYear).filter(AcademicYear.name == year)
+        payments = payments_query.all()
         def generate():
             buf = StringIO()
             writer = csv.writer(buf)
@@ -272,7 +283,7 @@ def init_export_routes(app):
                     pdf.showPage()
                     y = 800
                     pdf.setFont('Helvetica', 11)
-                pdf.drawString(50, y, f"Date: {txn.date} | Type: {txn.type.capitalize()} | Amount: ₱{txn.amount:.2f}")
+                pdf.drawString(50, y, f"Date: {txn.date} | Type: {txn.type.capitalize()} | Amount: ${txn.amount:.2f}")
                 y -= 16
                 if txn.category or txn.description:
                     details = []

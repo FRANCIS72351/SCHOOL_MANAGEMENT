@@ -17,6 +17,41 @@ Internet → Nginx (port 80/443) → Gunicorn (127.0.0.1:8000) → Flask app →
 - Python 3.10+
 - Domain pointed to your server IP (for HTTPS)
 
+## Database on cloud server (fresh start)
+
+**Your local database is never uploaded to GitHub or the server automatically.**
+
+- `instance/` and `*.db` are in `.gitignore` — only application code is pushed.
+- On first VPS install, `deploy/init-fresh-database.sh` removes any old SQLite files and creates **empty tables**.
+- Set `ADMIN_PASSWORD` in `/etc/school-management/env` before install (or run `python create.py` after).
+
+```bash
+# In /etc/school-management/env
+FRESH_DATABASE=1
+ADMIN_EMAIL=admin@school.com
+ADMIN_NAME=School Administrator
+ADMIN_PASSWORD=your_secure_password
+```
+
+Re-deploys (`git pull` + restart) **keep** the server database. To reset the server DB manually:
+
+```bash
+cd /var/www/school-management
+sudo FRESH_DATABASE=1 bash deploy/init-fresh-database.sh
+sudo systemctl restart school-management
+```
+
+### Optional: copy your local database to the server
+
+Only if you intentionally want dev data on production:
+
+```bash
+# From your Windows/Mac machine (replace user and server IP)
+scp instance/keeptrack_full.db user@your-server:/var/www/school-management/instance/
+ssh user@your-server "sudo chown www-data:www-data /var/www/school-management/instance/keeptrack_full.db"
+ssh user@your-server "sudo systemctl restart school-management"
+```
+
 ## Quick install (automated)
 
 1. Copy the project to your server:
@@ -160,6 +195,8 @@ See `.env.example` and `deploy/env.production.example`.
 | `FLASK_ENV` | Yes | `production` on VPS |
 | `PRODUCTION` | Yes | `1` enables secure cookies + proxy fix |
 | `DATABASE_URL` | No | Defaults to SQLite in `instance/` |
+| `FRESH_DATABASE` | No | `1` = wipe SQLite on install and create empty tables |
+| `ADMIN_EMAIL` / `ADMIN_PASSWORD` | First install | Creates master admin via `create.py` |
 | `GUNICORN_BIND` | No | `127.0.0.1:8000` behind Nginx |
 | `SESSION_COOKIE_SECURE` | No | `true` when using HTTPS |
 

@@ -321,24 +321,6 @@ class AttendanceForm(FlaskForm):
     submit = SubmitField("Record")
 
 
-class GradeForm(FlaskForm):
-    student_id = IntegerField("Student ID", validators=[DataRequired()])
-    teacher_id = IntegerField("Teacher ID", validators=[DataRequired()])
-    activity_type = SelectField(
-        "Activity Type",
-        choices=[
-            ("assignment", "Assignment"),
-            ("test", "Test"),
-            ("classwork", "Class Work")
-        ],
-        validators=[DataRequired()]
-    )
-    score = FloatField("Score", validators=[DataRequired()])
-    period = IntegerField("Period", validators=[DataRequired()])
-    submitted = BooleanField("Submit Grade", default=False)
-    submit = SubmitField("Save")
-
-
 class CreateUserForm(FlaskForm):
     email = StringField('Email', validators=[DataRequired(), Email()])
     full_name = StringField('Full Name', validators=[DataRequired()])

@@ -67,22 +67,6 @@ def allowed_file(filename):
 
 # ======================== END CONFIG =======================================
 
-from functools import wraps
-
-def role_required(*roles):
-    def decorator(f):
-        @wraps(f)
-        def decorated_function(*args, **kwargs):
-            # 1. Check if user is logged in
-            # 2. Check if their role matches any of the provided roles
-            user_role = (getattr(current_user, "role", "") or "").lower()
-            allowed_roles = {role.lower() for role in roles}
-            if not current_user.is_authenticated or user_role not in allowed_roles:
-                abort(403) # "Forbidden" error
-            return f(*args, **kwargs)
-        return decorated_function
-    return decorator
-
 def resolve_static_upload_path(rel_path):
     """Resolve DB-relative upload path (uploads/...) to an absolute file under static/."""
     rel_path = (rel_path or '').replace('\\', '/').lstrip('/')
@@ -115,10 +99,6 @@ def log_security_event(description):
     db.session.add(event)
     db.session.commit()
 
-def generate_recovery_token(user_id):
-    s = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
-    return s.dumps(user_id, salt='recovery-key')
-
 def log_incident(event_type):
     # We import SecurityLog and db locally inside the function
     # to prevent circular dependency lookup blocks during runtime initialization.
@@ -134,8 +114,14 @@ def log_incident(event_type):
     db.session.commit()
 
 def check_brute_force(ip):
-    # Brute force lockout disabled temporarily.
-    return False
+    """Block login after 5 failed attempts from the same IP within 15 minutes."""
+    cutoff = datetime.now(timezone.utc) - timedelta(minutes=15)
+    recent_fails = SecurityLog.query.filter(
+        SecurityLog.ip_address == ip,
+        SecurityLog.event == 'FAILED_LOGIN',
+        SecurityLog.timestamp >= cutoff,
+    ).count()
+    return recent_fails >= 5
 
 # Local imports handled in init_db.py to avoid circular imports during app import
 from models import (
@@ -1545,59 +1531,8 @@ csrf = CSRFProtect(app)
 login_manager = LoginManager(app)
 login_manager.login_view = "login"
 
-@staticmethod
-def calculate_capacity_utilization(room_capacity, current_students):
-    """Logic to ensure classrooms are not overcrowded"""
-    if room_capacity <= 0:
-        return "Error: Capacity must be greater than 0"
-        utilization = (current_students / room_capacity) * 100
-        if utilization > 100:
-            return f"OVERCROWDED: {utilization:.1f}% capacity"
-        return f"Healthy: {utilization:.1f}% capacity"
-
-
 class AcademicManager:
     """The 'Brain' of the school - logic for the VPA"""
-
-    @staticmethod
-    def enter_grade(student_id, course_id, period_id, ca_score, exam_score):
-        """
-        Calculates and saves a grade for a specific marking period.
-        Standard: CA (60pts) + Exam (40pts) = 100pts
-        """
-        # 1. Validate the Marking Period is actually OPEN using clean session.get pattern
-        period = db.session.get(MarkingPeriod, period_id)
-        if not period or not period.is_active:
-            raise PermissionError("This marking period is closed for entry.")
-
-        # 2. Enforce Liberian National Standards
-        if ca_score > 60 or exam_score > 40:
-            raise ValueError("Scores exceed the 60/40 MoE limit.")
-
-        total = ca_score + exam_score
-        
-        # 3. Update or Create the grade record
-        grade_record = Grade.query.filter_by(
-            student_id=student_id, 
-            course_id=course_id, 
-            period_id=period_id
-        ).first()
-
-        if not grade_record:
-            grade_record = Grade(
-                student_id=student_id, 
-                course_id=course_id, 
-                period_id=period_id
-            )
-
-        grade_record.ca_score = ca_score
-        grade_record.exam_score = exam_score
-        grade_record.score = total  
-        grade_record.remarks = f"CA: {ca_score}, Exam: {exam_score}"
-
-        db.session.add(grade_record)
-        db.session.commit()
-        return grade_record
 
     @staticmethod
     def calculate_annual_result(student_id):
@@ -1639,21 +1574,16 @@ class AcademicManager:
 # -------------------------------------------------------------------
 # 3. SECURITY UTILITY LOGIC
 # -------------------------------------------------------------------
-def track_failed_attempt(ip_address, username):
-    """Logs a failed attempt and checks if we should block the IP."""
-    new_log = SecurityLog(
+def track_failed_attempt(ip_address, username=None):
+    """Logs a failed login attempt and returns True if the IP should be blocked."""
+    log = SecurityLog(
         ip_address=ip_address,
-        username=username,
-        event_type='FAILED_LOGIN'
+        event='FAILED_LOGIN',
+        timestamp=datetime.now(timezone.utc),
     )
-    db.session.add(new_log)
+    db.session.add(log)
     db.session.commit()
-    
-    # Check if this IP has failed 5 times
-    recent_fails = SecurityLog.query.filter_by(ip_address=ip_address, event_type='FAILED_LOGIN').count()
-    if recent_fails >= 5:
-        return True 
-    return False
+    return check_brute_force(ip_address)
 
 
 def generate_recovery_token(user_id):
@@ -2126,6 +2056,10 @@ def login():
     ip = request.headers.get('X-Forwarded-For', request.remote_addr)
     
     if form.validate_on_submit():
+        if check_brute_force(ip):
+            flash('Too many failed login attempts. Please try again in 15 minutes.', 'danger')
+            return render_template('login.html', form=form)
+
         user = User.query.filter_by(email=form.email.data).first()
         if user and user.check_password(form.password.data):
             settings = get_system_settings()
@@ -2139,7 +2073,7 @@ def login():
                 return redirect(url_for('teacher_dashboard'))
             return redirect(url_for('dashboard'))
         
-        log_incident('FAILED_LOGIN')
+        track_failed_attempt(ip, form.email.data)
         flash('Invalid email or password.', 'danger')
     return render_template('login.html', form=form)
 
@@ -2821,8 +2755,75 @@ def download_grades(class_id):
     if role not in ('registrar', 'teacher', 'admin'):
         flash('Access denied.', 'danger')
         return redirect(url_for('dashboard'))
-    flash('Grade export is not yet available.', 'warning')
-    return redirect(url_for('dashboard'))
+
+    klass = Class.query.get_or_404(class_id)
+    if role == 'teacher':
+        teacher = Teacher.query.filter_by(user_id=current_user.id).first()
+        if not teacher or not teacher_can_access_class(teacher, current_user, class_id):
+            flash('Access denied.', 'danger')
+            return redirect(url_for('dashboard'))
+
+    year_name = request.args.get('year')
+    active_year = AcademicYear.query.filter_by(name=year_name).first() if year_name else None
+    if not active_year:
+        active_year = AcademicYear.query.filter_by(is_active=True).first()
+    if not active_year:
+        flash('No academic year found for export.', 'warning')
+        return redirect(url_for('dashboard'))
+
+    subject = (request.args.get('subject') or '').strip()
+    period = request.args.get('period', type=int)
+
+    grades_query = Grade.query.filter_by(
+        class_id=class_id,
+        academic_year_id=active_year.id,
+    )
+    if subject:
+        grades_query = grades_query.filter(Grade.subject == subject)
+    if period:
+        grades_query = grades_query.filter(Grade.marking_period == period)
+
+    grades = grades_query.order_by(
+        Grade.subject.asc(),
+        Grade.marking_period.asc(),
+        Grade.student_id.asc(),
+    ).all()
+    student_map = {s.id: s for s in Student.query.filter_by(klass_id=class_id).all()}
+
+    def generate():
+        buf = StringIO()
+        writer = csv.writer(buf)
+        writer.writerow([
+            'Student ID', 'Student Name', 'Subject', 'Period',
+            'CA Score', 'Exam Score', 'Total', 'Grade Letter', 'Published',
+        ])
+        yield buf.getvalue()
+        buf.seek(0)
+        buf.truncate(0)
+        for grade in grades:
+            student = student_map.get(grade.student_id)
+            writer.writerow([
+                student.student_id if student else grade.student_id,
+                student.full_name if student else '',
+                grade.subject or grade.subject_name or '',
+                grade.marking_period or grade.period or '',
+                grade.ca_score if grade.ca_score is not None else '',
+                grade.exam_score if grade.exam_score is not None else '',
+                grade.score if grade.score is not None else '',
+                SchoolEngine.get_grade_letter(grade.score or 0),
+                'Yes' if grade.submitted else 'No',
+            ])
+            yield buf.getvalue()
+            buf.seek(0)
+            buf.truncate(0)
+
+    safe_class = (klass.name or f'class_{class_id}').replace(' ', '_')[:40]
+    filename = f'grades_{safe_class}_{active_year.name}.csv'
+    return Response(
+        generate(),
+        mimetype='text/csv',
+        headers={'Content-Disposition': f'attachment; filename={filename}'},
+    )
 
 @app.route('/download/<path:filename>')
 @login_required
@@ -3088,7 +3089,7 @@ def format_student_school_level(student):
 def report_card(student_id):
     student = Student.query.get_or_404(student_id)
     
-    staff_roles = {'admin', 'teacher', 'registrar', 'principal', 'vpa'}
+    staff_roles = {'admin', 'teacher', 'registrar', 'principal', 'vpa', 'vpi', 'dean', 'business'}
     user_role = (current_user.role or '').lower()
     if user_role == 'student':
         linked_student = get_student_for_user(current_user)
@@ -3177,7 +3178,7 @@ def report_card(student_id):
 def download_report_card(student_id):
     student = Student.query.get_or_404(student_id)
     
-    staff_roles = {'admin', 'teacher', 'registrar', 'principal', 'vpa'}
+    staff_roles = {'admin', 'teacher', 'registrar', 'principal', 'vpa', 'vpi', 'dean', 'business'}
     user_role = (current_user.role or '').lower()
     if (user_role not in staff_roles and 
         student.user_id != current_user.id and 

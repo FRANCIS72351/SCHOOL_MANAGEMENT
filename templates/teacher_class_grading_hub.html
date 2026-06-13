@@ -16,10 +16,16 @@
                     · {{ active_year.name if active_year else 'No year' }}
                 </p>
             </div>
+            <div class="d-flex flex-wrap gap-2">
             <a href="{{ url_for('grade_entry_class', class_id=klass.id, subject=selected_subject, period=selected_period) }}"
                class="btn btn-outline-secondary btn-sm">
                 <i class="bi bi-printer me-1"></i>Printable MoE Sheet
             </a>
+            <a href="{{ url_for('download_grades', class_id=klass.id, subject=selected_subject, period=selected_period) }}"
+               class="btn btn-outline-primary btn-sm">
+                <i class="bi bi-download me-1"></i>Export CSV
+            </a>
+            </div>
         </div>
     </div>
 

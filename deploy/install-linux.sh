@@ -33,6 +33,9 @@ python3 -m venv .venv
 .venv/bin/pip install --upgrade pip
 .venv/bin/pip install -r requirements.txt
 
+echo "==> Initializing fresh database on server (local dev DB is not deployed via git)"
+FRESH_DATABASE="${FRESH_DATABASE:-1}" ENV_FILE="${ENV_FILE}" bash deploy/init-fresh-database.sh "${APP_DIR}"
+
 chown -R "${APP_USER}:${APP_USER}" "${APP_DIR}/instance" "${APP_DIR}/static/uploads"
 chmod -R 775 "${APP_DIR}/instance" "${APP_DIR}/static/uploads"
 
