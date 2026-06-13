@@ -15,6 +15,7 @@
           <tr>
             <th>Title</th>
             <th class="w-50">Description</th>
+            <th>Type</th>
             <th>Date</th>
             <th>Location</th>
             <th class="text-center">Actions</th>
@@ -25,6 +26,7 @@
             <tr>
               <td class="fw-semibold">{{ event.title }}</td>
               <td class="text-muted">{{ event.description[:100] }}{% if event.description|length > 100 %}…{% endif %}</td>
+              <td><span class="badge bg-info text-dark">{{ (event.event_type or 'general')|replace('_', ' ')|title }}</span></td>
               <td>{{ event.date.strftime('%b %d, %Y') }}</td>
               <td>{{ event.location or '—' }}</td>
               <td class="text-center">

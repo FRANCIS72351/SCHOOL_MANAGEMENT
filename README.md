@@ -27,6 +27,19 @@ announcements, payments, sponsors, discipline records, PDF transcript generation
    ```
 6. Open http://127.0.0.1:5000
 
+## Production (VPS / Linux)
+
+See **[DEPLOYMENT.md](DEPLOYMENT.md)** for full VPS setup with Gunicorn, Nginx, and systemd.
+
+Quick start on Linux:
+
+```bash
+cp .env.example .env   # set SECRET_KEY and FLASK_ENV=production
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+bash deploy/start-gunicorn.sh
+```
+
 ## Notes
 - Zoom integration is a placeholder: you must supply your Zoom API credentials and implement the API calls.
 - For production, use a proper RDBMS and WSGI server (Gunicorn), secure SECRET_KEY, and serve static files via CDN.

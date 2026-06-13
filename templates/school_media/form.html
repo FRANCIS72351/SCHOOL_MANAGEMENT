@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+{% block title %}{{ 'Edit' if item else 'Add' }} School Media{% endblock %}
+{% block content %}
+<div class="container py-4">
+  <h1 class="fw-bold text-primary mb-4">{{ 'Edit' if item else 'Add' }} School Media</h1>
+
+  {% if registrar_media_only %}
+  <div class="alert alert-info col-lg-8 mb-3">
+    <i class="fas fa-info-circle me-1"></i>
+    As Registrar, you can publish <strong>Entrance Exam</strong> notices and <strong>Academic Year Info Sheets</strong> (documents only).
+    Advertisement videos must be posted by Principal or VPA.
+  </div>
+  {% else %}
+  <div class="alert alert-light border col-lg-8 mb-3 small">
+    <i class="fas fa-lightbulb me-1 text-warning"></i>
+    <strong>Advertisement / promo videos</strong> → choose <em>Advertisement / Promo Video</em>.
+    <strong>Entrance exam notices</strong> → choose <em>Entrance Exam Notice</em> and upload a PDF/document only.
+  </div>
+  {% endif %}
+
+  <form method="POST" enctype="multipart/form-data" class="card shadow-sm p-4 bg-light col-lg-8">
+    {{ form.hidden_tag() }}
+
+    <div class="mb-3">
+      {{ form.title.label(class="form-label fw-semibold") }}
+      {{ form.title(class="form-control", placeholder="e.g., 2025-2026 Entrance Exam Notice") }}
+    </div>
+
+    <div class="mb-3">
+      {{ form.description.label(class="form-label fw-semibold") }}
+      {{ form.description(class="form-control", rows=3, placeholder="Short description for parents and students") }}
+    </div>
+
+    <div class="row g-3 mb-3">
+      <div class="col-md-6">
+        {{ form.media_type.label(class="form-label fw-semibold") }}
+        {{ form.media_type(class="form-select") }}
+      </div>
+      <div class="col-md-6">
+        {{ form.category.label(class="form-label fw-semibold") }}
+        {{ form.category(class="form-select") }}
+      </div>
+    </div>
+
+    <div class="mb-3">
+      {{ form.academic_year.label(class="form-label fw-semibold") }}
+      {{ form.academic_year(class="form-select") }}
+    </div>
+
+    <div class="mb-3">
+      {{ form.external_url.label(class="form-label fw-semibold") }}
+      {{ form.external_url(class="form-control", placeholder="https://www.youtube.com/watch?v=...") }}
+      <div class="form-text">For videos: paste a YouTube link instead of uploading a large file.</div>
+    </div>
+
+    <div class="mb-3">
+      {{ form.media_file.label(class="form-label fw-semibold") }}
+      {{ form.media_file(class="form-control") }}
+      <div class="form-text">Photos: JPG/PNG · Videos: MP4 · Documents: PDF, Word, Excel</div>
+      {% if item and item.static_file_path %}
+      <div class="small text-muted mt-1">Current file: {{ item.static_file_path }}</div>
+      {% endif %}
+    </div>
+
+    <div class="form-check mb-4">
+      {{ form.is_published(class="form-check-input") }}
+      {{ form.is_published.label(class="form-check-label") }}
+    </div>
+
+    <div class="d-flex justify-content-between">
+      <a href="{{ url_for('school_media_manage') }}" class="btn btn-outline-secondary">Cancel</a>
+      {{ form.submit(class="btn btn-primary") }}
+    </div>
+  </form>
+</div>
+{% endblock %}

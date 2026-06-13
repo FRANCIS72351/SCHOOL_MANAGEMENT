@@ -1,238 +1,371 @@
 {% extends 'base.html' %}
 {% block title %}Security Hub{% endblock %}
 {% block content %}
+
 <style>
     body {
-        background-color: #050509; /* Deep Black/Blue */
-        color: #00f2ff; /* Cyber Cyan */
-        font-family: 'Courier New', Courier, monospace; /* Monospace for 'Code' look */
-        margin: 20px;
+        background-color: #0b0f19; /* Deep Executive Navy Black */
+        color: #e2e8f0;
+        font-family: 'Inter', system-ui, -apple-system, sans-serif;
     }
-    .dashboard-container {
-        display: grid;
-        grid-template-columns: 2fr 1fr;
-        gap: 20px;
-    }
-    .card {
-        background: rgba(10, 10, 25, 0.8);
-        border: 1px solid #00f2ff;
-        border-radius: 5px;
-        padding: 15px;
-        box-shadow: 0 0 10px rgba(0, 242, 255, 0.2);
-    }
-    h2, h3 { color: #fff; text-transform: uppercase; letter-spacing: 2px; }
-    .glow { text-shadow: 0 0 5px #00f2ff; }
-    
-    /* The Wave Canvas */
-    canvas { width: 100%; height: 200px; }
 
-    /* Security Log Styles */
-    #security-log {
-        height: 400px;
-        overflow-y: scroll;
-        background: #000;
-        border: 1px solid #ff0055; /* Alert Red */
-        padding: 10px;
-        color: #ff0055;
-    }
-    .log-entry { margin-bottom: 8px; border-bottom: 1px solid #222; }
-    .log-time { color: #888; }
-
-    /* Override Bootstrap for cyber theme */
-    .navbar { background: rgba(0, 242, 255, 0.1) !important; border-bottom: 1px solid #00f2ff; }
-    .navbar-brand { color: #00f2ff !important; }
-    .nav-link { color: #00f2ff !important; }
-    .alert { background: rgba(255, 0, 85, 0.1); border: 1px solid #ff0055; color: #ff0055; }
-
-    /* Profile Card Styling */
-    .profile-card {
-        border-left: 4px solid #00f2ff;
-        padding-left: 20px;
-        margin-bottom: 30px;
-        background: linear-gradient(90deg, rgba(0, 242, 255, 0.05) 0%, transparent 100%);
-        color: white;
-    }
-    .profile-name {
-        font-size: 1.5rem;
-        font-weight: bold;
-        color: #fff;
-        margin-bottom: 5px;
-    }
-    .profile-title {
-        color: #00f2ff;
-        font-size: 0.9rem;
+    /* Professional Cyber Accents */
+    .text-cyan { color: #00f2ff; }
+    .glow-title {
+        font-weight: 700;
         letter-spacing: 1px;
+        color: #ffffff;
+        text-shadow: 0 0 15px rgba(0, 242, 255, 0.2);
     }
-    .skill-tag {
-        display: inline-block;
-        background: rgba(0, 242, 255, 0.1);
-        border: 1px solid #00f2ff;
-        padding: 2px 8px;
-        font-size: 0.7rem;
-        margin-top: 10px;
-        margin-right: 5px;
-        border-radius: 3px;
-        color: #00f2ff;
+
+    /* Enterprise Panel Cards */
+    .sec-card {
+        background: #111827;
+        border: 1px solid #1f2937;
+        border-radius: 12px !important;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+        transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+    .sec-card:hover {
+        border-color: rgba(0, 242, 255, 0.4);
+        box-shadow: 0 6px 24px rgba(0, 242, 255, 0.08);
+    }
+
+    /* Dashboard Grid Utilities */
+    .metric-value {
+        font-size: 1.75rem;
+        font-weight: 700;
+        font-family: 'Courier New', Courier, monospace;
+    }
+
+    /* Progress & Metric Bars */
+    .progress-custom {
+        height: 6px;
+        background-color: #1f2937;
+        border-radius: 4px;
+        overflow: hidden;
+    }
+    .progress-bar-cyan {
+        background: linear-gradient(90deg, #00f2ff, #4e73df);
+        width: 0%;
+        transition: width 0.5s ease-in-out;
+    }
+
+    /* Professionalized Terminal Log */
+    .terminal-container {
+        border: 1px solid rgba(239, 68, 68, 0.4) !important;
+        box-shadow: inset 0 0 15px rgba(239, 68, 68, 0.05);
+    }
+    #security-log {
+        height: 320px;
+        overflow-y: auto;
+        background: #070a12;
+        padding: 15px;
+        font-family: 'Courier New', Courier, monospace;
+        font-size: 0.85rem;
+        color: #fca5a5;
+    }
+    .log-entry {
+        padding: 6px 0;
+        border-bottom: 1px solid #1f2937;
+        animation: fadeInLog 0.3s ease;
+    }
+    .log-time { color: #6b7280; font-weight: bold; margin-right: 8px;}
+    
+    @keyframes fadeInLog {
+        from { opacity: 0; transform: translateY(2px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Profile Scanner Element Card Layout */
+    .sec-profile-card {
+        background: linear-gradient(135deg, #111827 0%, #0f172a 100%);
+        border-left: 4px solid #00f2ff !important;
     }
     
     .profile-img-container {
         position: relative;
-        width: 100px;
-        height: 100px;
-        border: 2px solid #00f2ff;
+        width: 110px;
+        height: 110px;
+        border: 2px solid rgba(0, 242, 255, 0.3);
+        border-radius: 12px;
         overflow: hidden;
+        background: #070a12;
     }
     #profile-pic { width: 100%; height: 100%; object-fit: cover; }
+    
     .scanning-bar {
         position: absolute;
         top: 0;
         left: 0;
         width: 100%;
-        height: 2px;
-        background: #00f2ff;
-        box-shadow: 0 0 10px #00f2ff;
-        animation: scan 2s linear infinite;
+        height: 3px;
+        background: linear-gradient(90deg, transparent, #00f2ff, transparent);
+        box-shadow: 0 0 12px #00f2ff;
+        animation: cyberScan 2.5s ease-in-out infinite;
     }
-    @keyframes scan {
-        0% { top: 0; }
-        100% { top: 100%; }
+    @keyframes cyberScan {
+        0%, 100% { top: 0%; opacity: 0.3; }
+        50% { top: 100%; opacity: 1; }
+    }
+
+    .skill-tag {
+        display: inline-block;
+        background: rgba(0, 242, 255, 0.06);
+        border: 1px solid rgba(0, 242, 255, 0.25);
+        padding: 3px 10px;
+        font-size: 0.72rem;
+        font-weight: 600;
+        margin-top: 6px;
+        margin-right: 6px;
+        border-radius: 6px !important;
+        color: #00f2ff;
+        transition: all 0.2s ease;
+    }
+    .skill-tag:hover {
+        background: rgba(0, 242, 255, 0.15);
+        border-color: #00f2ff;
+    }
+
+    /* Polished Tables */
+    .table-cyber {
+        color: #e2e8f0 !important;
+        font-size: 0.9rem;
+    }
+    .table-cyber th {
+        background-color: #1f2937 !important;
+        color: #00f2ff !important;
+        border-color: #374151 !important;
+    }
+    .table-cyber td {
+        background-color: transparent !important;
+        border-color: #1f2937 !important;
+        padding: 12px 8px;
     }
 </style>
 
-<p>Status: <span style="color: limegreen;">ACTIVE - QUANTUM-SAFE (PQC)</span></p>
-<p>License: <span style="color: yellow;">Expires: 2027-04-19</span></p>
+<div class="container-fluid py-3">
 
-<div class="dashboard-container">
+    {% if not system_is_active %}
+    <div class="alert alert-danger border-danger bg-danger bg-opacity-10 mb-4" data-aos="fade-down">
+        <strong><i class="fas fa-exclamation-triangle me-2"></i>System is ON HOLD for all non-admin users.</strong>
+        <a href="{{ url_for('admin_system_control') }}" class="alert-link ms-2">Manage activation</a>
+    </div>
+    {% endif %}
     
-    <div class="card">
-        <h3>School Activity (Student Registrations) - Electric Wave</h3>
-        <canvas id="dbWaveCanvas"></canvas>
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3 bg-dark bg-opacity-25 p-3 rounded-3 border border-secondary border-opacity-10" data-aos="fade-down">
+        <div class="d-flex gap-4">
+            <div>
+                <span class="text-muted small text-uppercase block d-block">System State</span>
+                {% if system_is_active %}
+                <strong style="color: #1cc88a;"><i class="fas fa-shield-alt me-1"></i> ACTIVE</strong>
+                {% else %}
+                <strong style="color: #f43f5e;"><i class="fas fa-pause-circle me-1"></i> ON HOLD</strong>
+                {% endif %}
+            </div>
+            <div class="border-start border-secondary border-opacity-25 ps-4">
+                <span class="text-muted small text-uppercase block d-block">License Control</span>
+                <a href="{{ url_for('admin_system_control') }}" class="text-warning text-decoration-none">
+                    <strong><i class="fas fa-power-off me-1"></i> Activate / Deactivate System</strong>
+                </a>
+            </div>
+            <div class="border-start border-secondary border-opacity-25 ps-4">
+                <span class="text-muted small text-uppercase block d-block">Academic Year Engine</span>
+                <strong class="text-white"><i class="fas fa-calendar-alt me-1"></i> {{ active_year.name if active_year else "-" }}</strong>
+            </div>
+        </div>
         
-        <h3>System Load (CPU/MEM)</h3>
-        <p style="color: white;">CPU Usage: <span id="cpu-stat">0</span>%</p>
-        <p style="color: white;">Memory Usage: <span id="mem-stat">0</span>%</p>
-
-        <!-- Existing Dashboard Content -->
-        <h3>ADMIN DASHBOARD</h3>
-
-<div class="profile-card">
-    <div style="display: flex; align-items: center; gap: 20px;">
-        <div class="profile-img-container">
-            <img src="{{ url_for('static', filename='images/pro.png') }}" alt="Profile" id="profile-pic">
-            <div class="scanning-bar"></div>
+        <div class="d-flex gap-2">
+            <div class="btn-group" role="group">
+                <button id="exportsDropdown" type="button" class="btn btn-sm btn-outline-info dropdown-toggle rounded-3" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fas fa-download me-1"></i> Export Datasets
+                </button>
+                <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end shadow" aria-labelledby="exportsDropdown">
+                    <li><a class="dropdown-item" href="{{ url_for('export_students', year=selected_year_name) }}">Students Ledger (CSV)</a></li>
+                    <li><a class="dropdown-item" href="{{ url_for('export_payments', year=selected_year_name) }}">Payments Ledger (CSV)</a></li>
+                    <li><a class="dropdown-item" href="{{ url_for('export_grades', year=selected_year_name) }}">Grades Report (CSV)</a></li>
+                    <li><a class="dropdown-item" href="{{ url_for('export_attendance', year=selected_year_name) }}">Attendance Records (CSV)</a></li>
+                    <li><a class="dropdown-item" href="{{ url_for('export_sponsors', year=selected_year_name) }}">Sponsors Mapping (CSV)</a></li>
+                </ul>
+            </div>
+            <a href="{{ url_for('class_create') }}" class="btn btn-sm btn-outline-secondary text-white"><i class="fas fa-chalkboard"></i> Classes</a>
+            <a href="{{ url_for('academic_years') }}" class="btn btn-sm btn-outline-secondary text-white"><i class="fas fa-calendar-plus"></i> Create Academic Year</a>
+            <a href="{{ url_for('admin_users') }}" class="btn btn-sm btn-outline-secondary text-white"><i class="fas fa-users-cog"></i> Users</a>
+            <a href="{{ url_for('report_students_pdf', year=selected_year_name) }}" class="btn btn-sm btn-primary"><i class="fas fa-file-pdf me-1"></i> Master PDF</a>
         </div>
-
-        <div>
-            <div class="profile-name" id="prof-name">FRANCIS BROWNELL</div>
-            <div class="profile-title" id="prof-title">CYBER SECURITY STUDENT</div>
-            <div id="skill-container">Python, Flask, Numpy,Nureul,Cryptography,Network Security</div>
-            <div class="pro-edu">Self Learnin Basic Programming </div>
-            <div class="pro-exprience">(ERP)Enterprise Resource Planning at 3GDESIGNS PRINTING \n(Benson & Newport Street) One year of Adminstrating Linux Servers at Hostinger.<br> Computer Teacher at the Muslin High School\n Full Stack Developer at Personal School Management System </div>
-            <div class="pro-dob">February 22, 2003</div>
-            <div class="pro-,contact">+231 0889358194</div>
-         
-        </div>
-    </div>
-
-    <div class="profile-details mt-3" style="font-size: 0.85rem; color: #aaa;">
-        <div id="prof-exp" class="mb-2"></div>
-        <div id="prof-edu" class="mb-2"></div>
-        <div class="d-flex gap-3">
-            <span id="prof-con"></span>
-            <span id="prof-email"></span>
-            <span id="prof-dob"></span>
-        </div>
-    </div>
-</div>
-
-<div class="mb-3" style="color: white; margin-top: 20px;">
-    <strong>Active Academic Year:</strong> {{ active_year.name }} ({{ active_year.start_date }} - {{ active_year.end_date }})
-</div>
-  <div class="btn-group ms-2" role="group">
-    <button id="exportsDropdown" type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
-      Data Exports
-    </button>
-    <ul class="dropdown-menu" aria-labelledby="exportsDropdown">
-      <li><a class="dropdown-item" href="{{ url_for('export_students', year=selected_year) }}">Students CSV</a></li>
-      <li><a class="dropdown-item" href="{{ url_for('export_payments', year=selected_year) }}">Payments CSV</a></li>
-      <li><a class="dropdown-item" href="{{ url_for('export_grades', year=selected_year) }}">Grades CSV</a></li>
-      <li><a class="dropdown-item" href="{{ url_for('export_attendance', year=selected_year) }}">Attendance CSV</a></li>
-      <li><a class="dropdown-item" href="{{ url_for('export_sponsors', year=selected_year) }}">Class Sponsors CSV</a></li>
-
-    </ul>
-  </div>
-  <a href="{{ url_for('class_create') }}" class="btn btn-outline-secondary ms-2">Class Management</a>
-  <a href="{{ url_for('admin_users') }}" class="btn btn-outline-secondary ms-2">User Management</a>
-
-  <!-- ✅ Fixed PDF button -->
-  <a href="{{ url_for('report_students_pdf', year=selected_year) }}" class="btn btn-outline-primary ms-2">Download Students PDF</a>
-</div>
-
-    <div class="mb-3">
-        <strong style="color: red;">Active Academic Year:</strong> <span style="color: red;">{{ selected_year }}</span>
     </div>
 
     <div class="row">
-  <div class="col-md-3">
-    <div class="card p-3 shadow-sm border-primary" style="color: red;">
-      <div class="fw-bold">Students</div>
-      <div class="h3 mb-0">{{ counts.students }}</div>
-      <div class="text-muted small">New: {{ counts.new_students }} | Returning: {{ counts.returning_students }}</div>
-    </div>
-  </div>
-  <div class="col-md-3"><div class="card p-3 shadow-sm" style="color: red;">Teachers: {{ counts.teachers }}</div></div>
-  <div class="col-md-3"><div class="card p-3 shadow-sm" style="color: red;">Classes: {{ counts.classes }}</div></div>
-  <div class="col-md-3"><div class="card p-3 shadow-sm" style="color: red;">Payments: {{ counts.payments }}</div></div>
-</div>
-<hr>
-
-<div class="row">
-  <div class="col-md-4">
-    <h5 style="color: red;">Gender Distribution</h5>
-    <canvas id="genderChart" width="300" height="200"></canvas>
-  </div>
-  <div class="col-md-4">
-    <h5 style="color: red;">Enrollment by Year</h5>
-    <canvas id="enrollChart" width="300" height="200"></canvas>
-  </div>
-  <div class="col-md-4">
-    <h5 style="color: red;">Payments by Year</h5>
-    <canvas id="payChart" width="300" height="200"></canvas>
-  </div>
-</div>
-
-<div class="row mt-4">
-  <div class="col-md-6">
-    <h5>Average Grades by Year</h5>
-    <canvas id="gradeChart" width="400" height="200"></canvas>
-  </div>
-  <div class="col-md-6">
-    <h5>Recent Payments</h5>
-    <table class="table">
-      <thead>
-        <tr><th>ID</th><th>Student</th><th>Amount</th><th>Date</th></tr>
-      </thead>
-      <tbody>
-        {% for p in payments %}
-          <tr><td>{{ p.id }}</td><td>{{ p.student_id }}</td><td>{{ p.amount }}</td><td>{{ p.paid_on }}</td></tr>
-        {% else %}
-          <tr><td colspan="4">No payments</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
-    </div>
-
-    <div class="card" style="border-color: #ff0055;">
-        <h3 style="color: #ff0055;">Security Feed</h3>
-        <div id="security-log">
-            {% for event in announcements %}
-            <div class="log-entry">
-                <span class="log-time">[{{ event.created_at }}]</span> {{ event.title }}: {{ event.body[:50] }}...
+        <div class="col-lg-8" data-aos="fade-right">
+            
+            <div class="card sec-card p-4 mb-4">
+                <h5 class="glow-title mb-3"><i class="fas fa-wave-square text-cyan me-2"></i>Registration Stream Waveform Tracking</h5>
+                <canvas id="dbWaveCanvas"></canvas>
             </div>
-            {% endfor %}
+
+            <div class="mb-3 mt-4">
+                <span class="text-muted text-uppercase small font-weight-bold">Active Scope Targets Filter:</span>
+                <span class="badge bg-danger bg-opacity-25 text-danger px-2 py-1 border border-danger border-opacity-50 ms-2">{{ selected_year }}</span>
+            </div>
+            
+            <div class="row g-3 mb-4">
+                <div class="col-sm-6 col-xl-3">
+                    <div class="card sec-card p-3 border-start border-4 border-primary">
+                        <div class="text-muted small text-uppercase">Total Enrolled</div>
+                        <div class="metric-value text-white my-1">{{ counts.students }}</div>
+                        <div class="text-muted d-flex gap-2" style="font-size: 0.72rem;">
+                            <span class="text-cyan">New: {{ counts.new_students }}</span>
+                            <span>Ret: {{ counts.returning_students }}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-6 col-xl-3">
+                    <div class="card sec-card p-3 border-start border-4 border-info">
+                        <div class="text-muted small text-uppercase">Faculty Staff</div>
+                        <div class="metric-value text-info my-1">{{ counts.teachers }}</div>
+                        <div class="text-muted small" style="font-size: 0.72rem;">Active Lecturers</div>
+                    </div>
+                </div>
+                <div class="col-sm-6 col-xl-3">
+                    <div class="card sec-card p-3 border-start border-4 border-warning">
+                        <div class="text-muted small text-uppercase">Course Rooms</div>
+                        <div class="metric-value text-warning my-1">{{ counts.classes }}</div>
+                        <div class="text-muted small" style="font-size: 0.72rem;">Allocated Divisions</div>
+                    </div>
+                </div>
+                <div class="col-sm-6 col-xl-3">
+                    <div class="card sec-card p-3 border-start border-4 border-success">
+                        <div class="text-muted small text-uppercase">Collected Fees</div>
+                        <div class="metric-value text-success my-1">{{ counts.payments }}</div>
+                        <div class="text-muted small" style="font-size: 0.72rem;">Cleared Batches</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card sec-card p-4 mb-4">
+                <h5 class="glow-title mb-4"><i class="fas fa-chart-pie text-cyan me-2"></i>Metrics & Demographics Mapping</h5>
+                <div class="row g-3">
+                    <div class="col-md-4 text-center">
+                        <span class="text-muted small d-block mb-2">Gender Vector</span>
+                        <canvas id="genderChart"></canvas>
+                    </div>
+                    <div class="col-md-4 text-center">
+                        <span class="text-muted small d-block mb-2">Registration Cycles</span>
+                        <canvas id="enrollChart"></canvas>
+                    </div>
+                    <div class="col-md-4 text-center">
+                        <span class="text-muted small d-block mb-2">Revenue Streams</span>
+                        <canvas id="payChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-4">
+                <div class="col-md-6">
+                    <div class="card sec-card p-3 h-100">
+                        <h6 class="text-white font-weight-bold mb-3"><i class="fas fa-chart-line text-primary me-2"></i>Grading Progress Vectors</h6>
+                        <canvas id="gradeChart"></canvas>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card sec-card p-3 h-100">
+                        <h6 class="text-white font-weight-bold mb-3"><i class="fas fa-receipt text-success me-2"></i>Recent Cashflow Ledgers</h6>
+                        <div class="table-responsive">
+                            <table class="table table-cyber align-middle mb-0">
+                                <thead>
+                                    <tr><th>TX ID</th><th>Student</th><th>Amount</th><th>Timestamp</th></tr>
+                                </thead>
+                                <tbody>
+                                    {% for p in payments %}
+                                      <tr>
+                                          <td><code class="text-cyan">#{{ p.id }}</code></td>
+                                          <td>{{ p.student_id }}</td>
+                                          <td class="text-success font-weight-bold">${{ p.amount }}</td>
+                                          <td class="text-muted small">{{ p.paid_on }}</td>
+                                      </tr>
+                                    {% else %}
+                                      <tr><td colspan="4" class="text-center text-muted py-3">No payments processed</td></tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="col-lg-4" data-aos="fade-left">
+            
+            <div class="card sec-card p-4 mb-4">
+                <h5 class="glow-title mb-3"><i class="fas fa-server text-cyan me-2"></i>Node Hardware Load</h5>
+                
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between text-white small mb-1">
+                        <span>CPU Compute Core Cluster</span>
+                        <span><span id="cpu-stat" class="text-cyan font-weight-bold">0</span>%</span>
+                    </div>
+                    <div class="progress-custom">
+                        <div id="cpu-bar" class="progress-bar-cyan"></div>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="d-flex justify-content-between text-white small mb-1">
+                        <span>Allocated Memory Matrix</span>
+                        <span><span id="mem-stat" class="text-cyan font-weight-bold">0</span>%</span>
+                    </div>
+                    <div class="progress-custom">
+                        <div id="mem-bar" class="progress-bar-cyan"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card sec-card sec-profile-card p-4 mb-4">
+                <h6 class="text-muted small text-uppercase mb-3">Operator Identity Profile</h6>
+                <div class="d-flex align-items-center gap-3">
+                    <div class="profile-img-container shadow">
+                        <img src="{{ url_for('static', filename='images/pro.png') }}" alt="Verified Engineer Signature Avatar Image" id="profile-pic">
+                        <div class="scanning-bar"></div>
+                    </div>
+                    <div>
+                        <div class="profile-name text-white font-weight-bold h5 mb-0" id="prof-name">FRANCIS BROWNELL</div>
+                        <div class="profile-title text-cyan small tracking-wider uppercase font-weight-bold" id="prof-title">CYBER SECURITY STUDENT</div>
+                        <div class="text-muted small mt-1" style="font-size: 0.75rem;"><i class="fas fa-birthday-cake me-1"></i> <span id="prof-dob">Feb 22, 2003</span></div>
+                    </div>
+                </div>
+                
+                <div id="skill-container" class="mt-2"></div>
+                
+                <hr class="border-secondary my-3 opacity-25">
+                
+                <div class="profile-biography small text-muted" style="font-size: 0.82rem; line-height: 1.5;">
+                    <div class="mb-2 text-white-50"><i class="fas fa-university me-1 text-cyan"></i> <span id="prof-edu">Self Learning Programming</span></div>
+                    <div class="mb-2"><i class="fas fa-briefcase me-1 text-cyan"></i> <span id="prof-exp">Loading credentials profile experience matrix data...</span></div>
+                    <div class="pt-1 d-flex flex-wrap gap-2 text-white-50">
+                        <span><i class="fas fa-phone-alt me-1 text-cyan"></i> <span id="prof-con"></span></span>
+                        <span><i class="fas fa-envelope me-1 text-cyan"></i> <span id="prof-email"></span></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card sec-card terminal-container overflow-hidden">
+                <div class="card-header bg-dark bg-opacity-50 border-bottom border-danger border-opacity-25 py-2 px-3 d-flex justify-content-between align-items-center">
+                    <span class="text-danger small font-weight-bold tracking-widest text-uppercase"><i class="fas fa-terminal me-2"></i>Security Stream Logs Feed</span>
+                    <span class="spinner-grow spinner-grow-sm text-danger" role="status"></span>
+                </div>
+                <div id="security-log">
+                    {% for event in announcements %}
+                    <div class="log-entry">
+                        <span class="log-time">[{{ event.created_at }}]</span> 
+                        <strong class="text-white-50">{{ event.title }}</strong>: {{ (event.content or '')[:50] }}...
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
         </div>
     </div>
-    
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/smoothie/1.35.0/smoothie.min.js"></script>
@@ -240,77 +373,97 @@
     // --- 1. SET UP THE ELECTRIC WAVE CHART ---
     var activityTimeSeries = new TimeSeries();
     var chart = new SmoothieChart({
-        grid: { strokeStyle: 'rgba(0, 242, 255, 0.1)', fillStyle: '#050509', lineWidth: 1, millisPerLine: 250, verticalSections: 6 },
-        labels: { fillStyle: '#00f2ff' },
+        grid: { strokeStyle: 'rgba(0, 242, 255, 0.05)', fillStyle: '#070a12', lineWidth: 1, millisPerLine: 300, verticalSections: 4 },
+        labels: { fillStyle: '#00f2ff', fontSize: 11 },
         responsive: true
     });
     
-    // Add the line with the 'Electric Wave' look (Glow and Cyan)
-    chart.addTimeSeries(activityTimeSeries, { strokeStyle: '#00f2ff', fillStyle: 'rgba(0, 242, 255, 0.1)', lineWidth: 2 });
-    chart.streamTo(document.getElementById("dbWaveCanvas"), 500); // Update every 500ms
+    chart.addTimeSeries(activityTimeSeries, { strokeStyle: '#00f2ff', fillStyle: 'rgba(0, 242, 255, 0.03)', lineWidth: 2 });
+    chart.streamTo(document.getElementById("dbWaveCanvas"), 500);
 
-    // --- 2. POLL THE BACKEND API FOR DATA ---
+    // --- 2. POLL THE BACKEND API FOR TELEMETRY DATA ---
     function updateStats() {
         fetch('/api/stats')
             .then(response => response.json())
             .then(data => {
-                // Update the simple text stats
+                // Update Numeric Text Values
                 document.getElementById('cpu-stat').innerText = data.cpu;
                 document.getElementById('mem-stat').innerText = data.memory;
 
-                // Update the Wave Chart with student count
+                // Sync Smooth Animated Metric Status Bars Layout Components
+                document.getElementById('cpu-bar').style.width = data.cpu + '%';
+                document.getElementById('mem-bar').style.width = data.memory + '%';
+
+                // Stream New Point Entry to Database Waveform Chart Matrix
                 activityTimeSeries.append(new Date().getTime(), data.db_wave);
             })
-            .catch(error => console.error('Error fetching stats:', error));
+            .catch(error => console.error('Error fetching dashboard stats node:', error));
     }
 
-    // Run the update every 1 second
+    // Run updates system every 1 second
     setInterval(updateStats, 1000);
-    updateStats(); // Run once immediately
+    updateStats(); 
 
-    // Load profile data
-    fetch('{{ url_for('api_profile') }}')
+    // --- 3. LOAD PROFILE MATRIX DATA PIPELINE ---
+    fetch('{{ url_for("api_profile") }}')
         .then(response => response.json())
         .then(data => {
             document.getElementById('profile-pic').src = data['profile-img'];
             document.getElementById('prof-name').textContent = data.name;
             document.getElementById('prof-title').textContent = data.title;
             
-            // Skills as tags
-            const skills = data.skill.split(',').map(skill => skill.trim());
+            // Re-render strings dynamically into neat badges
             const skillContainer = document.getElementById('skill-container');
+            skillContainer.innerHTML = ''; 
+            const skills = data.skill.split(',').map(skill => skill.trim());
             skills.forEach(skill => {
-                const tag = document.createElement('span');
-                tag.className = 'skill-tag';
-                tag.textContent = skill;
-                skillContainer.appendChild(tag);
+                if(skill) {
+                    const tag = document.createElement('span');
+                    tag.className = 'skill-tag';
+                    tag.textContent = skill;
+                    skillContainer.appendChild(tag);
+                }
             });
             
-            // Experience
             document.getElementById('prof-exp').innerHTML = data.Experience.replace(/\n/g, '<br>');
-            
-            // Education
             document.getElementById('prof-edu').textContent = data.Education;
-            
-            // Contact
             document.getElementById('prof-con').textContent = data.contact;
             document.getElementById('prof-email').textContent = data.email;
             document.getElementById('prof-dob').textContent = data.DoB;
         })
-        .catch(error => console.error('Error loading profile:', error));
+        .catch(error => console.error('Error fetching background profile integration data sets:', error));
 
-    // Existing charts
-    fetch('{{ url_for('analytics_enrollment')}}').then(r=>r.json()).then(data=>{
-        const ctx = document.getElementById('enrollChart');
-        new Chart(ctx, {type:'bar', data:{labels:data.map(d=>d.year), datasets:[{label:'Students',data:data.map(d=>d.count)}]}});
+    // --- 4. DATA PLOTS ENGINE CHART BINDINGS ---
+    fetch('{{ url_for("analytics_enrollment") }}').then(r=>r.json()).then(data=>{
+        new Chart(document.getElementById('enrollChart'), {
+            type:'bar', 
+            data:{
+                labels:data.map(d=>d.year), 
+                datasets:[{label:'Students', data:data.map(d=>d.count), backgroundColor:'#4e73df', borderless: true}]
+            },
+            options: { plugins: { legend: { display: false } }, scalar: { grid: { color: '#222' } } }
+        });
     });
-    fetch('{{ url_for('analytics_payments') }}').then(r=>r.json()).then(data=>{
-        const ctx = document.getElementById('payChart');
-        new Chart(ctx, {type:'bar', data:{labels:data.map(d=>d.year), datasets:[{label:'Payments',data:data.map(d=>d.total)}]}});
+    
+    fetch('{{ url_for("analytics_payments") }}').then(r=>r.json()).then(data=>{
+        new Chart(document.getElementById('payChart'), {
+            type:'bar', 
+            data:{
+                labels:data.map(d=>d.year), 
+                datasets:[{label:'Revenue', data:data.map(d=>d.total), backgroundColor:'#1cc88a'}]
+            },
+            options: { plugins: { legend: { display: false } } }
+        });
     });
-    fetch('{{ url_for('analytics_grades') }}').then(r=>r.json()).then(data=>{
-        const ctx = document.getElementById('gradeChart');
-        new Chart(ctx, {type:'line', data:{labels:data.map(d=>d.year), datasets:[{label:'Avg Grade',data:data.map(d=>d.average)}]}});
+    
+    fetch('{{ url_for("analytics_grades") }}').then(r=>r.json()).then(data=>{
+        new Chart(document.getElementById('gradeChart'), {
+            type:'line', 
+            data:{
+                labels:data.map(d=>d.year), 
+                datasets:[{label:'GPA Curve Index', data:data.map(d=>d.average), borderColor:'#00f2ff', fill: false, tension: 0.3}]
+            }
+        });
     });
 </script>
 {% endblock %}

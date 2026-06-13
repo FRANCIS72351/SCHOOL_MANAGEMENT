@@ -1,0 +1,234 @@
+/* Grading Hub — shared teacher & student grading UI */
+
+.grading-workflow-banner {
+    background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%);
+    border-radius: 14px;
+    padding: 1.25rem 1.5rem;
+    color: #e2e8f0;
+    border: 1px solid rgba(56, 189, 248, 0.25);
+    margin-bottom: 1.5rem;
+}
+.grading-workflow-banner .workflow-steps {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.5rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+.grading-workflow-banner .workflow-steps li {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+}
+.grading-workflow-banner .step-num {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: rgba(56, 189, 248, 0.2);
+    color: #38bdf8;
+    font-weight: 700;
+    font-size: 0.75rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.grading-hub-tabs {
+    border-bottom: 2px solid #e2e8f0;
+    gap: 0.25rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+}
+.grading-hub-tabs::-webkit-scrollbar { display: none; }
+.grading-hub-tabs .nav-link {
+    border: none;
+    border-bottom: 3px solid transparent;
+    border-radius: 8px 8px 0 0;
+    color: #64748b;
+    font-weight: 600;
+    font-size: 0.9rem;
+    padding: 0.75rem 1.25rem;
+    white-space: nowrap;
+    transition: color 0.2s, border-color 0.2s, background 0.2s;
+}
+.grading-hub-tabs .nav-link:hover {
+    color: #1e40af;
+    background: #f1f5f9;
+}
+.grading-hub-tabs .nav-link.active {
+    color: #1e40af;
+    border-bottom-color: #1e40af;
+    background: #fff;
+}
+.grading-hub-tabs .tab-badge {
+    font-size: 0.68rem;
+    padding: 0.15rem 0.45rem;
+    border-radius: 10px;
+    margin-left: 0.35rem;
+    vertical-align: middle;
+}
+
+/* Teacher dark theme tabs */
+.teacher-terminal .grading-hub-tabs {
+    border-bottom-color: rgba(56, 189, 248, 0.2);
+}
+.teacher-terminal .grading-hub-tabs .nav-link {
+    color: #94a3b8;
+}
+.teacher-terminal .grading-hub-tabs .nav-link:hover {
+    color: #38bdf8;
+    background: rgba(56, 189, 248, 0.08);
+}
+.teacher-terminal .grading-hub-tabs .nav-link.active {
+    color: #00f2ff;
+    border-bottom-color: #00f2ff;
+    background: rgba(0, 242, 255, 0.06);
+}
+
+.grading-stat-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+}
+.grading-stat-card {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 1rem;
+    text-align: center;
+}
+.teacher-terminal .grading-stat-card {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(56, 189, 248, 0.15);
+}
+.grading-stat-card .stat-value {
+    font-size: 1.5rem;
+    font-weight: 800;
+    line-height: 1.2;
+    color: #0f172a;
+}
+.teacher-terminal .grading-stat-card .stat-value { color: #00f2ff; }
+.grading-stat-card .stat-label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #64748b;
+    margin-top: 0.25rem;
+}
+
+/* Activity grading page */
+.activity-grade-page { max-width: 1100px; margin: 0 auto; }
+.activity-grade-header {
+    background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 50%, #2563eb 100%);
+    border-radius: 16px;
+    padding: 1.5rem 1.75rem;
+    color: #fff;
+    margin-bottom: 1.5rem;
+}
+.activity-grade-header .meta-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 20px;
+    padding: 0.25rem 0.75rem;
+    font-size: 0.78rem;
+    margin: 0.15rem 0.25rem 0.15rem 0;
+}
+.student-grade-card {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 1rem 1.25rem;
+    margin-bottom: 0.75rem;
+    transition: box-shadow 0.2s, border-color 0.2s;
+}
+.student-grade-card:hover {
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+}
+.student-grade-card.status-graded { border-left: 4px solid #10b981; }
+.student-grade-card.status-pending { border-left: 4px solid #f59e0b; }
+.student-grade-card.status-missing { border-left: 4px solid #94a3b8; }
+.student-grade-card .student-name { font-weight: 700; color: #0f172a; }
+.student-grade-card .student-id { font-size: 0.78rem; color: #64748b; font-family: monospace; }
+
+.grade-input-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+    margin-top: 0.75rem;
+}
+.grade-input-group input[type="number"] { width: 90px; }
+.grade-input-group input[type="text"] { flex: 1; min-width: 140px; }
+
+/* Student dashboard enhancements */
+.student-grade-tabs .nav-link { font-size: 0.88rem; }
+.student-period-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+}
+.student-period-pills .period-pill {
+    border: 1px solid #cbd5e1;
+    border-radius: 20px;
+    padding: 0.3rem 0.85rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #475569;
+    text-decoration: none;
+    background: #fff;
+    transition: all 0.15s;
+}
+.student-period-pills .period-pill:hover,
+.student-period-pills .period-pill.active {
+    background: #1e40af;
+    color: #fff;
+    border-color: #1e40af;
+}
+.student-subject-pills .subject-pill {
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 0.4rem 0.9rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #334155;
+    text-decoration: none;
+    background: #f8fafc;
+}
+.student-subject-pills .subject-pill.active {
+    background: #1e40af;
+    color: #fff;
+    border-color: #1e40af;
+}
+
+.grade-progress-ring {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+}
+.grade-progress-ring.draft { background: #fef3c7; color: #b45309; border: 3px solid #f59e0b; }
+.grade-progress-ring.published { background: #d1fae5; color: #047857; border: 3px solid #10b981; }
+.grade-progress-ring.empty { background: #f1f5f9; color: #94a3b8; border: 3px solid #e2e8f0; }
+
+@media (max-width: 767.98px) {
+    .grading-workflow-banner { padding: 1rem; }
+    .grading-workflow-banner .workflow-steps { flex-direction: column; gap: 0.5rem; }
+    .activity-grade-header { padding: 1.25rem; }
+    .grade-input-group { flex-direction: column; align-items: stretch; }
+    .grade-input-group input[type="number"],
+    .grade-input-group input[type="text"] { width: 100%; }
+}

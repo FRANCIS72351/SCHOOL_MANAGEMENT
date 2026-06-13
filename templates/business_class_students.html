@@ -1,67 +1,198 @@
 {% extends 'base.html' %}
-{% block title %}Class Students - Fee Management - {{ klass.name }}{% endblock %}
+{% block title %}Business Class Roster - {{ klass.name }}{% endblock %}
 {% block content %}
-<div class="container mt-4">
-  <div class="d-flex justify-content-between align-items-center mb-4">
-    <div>
-      <h2>Class Folder: {{ klass.name }} - Fee Management</h2>
-      <p class="text-muted mb-0">{{ klass.description or 'No description provided.' }}</p>
-      {% if active_year %}
-        <small class="text-muted">Active Academic Year: {{ active_year.name }}</small>
-      {% endif %}
-    </div>
-    <div>
-      <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Back to Business Dashboard</a>
-      <a href="{{ url_for('business_management') }}" class="btn btn-primary">Go to Payment System</a>
-    </div>
-  </div>
 
-  <div class="card mb-4">
-    <div class="card-body">
-      <h5>Students in {{ klass.name }} - Fee Management</h5>
-      <table class="table table-striped mt-3">
-        <thead>
-          <tr>
-            <th>Photo</th>
-            <th>ID</th>
-            <th>Name</th>
-            <th>Email</th>
-            <th>Year</th>
-            <th>Registration Fees</th>
-            <th>Total Paid</th>
-            <th>Payment Count</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for student in students %}
-            <tr>
-              <td>
-                {% if student.photo_url %}
-                  <img src="{{ student.photo_url }}" alt="{{ student.first_name }} {{ student.last_name }}" class="img-thumbnail" style="max-width: 50px;" />
-                {% else %}
-                  <span class="text-muted">No photo</span>
+<style>
+    /* System Global Workspace Theme Variables */
+    body {
+        background-color: #0b0f19;
+        color: #e2e8f0;
+        font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    }
+
+    .text-cyan { color: #00f2ff !important; }
+    .text-emerald { color: #10b981 !important; }
+    .text-amber { color: #f59e0b !important; }
+    .text-muted { color: #94a3b8 !important; }
+
+    /* Core Application Glow Title Accentuation */
+    .glow-title {
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        color: #ffffff;
+        text-shadow: 0 0 20px rgba(0, 242, 255, 0.15);
+    }
+
+    /* Modern Glassmorphic Container Nodes */
+    .sec-card {
+        background: #111827;
+        border: 1px solid #1f2937;
+        border-radius: 12px !important;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        transition: border-color 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .sec-card:hover {
+        border-color: rgba(0, 242, 255, 0.25);
+    }
+
+    /* Sleek Polished Datatables */
+    .table-cyber { color: #e2e8f0 !important; font-size: 0.9rem; }
+    .table-cyber th {
+        background-color: #1f2937 !important;
+        color: #00f2ff !important;
+        border-color: #374151 !important;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        padding: 14px 12px;
+    }
+    .table-cyber td { 
+        background-color: transparent !important; 
+        border-color: #1f2937 !important; 
+        padding: 14px 12px; 
+    }
+    .table-cyber tbody tr { 
+        transition: background-color 0.2s ease; 
+    }
+    .table-cyber tbody tr:hover { 
+        background-color: rgba(255, 255, 255, 0.02) !important; 
+    }
+
+    /* Cyber Button Configurations */
+    .btn-cyber-outline {
+        border: 1px solid #374151;
+        color: #94a3b8;
+        background: transparent;
+        transition: all 0.2s ease;
+    }
+    .btn-cyber-outline:hover {
+        border-color: #00f2ff;
+        color: #00f2ff;
+        background: rgba(0, 242, 255, 0.05);
+    }
+
+    .btn-pay {
+        background: rgba(16, 185, 129, 0.1);
+        color: #10b981;
+        border: 1px solid rgba(16, 185, 129, 0.2);
+        transition: all 0.2s ease;
+    }
+    .btn-pay:hover {
+        background: #10b981;
+        color: #ffffff;
+        box-shadow: 0 0 15px rgba(16, 185, 129, 0.3);
+    }
+
+    /* Hardware Accelerated Animation Framework */
+    .fade-glide-in {
+        opacity: 0;
+        transform: translateY(15px);
+        animation: dashboardFadeGlide 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    .delay-1 { animation-delay: 0.1s; }
+
+    @keyframes dashboardFadeGlide { to { opacity: 1; transform: translateY(0); } }
+</style>
+
+<div class="container-fluid py-4 px-md-4">
+    
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4 pb-3 border-bottom border-secondary border-opacity-10 fade-glide-in">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <span class="badge bg-emerald bg-opacity-10 text-emerald border border-emerald border-opacity-10 uppercase tracking-wider px-2 py-1" style="font-size: 0.65rem;">Institutional Revenue Hub</span>
+                {% if active_year %}
+                    <span class="text-muted small">| Active Session: {{ active_year.name }}</span>
                 {% endif %}
-              </td>
-              <td>{{ student.student_id }}</td>
-              <td>{{ student.first_name }} {{ student.last_name }}</td>
-              <td>{{ student.email }}</td>
-              <td>{{ student.academic_year }}</td>
-              <td>${{ "{:.2f}".format(student.registration_fees) }}</td>
-              <td>${{ "{:.2f}".format(student.total_paid) }}</td>
-              <td>{{ student.payment_count }}</td>
-              <td>
-                <a href="{{ url_for('business_management', student_search=student.student_id) }}" class="btn btn-sm btn-success">Record Payment</a>
-              </td>
-            </tr>
-          {% else %}
-            <tr>
-              <td colspan="9" class="text-center">No students are currently assigned to this class.</td>
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+            </div>
+            <h2 class="glow-title mb-1"><i class="fas fa-wallet text-emerald me-2"></i>Class Financial Matrix: {{ klass.name }}</h2>
+            <p class="text-muted small mb-0">Processing institutional revenue streams and tuition clearance for {{ klass.name }} directory.</p>
+        </div>
+        <div class="mt-3 mt-md-0">
+            <a href="{{ url_for('dashboard') }}" class="btn btn-sm btn-cyber-outline rounded-3 px-3 py-2 fw-semibold fs-7">
+                <i class="fas fa-arrow-left-long me-2"></i>Back to Finance Terminal
+            </a>
+        </div>
     </div>
-  </div>
+
+    <div class="card sec-card p-4 fade-glide-in delay-1">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
+            <div>
+                <h5 class="text-white font-weight-bold mb-0">Student Payment Ledger</h5>
+                <p class="text-muted small mb-0">Real-time tuition verification and revenue ingestion gateway.</p>
+            </div>
+            <div class="d-flex gap-3">
+                <div class="bg-dark border border-secondary border-opacity-20 px-3 py-2 rounded-3 text-center">
+                    <span class="text-white-50 d-block tracking-wider uppercase mb-1" style="font-size: 0.6rem;">Enrollment</span>
+                    <span class="text-cyan font-monospace fw-bold">{{ students|length }} Nodes</span>
+                </div>
+                <div class="bg-dark border border-secondary border-opacity-20 px-3 py-2 rounded-3 text-center">
+                    <span class="text-white-50 d-block tracking-wider uppercase mb-1" style="font-size: 0.6rem;">Total Revenue Ingested</span>
+                    {% set total_class_paid = students|sum(attribute='total_paid') %}
+                    <span class="text-emerald font-monospace fw-bold">${{ "{:,.2f}".format(total_class_paid|float) }}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="table-responsive rounded-3 border border-secondary border-opacity-10">
+            <table class="table table-cyber align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Operator</th>
+                        <th>Student ID</th>
+                        <th>Identity</th>
+                        <th>Status</th>
+                        <th>Total Paid</th>
+                        <th>Transactions</th>
+                        <th class="text-end">Operation</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for student in students %}
+                    <tr>
+                        <td>
+                            <div style="width: 40px; height: 40px;">
+                                <img src="{{ student.photo_url }}" alt="Avatar" class="w-100 h-100 object-fit-cover rounded border border-secondary border-opacity-20" />
+                            </div>
+                        </td>
+                        <td class="font-monospace text-cyan" style="font-size: 0.8rem;">#{{ student.student_id }}</td>
+                        <td>
+                            <div class="fw-bold text-white">{{ student.full_name }}</div>
+                            <div class="text-muted" style="font-size: 0.75rem;">{{ student.email }}</div>
+                        </td>
+                        <td>
+                            {% if student.total_paid > 0 %}
+                                <span class="badge bg-emerald bg-opacity-10 text-emerald border border-emerald border-opacity-10 px-2 py-1" style="font-size: 0.65rem;">ACTIVE PAYER</span>
+                            {% else %}
+                                <span class="badge bg-rose bg-opacity-10 text-rose border border-rose border-opacity-10 px-2 py-1" style="font-size: 0.65rem;">ZERO BALANCE</span>
+                            {% endif %}
+                        </td>
+                        <td class="font-monospace fw-semibold text-emerald">
+                            ${{ "{:,.2f}".format(student.total_paid|float) }}
+                        </td>
+                        <td>
+                            <span class="badge bg-dark border border-secondary border-opacity-30 text-white-50 px-2 py-1 font-monospace">
+                                {{ student.payment_count }} TXs
+                            </span>
+                        </td>
+                        <td class="text-end">
+                            <a href="{{ url_for('business_management', student_id=student.id, year_id=student.academic_year_id) }}" class="btn btn-sm btn-pay rounded-3 px-3 py-1.5 fw-bold" title="Ingest Payment">
+                                <i class="fas fa-hand-holding-dollar me-1.5"></i>Record Payment
+                            </a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center py-5 text-muted small">
+                            <div class="mb-2"><i class="fas fa-folder-open opacity-25 fa-2x"></i></div>
+                            No structural student array nodes initialized inside this directory.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
 </div>
+
 {% endblock %}

@@ -1,190 +1,479 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<!-- ===================== HERO ===================== -->
-<header class="hero-wrapper position-relative overflow-hidden">
-  <div class="hero-bg" style="background-image: url('{{ url_for('static', filename='images/background.webp') }}');"></div>
-  <div class="container py-5 position-relative">
-    <div class="row align-items-center">
-      <div class="col-lg-6" data-aos="fade-right">
-        <h1 class="display-4 fw-bold text-primary">Digital School Management for Liberia’s Future</h1>
-        <p class="lead text-primary">Streamline academics, finance, and community engagement with a single platform tailored for your school.</p>
-        <div class="d-flex flex-wrap gap-3">
-          <a href="{{ url_for('login') }}" class="btn btn-primary btn-lg">Login to Portal</a>
-          <a href="{{ url_for('about') }}" class="btn btn-outline-light btn-lg">Discover More</a>
+<div class="landing-scope">
+  <header class="hero-wrapper position-relative overflow-hidden d-flex align-items-center">
+    <div class="hero-bg" style="background-image: url('{{ url_for('static', filename='images/background.webp') }}');"></div>
+    <div class="hero-overlay"></div>
+    
+    <div class="container py-5 position-relative text-white" style="z-index: 3;">
+      <div class="row align-items-center g-5">
+        <div class="col-lg-6" data-aos="fade-right">
+          <span class="badge bg-primary-light text-primary fw-bold mb-3 px-3 py-2 text-uppercase tracking-wider">Next-Gen Academic Infrastructure</span>
+          <h1 class="display-4 fw-extrabold text-primary mb-3">Digital School Management for Liberia’s Future</h1>
+          <p class="lead text-primary mb-4 opacity-90">Streamline academics, automate fee collection, and bridge community engagement with a robust ecosystem custom-tailored for regional school compliance.</p>
+          <div class="d-flex flex-wrap gap-3">
+            <a href="{{ url_for('login') }}" class="btn btn-action-primary btn-lg"><i class="fas fa-sign-in-alt me-2"></i>Access Portal</a>
+            <a href="{{ url_for('about') }}" class="btn btn-action-outline btn-lg">Discover More</a>
+          </div>
         </div>
-      </div>
-      <div class="col-lg-5 ms-auto" data-aos="fade-left">
-        <div class="highlight-card shadow-lg">
-          <h4 class="text-uppercase text-primary mb-3">Next Big Event</h4>
-          {% if highlighted_event %}
-            <h3 class="fw-bold">{{ highlighted_event.title }}</h3>
-            <p class="mb-2">{{ highlighted_event.description[:160] }}{% if highlighted_event.description|length > 160 %}…{% endif %}</p>
-            <div class="d-flex align-items-center justify-content-between">
-              <span class="badge bg-primary rounded-pill px-3 py-2">{{ highlighted_event.date.strftime('%b %d, %Y') }}</span>
-              <a href="{{ url_for('events_list') }}" class="btn btn-outline-primary">View all events</a>
+        
+        <div class="col-lg-5 ms-auto" data-aos="fade-left">
+          <div class="highlight-card shadow-lg p-4 border-0">
+            <div class="d-flex align-items-center gap-2 text-primary fw-bold text-uppercase small tracking-wider mb-3">
+              <span class="pulse-indicator"></span> Next Key Institutional Event
             </div>
-          {% else %}
-            <p class="text-muted mb-0">No upcoming events yet. Check back soon!</p>
-          {% endif %}
+            {% if highlighted_event %}
+              <h3 class="h4 fw-bold text-dark mb-2">{{ highlighted_event.title }}</h3>
+              <p class="text-muted small mb-4 row-limit-3">{{ highlighted_event.description[:160] }}{% if highlighted_event.description|length > 160 %}…{% endif %}</p>
+              <div class="d-flex align-items-center justify-content-between pt-2 border-top border-light">
+                <span class="badge badge-date font-monospace"><i class="far fa-calendar-alt me-1"></i>{{ highlighted_event.date.strftime('%b %d, %Y') }}</span>
+                <a href="{{ url_for('events_list') }}" class="btn btn-sm btn-link text-primary p-0 fw-bold text-decoration-none">View all events <i class="fas fa-arrow-right ms-1"></i></a>
+              </div>
+            {% else %}
+              <div class="py-4 text-center">
+                <i class="far fa-calendar-times text-muted fa-2x mb-2"></i>
+                <p class="text-muted small mb-0">No upcoming events are scheduled at this time.</p>
+              </div>
+            {% endif %}
+          </div>
         </div>
       </div>
     </div>
-  </div>
-  <div class="hero-overlay"></div>
-</header>
+  </header>
 
-<!-- ===================== INFO CARDS ===================== -->
-<section class="container py-5">
-  <div class="row g-4">
-    <div class="col-md-4" data-aos="zoom-in" data-aos-delay="100">
-      <div class="info-card shadow-sm p-4 h-100">
-        <h5 class="fw-bold text-primary">For Administrators</h5>
-        <p class="text-muted">Track classes, teachers, students, and fees with easy-to-read dashboards.</p>
-      </div>
-    </div>
-    <div class="col-md-4" data-aos="zoom-in" data-aos-delay="200">
-      <div class="info-card shadow-sm p-4 h-100">
-        <h5 class="fw-bold text-primary">For Teachers</h5>
-        <p class="text-muted">Upload grades, manage attendance, and connect with parents in real time.</p>
-      </div>
-    </div>
-    <div class="col-md-4" data-aos="zoom-in" data-aos-delay="300">
-      <div class="info-card shadow-sm p-4 h-100">
-        <h5 class="fw-bold text-primary">For Business Offices</h5>
-        <p class="text-muted">Monitor income & expenses and generate instant reports for stakeholders.</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ===================== UPCOMING EVENTS ===================== -->
-<section class="container py-5">
-  <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2 class="fw-bold text-primary mb-0" data-aos="fade-right">📅 Upcoming Events</h2>
-    <a href="{{ url_for('events_list') }}" class="btn btn-outline-primary" data-aos="fade-left">View all</a>
-  </div>
-  {% if events %}
+  <section class="container py-6">
     <div class="row g-4">
-      {% for event in events %}
-      <div class="col-md-4" data-aos="fade-up" data-aos-delay="{{ loop.index0 * 100 }}">
-        <div class="card event-card h-100">
-          <div class="card-body">
-            <span class="badge bg-light text-primary border border-primary mb-3">{{ event.date.strftime('%b %d, %Y') }}</span>
-            <h5 class="card-title">{{ event.title }}</h5>
-            <p class="card-text text-muted">{{ event.description[:140] }}{% if event.description|length > 140 %}…{% endif %}</p>
-            <a href="{{ url_for('events_list') }}" class="stretched-link text-decoration-none">See details</a>
+      <div class="col-md-4" data-aos="zoom-in" data-aos-delay="100">
+        <div class="info-card p-4 h-100 border-0 bg-white">
+          <div class="icon-avatar-frame bg-primary-light text-primary mb-3">
+            <i class="fas fa-user-shield"></i>
+          </div>
+          <h5 class="fw-bold text-dark mb-2">For Administrators</h5>
+          <p class="text-muted small mb-0">Audit classes, coordinate instructor workflows, and audit real-time rosters with multi-tiered role access permissions.</p>
+        </div>
+      </div>
+      <div class="col-md-4" data-aos="zoom-in" data-aos-delay="200">
+        <div class="info-card p-4 h-100 border-0 bg-white">
+          <div class="icon-avatar-frame bg-success-light text-success mb-3">
+            <i class="fas fa-chalkboard-teacher"></i>
+          </div>
+          <h5 class="fw-bold text-dark mb-2">For Instructors</h5>
+          <p class="text-muted small mb-0">Upload computational grades, record real-time attendance matrix, and sync communication with guardians instantly.</p>
+        </div>
+      </div>
+      <div class="col-md-4" data-aos="zoom-in" data-aos-delay="300">
+        <div class="info-card p-4 h-100 border-0 bg-white">
+          <div class="icon-avatar-frame bg-warning-light text-warning mb-3">
+            <i class="fas fa-wallet"></i>
+          </div>
+          <h5 class="fw-bold text-dark mb-2">For Financial Offices</h5>
+          <p class="text-muted small mb-0">Reconcile transaction registries, manage custom fee rules, and automate business ledger audits for key stakeholders.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {% if entrance_highlights or info_sheet_highlights %}
+  <section class="container pb-5">
+    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3 mb-4">
+      <div>
+        <h2 class="fw-bold text-dark mb-1">📢 Admissions &amp; Academic Year Updates</h2>
+        <p class="text-muted small mb-0">Downloadable entrance exam notices and academic year information sheets.</p>
+      </div>
+      <a href="{{ url_for('school_media_gallery') }}" class="btn btn-outline-primary px-4 btn-sm rounded-3 fw-bold">View All School Media</a>
+    </div>
+
+    <div class="row g-4">
+      {% for item in entrance_highlights %}
+      <div class="col-md-6" data-aos="fade-up">
+        <div class="card h-100 border-0 shadow-sm bg-white">
+          <div class="card-body p-4">
+            <span class="badge bg-warning text-dark mb-2">Entrance Exam</span>
+            <h3 class="h5 fw-bold text-dark">{{ item.title }}</h3>
+            {% if item.description %}<p class="text-muted small mb-3">{{ item.description[:180] }}{% if item.description|length > 180 %}…{% endif %}</p>{% endif %}
+            {% if item.static_file_path %}
+            <a href="{{ url_for('school_media_download', item_id=item.id) }}" class="btn btn-sm btn-primary"><i class="fas fa-download me-1"></i>Download Notice</a>
+            {% elif item.external_url %}
+            <a href="{{ item.external_url }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-primary">Learn More</a>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+
+      {% for item in info_sheet_highlights %}
+      <div class="col-md-4" data-aos="fade-up" data-aos-delay="100">
+        <div class="card h-100 border-0 shadow-sm bg-white">
+          <div class="card-body p-4 d-flex flex-column">
+            <span class="badge bg-info text-dark mb-2">Info Sheet</span>
+            <h3 class="h6 fw-bold text-dark">{{ item.title }}</h3>
+            {% if item.academic_year %}<div class="small text-muted mb-2">{{ item.academic_year.name }}</div>{% endif %}
+            <div class="mt-auto">
+              {% if item.static_file_path %}
+              <a href="{{ url_for('school_media_download', item_id=item.id) }}" class="btn btn-sm btn-outline-primary w-100"><i class="fas fa-file-download me-1"></i>Download Sheet</a>
+              {% endif %}
+            </div>
           </div>
         </div>
       </div>
       {% endfor %}
     </div>
-  {% else %}
-    <div class="text-center text-muted" data-aos="fade-up">No upcoming events yet. Stay tuned!</div>
+  </section>
   {% endif %}
-</section>
 
-<!-- ===================== HIGHLIGHTED CAPABILITIES ===================== -->
-<section class="bg-light py-5">
-  <div class="container">
-    <div class="row align-items-center">
-      <div class="col-lg-6" data-aos="fade-right">
-        <img src="{{ url_for('static', filename='images/about.webp') }}" class="img-fluid rounded shadow" alt="Dashboard overview">
+  {% if latest_announcements %}
+  <section class="container pb-6">
+    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3 mb-4">
+      <div>
+        <h2 class="fw-bold text-dark mb-1">📢 School Announcements</h2>
+        <p class="text-muted small mb-0">Latest notices and updates from the school administration.</p>
       </div>
-      <div class="col-lg-6 mt-4 mt-lg-0" data-aos="fade-left">
-        <h2 class="fw-bold text-primary">Smart Tools for Every School Stakeholder</h2>
-        <ul class="list-unstyled mt-3">
-          <li class="mb-2"><span class="badge bg-primary me-2">1</span> Centralized student records & attendance tracking.</li>
-          <li class="mb-2"><span class="badge bg-primary me-2">2</span> Integrated finance dashboards for payments & payroll.</li>
-          <li class="mb-2"><span class="badge bg-primary me-2">3</span> Secure communication channels for parents and staff.</li>
-          <li class="mb-2"><span class="badge bg-primary me-2">4</span> Event management to engage your school community.</li>
-        </ul>
-        <a href="{{ url_for('about') }}" class="btn btn-primary mt-3">Explore the platform</a>
+      <a href="{{ url_for('login') }}" class="btn btn-outline-primary px-4 btn-sm rounded-3 fw-bold">Staff Login to Post</a>
+    </div>
+
+    <div class="row g-4">
+      {% for item in latest_announcements %}
+      <div class="col-md-6 col-lg-4" data-aos="fade-up" data-aos-delay="{{ loop.index0 * 80 }}">
+        <div class="card h-100 border-0 shadow-sm bg-white">
+          <div class="card-body p-4 d-flex flex-column">
+            <div class="d-flex flex-wrap gap-2 mb-2">
+              {% if item.category == 'deadline' %}
+              <span class="badge bg-warning text-dark">Deadline</span>
+              {% elif item.category == 'warning' %}
+              <span class="badge bg-danger">Alert</span>
+              {% elif item.category == 'business_finance' %}
+              <span class="badge bg-success">Finance</span>
+              {% else %}
+              <span class="badge bg-primary-subtle text-primary">General</span>
+              {% endif %}
+              <span class="badge bg-light text-dark border text-uppercase">{{ item.target_role or 'all' }}</span>
+            </div>
+            <h3 class="h6 fw-bold text-dark mb-2">{{ item.title }}</h3>
+            <p class="text-muted small flex-grow-1 mb-3" style="white-space: pre-line;">{{ item.content[:200] }}{% if item.content|length > 200 %}…{% endif %}</p>
+            <div class="small text-muted mt-auto pt-2 border-top">
+              <i class="fas fa-user-pen me-1"></i>{{ item.author or 'School Office' }}
+              {% if item.created_at %}
+              <span class="ms-2"><i class="far fa-clock me-1"></i>{{ item.formatted_date }}</span>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  <section id="upcoming-schedule" class="container pb-6">
+    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3 mb-4">
+      <div>
+        <h2 class="fw-bold text-dark mb-1">📅 Upcoming Academic Schedule</h2>
+        <p class="text-muted small mb-0">Track upcoming terminal schedules, operational events, and session markers.</p>
+      </div>
+      <a href="{{ url_for('events_list') }}" class="btn btn-outline-secondary px-4 btn-sm rounded-3 fw-bold text-dark">View Entire Calendar</a>
+    </div>
+    
+    {% if events %}
+      <div class="row g-4">
+        {% for event in events %}
+        <div class="col-md-4" data-aos="fade-up" data-aos-delay="{{ loop.index0 * 100 }}">
+          <div class="card event-card h-100 border-0 bg-white">
+            <div class="card-body p-4 d-flex flex-column">
+              <div class="mb-3"><span class="badge badge-date font-monospace text-primary"><i class="far fa-clock me-1"></i>{{ event.date.strftime('%b %d, %Y') }}</span></div>
+              <h5 class="card-title text-dark fw-bold h6 mb-2">{{ event.title }}</h5>
+              <p class="card-text text-muted small mb-4 flex-grow-1">{{ event.description[:140] }}{% if event.description|length > 140 %}…{% endif %}</p>
+              <a href="{{ url_for('events_list') }}" class="stretched-link text-primary small fw-bold text-decoration-none d-inline-flex align-items-center gap-1">See Event Parameters <i class="fas fa-chevron-right style-micro"></i></a>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="card border-0 p-5 text-center text-muted shadow-sm bg-white" data-aos="fade-up">
+        <i class="fas fa-calendar-alt fa-2x text-light mb-2"></i>
+        <p class="mb-0 small">No active internal calendar parameters populated. Check back shortly.</p>
+      </div>
+    {% endif %}
+  </section>
+
+  <section class="bg-slate-100 py-6 border-top border-bottom border-light">
+    <div class="container">
+      <div class="row align-items-center g-5">
+        <div class="col-lg-6" data-aos="fade-right">
+          <div class="position-relative overflow-hidden rounded-4 shadow-md bg-white">
+            <img src="{{ url_for('static', filename='images/about.webp') }}" class="w-100 object-cover d-block" alt="System Dashboard Blueprint Display" style="max-height: 400px;">
+          </div>
+        </div>
+        <div class="col-lg-6" data-aos="fade-left">
+          <h2 class="fw-bold text-dark mb-3">Enterprise Capabilities Built For Real-World Scale</h2>
+          <p class="text-muted small mb-4">A single unified code design that aggregates school data vectors securely while lowering local operational friction points.</p>
+          
+          <div class="d-flex flex-column gap-3">
+            <div class="d-flex gap-3 align-items-start">
+              <div class="feature-bullet-index bg-primary text-white shadow-sm">1</div>
+              <div>
+                <h6 class="fw-bold text-dark mb-0">Centralized Registration Core</h6>
+                <p class="text-muted small mb-0">Isolate historical academic profiles, demographics, and registration logs safely.</p>
+              </div>
+            </div>
+            <div class="d-flex gap-3 align-items-start">
+              <div class="feature-bullet-index bg-primary text-white shadow-sm">2</div>
+              <div>
+                <h6 class="fw-bold text-dark mb-0">Unified Ledger Accounts Dashboards</h6>
+                <p class="text-muted small mb-0">Track fee status arrays, record balance points, and generate clear status visibility statements.</p>
+              </div>
+            </div>
+            <div class="d-flex gap-3 align-items-start">
+              <div class="feature-bullet-index bg-primary text-white shadow-sm">3</div>
+              <div>
+                <h6 class="fw-bold text-dark mb-0">Encrypted Role Hierarchy Blueprints</h6>
+                <p class="text-muted small mb-0">Enforce strict data integrity with invisible administrative controls and session token verification logic.</p>
+              </div>
+            </div>
+          </div>
+          <a href="{{ url_for('about') }}" class="btn btn-action-primary mt-4 px-4">Analyze Product Matrix</a>
+        </div>
       </div>
     </div>
-  </div>
-</section>
+  </section>
 
-<!-- ===================== GALLERY ===================== -->
-<section class="container py-5">
-  <h2 class="text-center fw-bold mb-4 text-primary" data-aos="fade-up">Our School in Action</h2>
-  <div class="row g-4">
-    <div class="col-md-4" data-aos="zoom-in" data-aos-delay="100">
-      <img src="{{ url_for('static', filename='images/slide1.jpg') }}" class="img-fluid rounded shadow" alt="Gallery 1">
+  <section class="container py-6">
+    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3 mb-5" data-aos="fade-up">
+      <div class="text-center text-sm-start">
+        <h2 class="fw-bold text-dark mb-2">Featured School Media</h2>
+        <p class="text-muted small mb-0">Latest photos, videos, and campus updates from our school community.</p>
+      </div>
+      <a href="{{ url_for('school_media_gallery') }}" class="btn btn-outline-secondary btn-sm rounded-3 fw-bold">Open Media Gallery</a>
     </div>
-    <div class="col-md-4" data-aos="zoom-in" data-aos-delay="200">
-      <img src="{{ url_for('static', filename='images/slide2.jpg.webp') }}" class="img-fluid rounded shadow" alt="Gallery 2">
+    
+    {% if featured_media %}
+    <div class="row g-4">
+      {% for item in featured_media %}
+      <div class="col-md-6 col-lg-4" data-aos="zoom-in" data-aos-delay="{{ loop.index0 * 100 }}">
+        <div class="gallery-wrapper shadow-sm rounded-4 overflow-hidden border bg-white h-100 d-flex flex-column">
+          {% if item.media_type == 'photo' and item.static_file_path %}
+          <img src="{{ url_for('static', filename=item.static_file_path) }}" class="gallery-img w-100 object-cover" alt="{{ item.title }}" style="height:220px;">
+          {% elif item.media_type == 'video' and item.external_url and youtube_embed_url(item.external_url) %}
+          <div class="ratio ratio-16x9">
+            <iframe src="{{ youtube_embed_url(item.external_url) }}" title="{{ item.title }}" allowfullscreen></iframe>
+          </div>
+          {% elif item.media_type == 'video' and item.static_file_path %}
+          <video class="w-100" controls style="max-height:220px;">
+            <source src="{{ url_for('static', filename=item.static_file_path) }}">
+          </video>
+          {% else %}
+          <div class="bg-light text-center py-5">
+            <i class="fas fa-file-alt fa-2x text-muted"></i>
+          </div>
+          {% endif %}
+          <div class="p-3">
+            <span class="badge bg-primary-subtle text-primary me-1">{{ item.media_type|title }}</span>
+            <span class="badge bg-secondary-subtle text-secondary">{{ item.category|replace('_', ' ')|title }}</span>
+            <h3 class="h6 fw-bold text-dark mt-2 mb-1">{{ item.title }}</h3>
+            {% if item.media_type == 'document' and item.static_file_path %}
+            <a href="{{ url_for('school_media_download', item_id=item.id) }}" class="small fw-bold text-decoration-none">Download <i class="fas fa-download ms-1"></i></a>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      {% endfor %}
     </div>
-    <div class="col-md-4" data-aos="zoom-in" data-aos-delay="300">
-      <img src="{{ url_for('static', filename='images/slide3.jpg.webp') }}" class="img-fluid rounded shadow" alt="Gallery 3">
+    {% else %}
+    <div class="row g-4">
+      <div class="col-md-4" data-aos="zoom-in" data-aos-delay="100">
+        <div class="gallery-wrapper shadow-sm rounded-4 overflow-hidden border">
+          <img src="{{ url_for('static', filename='images/slide1.jpg') }}" class="gallery-img w-100 object-cover" alt="Institutional Activity Asset 1">
+        </div>
+      </div>
+      <div class="col-md-4" data-aos="zoom-in" data-aos-delay="200">
+        <div class="gallery-wrapper shadow-sm rounded-4 overflow-hidden border">
+          <img src="{{ url_for('static', filename='images/slide2.jpg.webp') }}" class="gallery-img w-100 object-cover" alt="Institutional Activity Asset 2">
+        </div>
+      </div>
+      <div class="col-md-4" data-aos="zoom-in" data-aos-delay="300">
+        <div class="gallery-wrapper shadow-sm rounded-4 overflow-hidden border">
+          <img src="{{ url_for('static', filename='images/slide3.jpg.webp') }}" class="gallery-img w-100 object-cover" alt="Institutional Activity Asset 3">
+        </div>
+      </div>
     </div>
-  </div>
-</section>
+    {% endif %}
+  </section>
 
-<!-- ===================== FOOTER ===================== -->
-<footer class="bg-dark text-white py-4 mt-5 position-relative">
-  <div class="container text-center">
-    <p class="mb-1">&copy; {{ current_year }} SoftnetAfrica. All rights reserved.</p>
-    <small>Developed for Liberian Schools — Empowering the Next Generation.</small>
-  </div>
-</footer>
-
+  <footer class="bg-dark text-slate-400 py-5 border-top border-secondary position-relative overflow-hidden">
+    <div class="container text-center position-relative" style="z-index: 2;">
+      <p class="mb-2 text-white fw-medium">&copy; {{ current_year }} SoftnetAfrica. All rights reserved.</p>
+      <p class="small text-muted mb-0">Developed for Local and Regional Schools — Empowering the Next Generation of Systems.</p>
+    </div>
+  </footer>
+</div>
 {% endblock %}
 
 {% block styles %}
 <style>
+  /* Landing Scope Isolated Typography Standard Wrapper Styles */
+  .landing-scope {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background-color: #f8fafc;
+    color: #334155;
+  }
+  
+  /* Utility Spacing Extensions */
+  .py-6 { padding-top: 5.5rem; padding-bottom: 5.5rem; }
+  .pb-6 { padding-bottom: 5.5rem; }
+  .bg-slate-100 { background-color: #f1f5f9; }
+  .text-slate-300 { color: #cbd5e1; }
+  .text-slate-400 { color: #94a3b8; }
+  .fw-extrabold { font-weight: 800; }
+  
+  /* Custom Hero Display Configurations */
   .hero-wrapper {
-    min-height: 75vh;
-    display: flex;
-    align-items: center;
+    min-height: 80vh;
+    background-color: #0b1329;
   }
   .hero-bg {
     position: absolute;
     inset: 0;
     background-size: cover;
     background-position: center;
-    filter: brightness(0.4);
-    transform: scale(1.1);
+    filter: scale(1.05) contrast(1.1) brightness(0.28);
+    z-index: 1;
   }
   .hero-overlay {
     position: absolute;
     inset: 0;
-    background: radial-gradient(circle at top left, rgba(0, 123, 255, 0.3), transparent 60%);
+    background: linear-gradient(135deg, rgba(13, 110, 253, 0.25) 0%, rgba(11, 19, 41, 0.85) 100%);
+    z-index: 2;
   }
+  
+  /* Custom Interactive Button Rules */
+  .btn-action-primary {
+    background-color: #0d6efd;
+    color: #ffffff !important;
+    font-weight: 600;
+    font-size: 0.95rem;
+    padding: 0.75rem 1.75rem;
+    border-radius: 10px !important;
+    border: none;
+    transition: all 0.25s ease;
+  }
+  .btn-action-primary:hover {
+    background-color: #0b5ed7;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(13, 110, 253, 0.3);
+  }
+  .btn-action-outline {
+    background-color: rgba(255, 255, 255, 0.08);
+    color: #ffffff !important;
+    font-weight: 600;
+    font-size: 0.95rem;
+    padding: 0.75rem 1.75rem;
+    border-radius: 10px !important;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    backdrop-filter: blur(4px);
+    transition: all 0.25s ease;
+  }
+  .btn-action-outline:hover {
+    background-color: rgba(255, 255, 255, 0.16);
+    border-color: rgba(255, 255, 255, 0.5);
+    transform: translateY(-2px);
+  }
+
+  /* Structural Content Highlight Cards */
   .highlight-card {
-    background: #ffffff;
-    border-radius: 20px;
-    padding: 30px;
+    background: rgba(255, 255, 255, 0.96);
+    border-radius: 18px;
+    backdrop-filter: blur(10px);
+    transform: translateY(0);
+    transition: transform 0.3s ease;
   }
+  .bg-primary-light { background-color: rgba(13, 110, 253, 0.1); }
+  .bg-success-light { background-color: rgba(25, 135, 84, 0.1); }
+  .bg-warning-light { background-color: rgba(255, 193, 7, 0.12); }
+  
+  /* Custom Mini Pulse Micro Animation */
+  .pulse-indicator {
+    width: 8px;
+    height: 8px;
+    background-color: #0d6efd;
+    border-radius: 50%;
+    display: inline-block;
+    animation: simplePulse 2s infinite ease-in-out;
+  }
+  @keyframes simplePulse {
+    0% { transform: scale(0.9); opacity: 0.6; }
+    50% { transform: scale(1.2); opacity: 1; }
+    100% { transform: scale(0.9); opacity: 0.6; }
+  }
+
+  /* Cards Overhaul Layout Components */
   .info-card {
     border-radius: 16px;
-    background: #ffffff;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.02);
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease;
   }
   .info-card:hover {
     transform: translateY(-6px);
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 16px 35px rgba(0, 0, 0, 0.06);
   }
+  .icon-avatar-frame {
+    width: 46px;
+    height: 46px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    font-size: 1.2rem;
+  }
+
   .event-card {
-    border: none;
-    background: #ffffff;
     border-radius: 16px;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.03);
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   }
   .event-card:hover {
     transform: translateY(-4px);
-    box-shadow: 0 18px 30px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.07);
   }
-  footer::before {
-    content: "";
-    position: absolute;
-    top: -30px;
-    left: 0;
-    right: 0;
-    height: 40px;
-    background: linear-gradient(90deg, #0d6efd, rgba(13, 110, 253, 0));
+  .badge-date {
+    background-color: #f1f5f9;
+    color: #475569;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 600;
+  }
+  
+  /* Bullet Feature Array Index */
+  .feature-bullet-index {
+    width: 28px;
+    height: 28px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  /* Gallery Grid Scale Micro-Animations */
+  .gallery-wrapper {
+    height: 240px;
+  }
+  .gallery-img {
+    height: 100%;
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .gallery-wrapper:hover .gallery-img {
+    transform: scale(1.04);
+  }
+  .row-limit-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
   }
 </style>
 {% endblock %}
-    

@@ -1,312 +1,1172 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="container mt-4">
-  <h2>Teacher Dashboard</h2>
-
-  <!-- User Profile Section -->
-  <div class="card mb-4" style="background: rgba(10, 10, 25, 0.8); border: 1px solid #00f2ff; color: white;">
-    <div class="card-body">
-      <h5 class="card-title" style="color: #00f2ff;">My Profile</h5>
-      <div class="row">
-        <div class="col-md-3">
-          {% if current_user.photo %}
-            <img src="{{ url_for('static', filename=current_user.photo) }}" class="img-fluid rounded" alt="Profile Photo">
-          {% else %}
-      
-          {% endif %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/grading_hub.css') }}">
+<div class="container my-5 teacher-terminal">
+    
+    <div class="card dashboard-card profile-card mb-4">
+        <div class="card-body p-4">
+            <div class="row align-items-center">
+                <div class="col-md-auto text-center mb-3 mb-md-0">
+                    <div class="avatar-wrapper">
+                        {% if current_user.photo %}
+                            <img src="{{ current_user.photo_url }}" class="profile-avatar img-fluid" alt="Profile Photo">
+                        {% else %}
+                            <div class="profile-avatar-fallback">
+                                <span>{{ current_user.full_name[:2].upper() }}</span>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="col-md">
+                    <div class="d-flex flex-wrap align-items-center justify-content-between">
+                        <div>
+                            <span class="badge badge-cyber mb-2">{{ current_user.role|title }} Dashboard</span>
+                            <h2 class="display-6 fw-bold text-white mb-1">{{ current_user.full_name }}</h2>
+                            <p class="text-muted mb-0">
+                                <i class="bi bi-envelope-at me-2"></i>{{ current_user.email }}
+                                {% if current_user.telephone_number %}
+                                    <span class="mx-2">|</span><i class="bi bi-telephone me-2"></i>{{ current_user.telephone_number }}
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div class="mt-3 mt-lg-0">
+                            <div class="academic-badge">
+                                <small class="text-uppercase tracking-wider block text-muted text-xs d-block">Active Academic Term</small>
+                                <span class="text-cyber fw-bold">{{ active_year.name }}</span>
+                                <div class="text-xs text-muted mt-1">({{ active_year.start_date }} — {{ active_year.end_date }})</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="col-md-9">
-          <h4>{{ current_user.full_name }}</h4>
-          <p><strong>Email:</strong> {{ current_user.email }}</p>
-          {% if current_user.home_address %}
-          <p><strong>Home Address:</strong> {{ current_user.home_address }}</p>
-          {% endif %}
-          {% if current_user.telephone_number %}
-          <p><strong>Telephone:</strong> {{ current_user.telephone_number }}</p>
-          {% endif %}
-          <p><strong>Role:</strong> {{ current_user.role|title }}</p>
+    </div>
+
+    <div class="grading-workflow-banner">
+        <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
+            <strong class="text-white"><i class="bi bi-diagram-3 me-2"></i>Grading Workflow</strong>
+            <span class="small opacity-75">Assign → Grade work → Publish to report card</span>
         </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Active Academic Year -->
-  <div class="alert alert-info mb-4" style="background: rgba(0, 123, 255, 0.1); border: 1px solid #00f2ff; color: #00f2ff;">
-    <strong>Active Academic Year:</strong> {{ active_year.name }} ({{ active_year.start_date }} - {{ active_year.end_date }})
-  </div>
-  <ul>
-    {% for c in teaching_classes %}
-      <li>{{ c.name }} — {{ c.description }}</li>
-    {% else %}
-      <li>No teaching classes assigned</li>
-    {% endfor %}
-  </ul>
-
-  {% if sponsored_classes %}
-  <h4>Sponsored Classes</h4>
-  <ul>
-    {% for c in sponsored_classes %}
-      <li>{{ c.name }} — {{ c.description }} <span class="badge bg-info">Sponsor</span></li>
-    {% endfor %}
-  </ul>
-  {% endif %}
-
-  <hr>
-
-  <h4>Submit Grades</h4>
-  <p><a href="{{ url_for('grade_entry') }}" class="btn btn-primary">Enter Grades by Class</a></p>
-  <form method="POST" action="{{ url_for('add_grade') }}">
-    {{ csrf_token() }}
-    <div class="mb-3">
-      <label for="student" class="form-label">Student</label>
-      <select id="student" name="student_id" class="form-select" required>
-        <option value="">-- Select Student --</option>
-        {% for s in students %}
-          <option value="{{ s.id }}">{{ s.full_name }}</option>
-        {% endfor %}
-      </select>
+        <ol class="workflow-steps">
+            <li><span class="step-num">1</span> Assign activities to your class</li>
+            <li><span class="step-num">2</span> Grade submissions (draft standing updates automatically)</li>
+            <li><span class="step-num">3</span> Review on MoE sheet &amp; publish to report card</li>
+        </ol>
     </div>
 
-    <div class="mb-3">
-      <label for="subject" class="form-label">Subject</label>
-      <input type="text" id="subject" name="subject" class="form-control" placeholder="e.g. Mathematics" required>
+    <div class="grading-stat-row">
+        <div class="grading-stat-card">
+            <div class="stat-value">{{ class_cards|length }}</div>
+            <div class="stat-label">My Classes</div>
+        </div>
+        <div class="grading-stat-card">
+            <div class="stat-value">{{ activities|length }}</div>
+            <div class="stat-label">Activities</div>
+        </div>
+        <div class="grading-stat-card">
+            <div class="stat-value text-warning">{{ pending_grading_count|default(0) }}</div>
+            <div class="stat-label">Awaiting Grade</div>
+        </div>
+        <div class="grading-stat-card">
+            <div class="stat-value">{{ grades|length }}</div>
+            <div class="stat-label">Grade Records</div>
+        </div>
     </div>
 
-    <div class="mb-3">
-      <label for="period" class="form-label">Period</label>
-      <select id="period" name="period" class="form-select" required>
-        <option value="">-- Select Period --</option>
-        {% for i in range(1, 7) %}
-          <option value="{{ i }}">Period {{ i }}</option>
-        {% endfor %}
-      </select>
+    <ul class="nav grading-hub-tabs" role="tablist">
+        <li class="nav-item">
+            <a class="nav-link {% if active_tab == 'classes' %}active{% endif %}"
+               href="{{ url_for('teacher_dashboard', tab='classes', grade_class_id=grade_class_id) }}">
+                <i class="bi bi-folder2-open me-1"></i>My Classes
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if active_tab == 'grades' %}active{% endif %}"
+               href="{{ url_for('teacher_dashboard', tab='grades', grade_class_id=grade_class_id) }}">
+                <i class="bi bi-pencil-square me-1"></i>Grade Entry
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if active_tab == 'activities' %}active{% endif %}"
+               href="{{ url_for('teacher_dashboard', tab='activities', grade_class_id=grade_class_id) }}">
+                <i class="bi bi-list-task me-1"></i>Activities &amp; Grading
+                {% if pending_grading_count %}<span class="tab-badge bg-warning text-dark">{{ pending_grading_count }}</span>{% endif %}
+            </a>
+        </li>
+    </ul>
+
+    <div class="tab-content">
+
+    <div class="tab-pane {% if active_tab == 'classes' %}show active{% endif %}" id="tab-classes">
+    <div class="row g-4">
+        <div class="col-lg-12">
+            <div class="card dashboard-card mb-4 h-100">
+                <div class="card-header d-flex align-items-center justify-content-between">
+                    <h5 class="mb-0 text-white"><i class="bi bi-journal-bookmark me-2 text-cyber"></i>Assigned Classes</h5>
+                    <span class="badge bg-secondary rounded-pill">{{ class_cards|length if class_cards else teaching_classes|length }}</span>
+                </div>
+                <div class="card-body px-3 py-3">
+                    {% if class_cards %}
+                    <div class="d-flex flex-column gap-3">
+                        {% for card in class_cards %}
+                        <div class="class-folder-card p-3">
+                            <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                                <div>
+                                    <div class="fw-bold text-cyber-light fs-6">
+                                        <i class="bi bi-folder2-open me-1"></i>{{ card.name }}
+                                    </div>
+                                    <div class="small text-blue mt-1">
+                                        Grade {{ card.grade_level }}
+                                        {% if card.stream %} · {{ card.stream }}{% endif %}
+                                        · {{ card.student_count }} student{{ 's' if card.student_count != 1 else '' }}
+                                    </div>
+                                </div>
+                                {% for label in card.role_labels %}
+                                <span class="badge bg-dark border border-cyber text-cyan text-xs">{{ label }}</span>
+                                {% endfor %}
+                            </div>
+                            {% if card.subjects %}
+                            <div class="mb-2">
+                                <div class="text-blue small mb-1">Your subjects:</div>
+                                <div class="d-flex flex-wrap gap-1">
+                                    {% for subject in card.subjects %}
+                                    <span class="badge bg-cyber-dim border border-cyber text-cyan">{{ subject }}</span>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            {% endif %}
+                            <div class="d-flex flex-wrap gap-2 mt-2">
+                                {% if 'Sponsor' in card.role_labels or 'Homeroom' in card.role_labels %}
+                                <a href="{{ url_for('sponsor_class_hub', class_id=card.id) }}" class="btn btn-warning btn-sm text-dark fw-semibold">
+                                    <i class="bi bi-shield-check me-1"></i>Sponsor Hub
+                                </a>
+                                {% endif %}
+                                <a href="{{ url_for('teacher_class_folder', class_id=card.id) }}" class="btn btn-cyber-sm btn-sm">
+                                    <i class="bi bi-people me-1"></i>Open Class
+                                </a>
+                                <a href="{{ url_for('class_grading_hub', class_id=card.id) }}" class="btn btn-cyber-primary btn-sm">
+                                    <i class="bi bi-mortarboard me-1"></i>Grading Hub
+                                </a>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center text-blue py-4 small">
+                        <i class="bi bi-inbox d-block fs-3 mb-2 opacity-50"></i>
+                        No class assignments yet.<br>
+                        Ask the principal to assign you to a class or subject in <strong>Provision Core Class</strong>.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            {% if sponsored_classes %}
+            <div class="card dashboard-card mt-4">
+                <div class="card-header d-flex align-items-center justify-content-between">
+                    <h5 class="mb-0 text-white"><i class="bi bi-shield-check me-2 text-cyber"></i>Sponsored Classes</h5>
+                </div>
+                <div class="card-body px-0 py-2">
+                    <ul class="list-group list-group-flush bg-transparent">
+                        {% for c in sponsored_classes %}
+                        <li class="list-group-item bg-transparent text-white border-cyber-dim px-4 py-3">
+                            <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                                <div>
+                                    <div class="fw-bold text-warning">{{ c.name }}</div>
+                                    <small class="text-muted">Attendance · welfare · parent liaison · conduct</small>
+                                </div>
+                                <span class="badge bg-warning text-blue px-2 py-1">Sponsor</span>
+                            </div>
+                            <a href="{{ url_for('sponsor_class_hub', class_id=c.id) }}" class="btn btn-warning btn-sm text-dark fw-semibold w-100">
+                                <i class="bi bi-shield-check me-1"></i>Open Sponsor Command Center
+                            </a>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+            {% endif %}
+
+    <div class="card dashboard-card my-4">
+        <div class="card-header">
+            <h5 class="mb-0 text-white"><i class="bi bi-file-earmark-person me-2 text-cyber"></i>Student Academic Dossiers</h5>
+        </div>
+        <div class="card-body p-4">
+            <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-xl-4 g-3">
+                {% for s in students %}
+                <div class="col">
+                    <div class="dossier-card p-3 d-flex align-items-center justify-content-between">
+                        <div class="truncate-text pe-2">
+                            <span class="d-block text-white fw-medium text-sm text-truncate">{{ s.full_name }}</span>
+                            <small class="text-muted text-xs">ID: {{ s.student_id or s.id }}</small>
+                        </div>
+                        <a href="{{ url_for('report_card', student_id=s.id) }}" class="btn btn-cyber-icon" title="View Report Card">
+                            <i class="bi bi-eye"></i>
+                        </a>
+                    </div>
+                </div>
+                {% else %}
+                <div class="col-12 text-center text-blue py-3 small">No students in your classes yet.</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+        </div>
+    </div>
+    </div><!-- /tab-classes -->
+
+    <div class="tab-pane {% if active_tab == 'grades' %}show active{% endif %}" id="tab-grades">
+        <div class="row g-4">
+        <div class="col-lg-12">
+    <div class="card dashboard-card h-100">
+        <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <h5 class="mb-0 text-white"><i class="bi bi-file-earmark-plus me-2 text-cyber"></i>MoE Quick Grade Entry</h5>
+            {% if grade_class_id %}
+            <a href="{{ url_for('class_grading_hub', class_id=grade_class_id) }}" class="btn btn-cyber-sm">
+                <i class="bi bi-mortarboard me-1"></i> Grading Hub
+            </a>
+            {% endif %}
+        </div>
+                <div class="card-body p-4">
+                    {% if class_cards %}
+                    <div class="grade-class-tabs mb-4">
+                        <div class="text-blue small mb-2 fw-semibold text-uppercase" style="letter-spacing:0.04em;">Your Classes</div>
+                        <div class="d-flex flex-wrap gap-2">
+                            {% for card in class_cards %}
+                            <a href="{{ url_for('teacher_dashboard', tab='grades', grade_class_id=card.id) }}#moe-quick-grade-entry"
+                               class="grade-class-tab {% if grade_class_id == card.id %}active{% endif %}">
+                                <i class="bi bi-folder2-open me-1"></i>{{ card.name }}
+                                <span class="grade-class-tab-meta">G{{ card.grade_level }}{% if card.stream %} · {{ card.stream }}{% endif %}</span>
+                            </a>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <p class="text-blue small mb-3" id="moe-quick-grade-entry">
+                        {% if selected_grade_class %}
+                        Entering grades for <strong class="text-cyber">{{ selected_grade_class.name }}</strong>.
+                        Switch class using the tabs above, or open the <strong>Full Class Sheet</strong> for bulk entry.
+                        {% else %}
+                        Ask the principal to assign you to a class to use MoE grade entry.
+                        {% endif %}
+                    </p>
+
+                    {% if selected_grade_class and grade_entry_students %}
+                    <form method="POST" action="{{ url_for('add_grade') }}" class="cyber-form">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="activity_type" value="Period Assessment">
+                        <input type="hidden" name="grade_class_id" value="{{ grade_class_id }}">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="student" class="form-label">Student</label>
+                                <select id="student" name="student_id" class="form-select custom-select" required>
+                                    <option value="" disabled selected>-- Select Student --</option>
+                                    {% for s in grade_entry_students %}
+                                        <option value="{{ s.id }}">{{ s.full_name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label for="subject" class="form-label">Subject Course</label>
+                                <select id="subject" name="subject" class="form-select custom-select" required>
+                                    <option value="" disabled selected>-- Select Subject --</option>
+                                    {% for subject in grade_entry_subjects %}
+                                        <option value="{{ subject }}">{{ subject }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label for="period" class="form-label">Marking Period</label>
+                                <select id="period" name="period" class="form-select custom-select" required>
+                                    <option value="" disabled selected>-- Select Period --</option>
+                                    {% for period_num, period_name in grading_periods %}
+                                        <option value="{{ period_num }}">{{ period_name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label for="ca_score" class="form-label">CA Score (Max 60)</label>
+                                <input type="number" step="0.1" min="0" max="60" id="ca_score" name="ca_score" class="form-control custom-input" placeholder="0.0">
+                            </div>
+
+                            <div class="col-md-4">
+                                <label for="exam_score" class="form-label">Exam Score (Max 40 / 100)</label>
+                                <input type="number" step="0.1" min="0" max="100" id="exam_score" name="exam_score" class="form-control custom-input" placeholder="0.0">
+                            </div>
+
+                            <div class="col-12 mt-4 d-flex align-items-center justify-content-between">
+                                <div class="form-check custom-checkbox">
+                                    <input type="checkbox" class="form-check-input" id="submitCheck" name="submitted" checked hidden-checkbox>
+                                    <label class="form-check-label check-toggle" for="submitCheck">
+                                        <span class="box"></span> Commit Record <small class="text-muted d-block text-xs">(Uncheck to save as Draft)</small>
+                                    </label>
+                                </div>
+                                <button type="submit" class="btn btn-cyber-primary px-4"><i class="bi bi-save me-2"></i>Save Grade</button>
+                            </div>
+                        </div>
+                    </form>
+                    {% elif selected_grade_class %}
+                    <div class="text-center text-blue py-4 small">
+                        <i class="bi bi-people d-block fs-3 mb-2 opacity-50"></i>
+                        No students in {{ selected_grade_class.name }} yet.
+                    </div>
+                    {% elif not class_cards %}
+                    <div class="text-center text-blue py-4 small">
+                        <i class="bi bi-inbox d-block fs-3 mb-2 opacity-50"></i>
+                        No class assignments yet.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
     </div>
 
-    <div class="mb-3">
-      <label for="activity_type" class="form-label">Activity Type</label>
-      <select id="activity_type" name="activity_type" class="form-select" required>
-        <option value="">-- Select Activity --</option>
-        <option value="Assignment">Assignment</option>
-        <option value="Class Work">Class Work</option>
-        <option value="Test">Test</option>
-      </select>
+    <div class="card dashboard-card mt-4">
+        <div class="card-header bg-transparent py-3">
+            <h5 class="mb-0 text-white"><i class="bi bi-collection me-2 text-cyber"></i>Grade Records Ledger <small class="text-muted text-sm fs-6">(Current Academic Cycle)</small></h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table cyber-table align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th class="ps-4">Student</th>
+                            <th>Period</th>
+                            <th>Subject / Type</th>
+                            <th>Score</th>
+                            <th class="pe-4 text-end">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for g in grades %}
+                        <tr>
+                            <td class="ps-4 fw-semibold text-yellow">{{ g.student.full_name }}</td>
+                            <td><span class="badge bg-dark border border-secondary text-light font-mono px-2 py-1">P{{ g.marking_period or g.period }}</span></td>
+                            <td>{{ g.subject_name or g.subject or '—' }} · {{ g.activity_type or 'Assessment' }}</td>
+                            <td class="fw-bold text-cyber-light">{{ g.score or 0 }} / 100</td>
+                            <td class="pe-4 text-end">
+                                {% if g.submitted %}
+                                    <span class="status-indicator status-committed"><span class="dot"></span> Published</span>
+                                {% else %}
+                                    <span class="status-indicator status-draft"><span class="dot"></span> Draft</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center text-muted py-5">
+                                <i class="bi bi-inbox-fill d-block fs-2 mb-2 text-cyber-dim"></i>
+                                No grade records yet. Grade student work or use the MoE sheet.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+        </div>
+    </div>
+    </div><!-- /tab-grades -->
+
+    <div class="tab-pane {% if active_tab == 'activities' %}show active{% endif %}" id="tab-activities">
+
+    <div class="card dashboard-card my-4" id="assign-classroom-activity">
+        <div class="card-header d-flex align-items-center justify-content-between">
+            <h5 class="mb-0 text-white"><i class="bi bi-send-check me-2 text-cyber"></i>Assign Classroom Activity</h5>
+            <span class="badge bg-secondary rounded-pill">{{ activities|length }}</span>
+        </div>
+        <div class="card-body p-4">
+            {% if teaching_classes %}
+            <form method="POST" action="{{ url_for('assign_activity') }}" enctype="multipart/form-data" class="cyber-form" id="assignActivityForm">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label for="assign_klass_id" class="form-label">Target Class</label>
+                        <select id="assign_klass_id" name="klass_id" class="form-select custom-select" required>
+                            <option value="" disabled selected>-- Select Class --</option>
+                            {% for klass in teaching_classes %}
+                                <option value="{{ klass.id }}">{{ klass.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="assign_subject_name" class="form-label">Subject</label>
+                        <select id="assign_subject_name" name="subject_name" class="form-select custom-select" disabled>
+                            <option value="" disabled selected>-- Select class first --</option>
+                        </select>
+                        <div id="assign_subject_hint" class="form-text text-blue small mt-1">Subjects update when you pick a class.</div>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="marking_period" class="form-label">Marking Period</label>
+                        <select id="marking_period" name="marking_period" class="form-select custom-select" required>
+                            {% for period_num, period_name in grading_periods[:6] %}
+                            <option value="{{ period_num }}">{{ period_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="title" class="form-label">Activity Title</label>
+                        <input type="text" id="title" name="title" class="form-control custom-input" placeholder="e.g. Chapter 3 Quiz" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="evaluation_type" class="form-label">Evaluation Type</label>
+                        <select id="evaluation_type" name="evaluation_type" class="form-select custom-select" required>
+                            <option value="Assignment">Assignment</option>
+                            <option value="Class Work">Class Work</option>
+                            <option value="Quiz">Quiz</option>
+                            <option value="Test">Test</option>
+                            <option value="Exam">Period Exam</option>
+                        </select>
+                    </div>
+                    <div class="col-12">
+                        <label for="description" class="form-label">Instructions</label>
+                        <textarea id="description" name="description" class="form-control custom-input" rows="2" placeholder="What should students do?"></textarea>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="submission_mode" class="form-label">How Students Submit</label>
+                        <select id="submission_mode" name="submission_mode" class="form-select custom-select" required>
+                            <option value="file_upload">Upload File</option>
+                            <option value="text_entry">Type Answers Online</option>
+                        </select>
+                    </div>
+                    <div class="col-md-8">
+                        <label for="task_file" class="form-label">Assignment File for Students to Download</label>
+                        <input type="file" id="task_file" name="task_file" class="form-control custom-input">
+                        <div class="form-text text-blue small">Upload the worksheet, PDF, or instructions file — students see a <strong>Download Assignment</strong> button on their dashboard.</div>
+                    </div>
+                    <div class="col-12">
+                        <p class="text-blue small mb-2">When you grade submissions, scores auto-calculate a <strong>draft</strong> period standing. Publish from the MoE Grade Entry sheet.</p>
+                    </div>
+                    <div class="col-12 text-end mt-2">
+                        <button type="submit" id="assignActivityBtn" class="btn btn-cyber-primary px-4"><i class="bi bi-send me-2"></i>Assign to Class</button>
+                    </div>
+                </div>
+            </form>
+            {% else %}
+            <div class="text-center text-blue py-4 small">
+                <i class="bi bi-inbox d-block fs-3 mb-2 opacity-50"></i>
+                No classes assigned yet. Ask the principal to link you to a class before assigning activities.
+            </div>
+            {% endif %}
+        </div>
     </div>
 
-    <div class="mb-3">
-      <label for="score" class="form-label">Grade / Score</label>
-      <input type="number" step="0.01" min="0" max="100" id="score" name="score" class="form-control" required>
+    <div class="card dashboard-card mb-4">
+        <div class="card-header d-flex align-items-center justify-content-between">
+            <h5 class="mb-0 text-white"><i class="bi bi-list-task me-2 text-cyber"></i>Assigned Activities</h5>
+            <span class="badge bg-secondary rounded-pill">{{ activities|length }}</span>
+        </div>
+        <div class="card-body p-4">
+            {% if activities %}
+            <div class="table-responsive">
+                <table class="table cyber-table align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th class="ps-4">Activity</th>
+                            <th>Subject</th>
+                            <th>Period</th>
+                            <th>Type</th>
+                            <th class="pe-4 text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for activity in activities %}
+                        <tr>
+                            <td class="ps-4 fw-semibold text-white">{{ activity.title }}</td>
+                            <td>{{ activity.subject_name or '—' }}</td>
+                            <td>P{{ activity.marking_period or 1 }}</td>
+                            <td>{{ activity.activity_type or 'Assignment' }}</td>
+                            <td class="pe-4 text-end">
+                                <a href="{{ url_for('activity_detail', assessment_id=activity.id) }}" class="btn btn-sm btn-cyber-primary me-1">
+                                    <i class="bi bi-pencil-square me-1"></i>Set Scores
+                                </a>
+                                {% if activity.klass %}
+                                <a href="{{ url_for('class_grading_hub', class_id=activity.klass_id, subject=activity.subject_name, period=activity.marking_period or 1, hub_tab='moe') }}" class="btn btn-sm btn-outline-light">Period Grades</a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center text-muted small py-4">
+                No active activities are assigned to your classes yet.
+            </div>
+            {% endif %}
+        </div>
     </div>
 
-    <div class="mb-3 form-check">
-      <input type="checkbox" class="form-check-input" id="submitCheck" name="submitted">
-      <label class="form-check-label" for="submitCheck">Submit (uncheck to save as draft)</label>
+    <div class="card dashboard-card mb-4">
+        <div class="card-header d-flex align-items-center justify-content-between">
+            <h5 class="mb-0 text-white"><i class="bi bi-journal-check me-2 text-cyber"></i>Recent Activity Submissions</h5>
+            <span class="badge bg-secondary rounded-pill">{{ recent_submissions|length }}</span>
+        </div>
+        <div class="card-body p-4">
+            {% if recent_submissions %}
+            <div class="table-responsive">
+                <table class="table cyber-table align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th class="ps-4">Student</th>
+                            <th>Activity</th>
+                            <th>Class</th>
+                            <th>Submitted</th>
+                            <th>Score</th>
+                            <th class="pe-4 text-end">Grade</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for submission in recent_submissions %}
+                        <tr>
+                            <td class="ps-4 fw-semibold text-white">{{ submission.student.full_name }}</td>
+                            <td>
+                                {% if submission.assessment %}
+                                <a href="{{ url_for('activity_detail', assessment_id=submission.assessment.id) }}" class="text-info text-decoration-none">
+                                    {{ submission.assessment.title }}
+                                </a>
+                                {% else %}
+                                Submission
+                                {% endif %}
+                            </td>
+                            <td>{{ submission.assessment.klass.name if submission.assessment and submission.assessment.klass else '—' }}</td>
+                            <td>{{ submission.submitted_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                            <td class="font-monospace">
+                                {% if submission.is_graded %}
+                                    {{ submission.score }}/{{ submission.assessment.max_score if submission.assessment else 100 }}
+                                {% else %}
+                                    <span class="badge bg-warning text-dark">Pending</span>
+                                {% endif %}
+                            </td>
+                            <td class="pe-4 text-end">
+                                {% if submission.assessment %}
+                                <form method="POST" action="{{ url_for('grade_submission', submission_id=submission.id) }}" class="d-inline-flex align-items-center">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <input type="number" name="score" step="0.1" min="0" max="{{ submission.assessment.max_score or 100 }}"
+                                           value="{{ submission.score if submission.is_graded else '' }}"
+                                           class="form-control form-control-sm" style="width:80px" placeholder="Score" required>
+                                    <button type="submit" class="btn btn-sm btn-outline-success ms-1">Save</button>
+                                </form>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center text-muted small py-4">
+                No submitted assignments or tasks have been received for your classes yet.
+            </div>
+            {% endif %}
+        </div>
     </div>
 
-    <button type="submit" class="btn btn-primary">Save Grade</button>
-  </form>
+    <div class="card dashboard-card my-5 border-cyber-glow">
+        <div class="card-header bg-cyber-gradient d-flex align-items-center justify-content-between py-3">
+            <h5 class="mb-0 text-white fw-bold tracking-wide">
+                <i class="bi bi-cpu me-2 machine-pulse"></i>AI GRADING PORTAL: COGNITIVE VISION ENGINE
+            </h5>
+            <span class="badge bg-dark border border-cyber text-cyber font-mono text-xs px-3 py-2">MODALITY: OCR SCAN</span>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table cyber-table align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th class="ps-4">Student Identity</th>
+                            <th>Submitted Activity</th>
+                            <th class="text-center">AI Score Result</th>
+                            <th class="pe-4 text-end">Execution Pipeline</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for submission in ai_scan_queue %}
+                        <tr id="row-submission-{{ submission.id }}">
+                            <td class="ps-4 fw-semibold text-yellow">{{ submission.student.full_name }}</td>
+                            <td>
+                                <div class="submission-asset">
+                                    <div class="fw-semibold text-cyber-light small">
+                                        {% if submission.assessment %}
+                                        <a href="{{ url_for('activity_detail', assessment_id=submission.assessment.id) }}" class="text-info text-decoration-none">
+                                            {{ submission.assessment.title }}
+                                        </a>
+                                        {% else %}
+                                        Activity
+                                        {% endif %}
+                                    </div>
+                                    <div class="small text-muted mt-1">
+                                        <i class="bi bi-file-earmark-check text-success me-1"></i>
+                                        Submitted {{ submission.submitted_at.strftime('%b %d, %Y %H:%M') }}
+                                    </div>
+                                    {% if submission.file_path %}
+                                    <a href="{{ url_for('teacher_download_submission', submission_id=submission.id) }}" class="small text-info text-decoration-none">
+                                        <i class="bi bi-download me-1"></i>View submitted work
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td class="text-center">
+                                <div class="inference-output" id="suggested-{{ submission.id }}">--</div>
+                            </td>
+                            <td class="pe-4 text-end">
+                                <button type="button" class="btn-scan" id="btn-{{ submission.id }}" data-submission-id="{{ submission.id }}">
+                                    <i class="bi bi-lightning-charge me-1"></i> SCAN
+                                </button>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="4" class="text-center text-muted py-5">
+                                <i class="bi bi-inbox d-block fs-2 mb-2 text-cyber-dim"></i>
+                                No student file submissions are waiting for AI scan yet.
+                                <div class="small mt-2">Students must upload their assignment first. Scanned scores will appear here and in Recent Activity Submissions.</div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
 
-  <hr>
-  <h4>Student Report Cards</h4>
-  <ul>
-    {% for s in students %}
-      <li>{{ s.full_name }} - <a href="{{ url_for('report_card', student_id=s.id) }}">View Report Card</a></li>
-    {% endfor %}
-  </ul>
+    </div><!-- /tab-activities -->
+    </div><!-- /tab-content -->
 
-  <hr>
-  
-  <!-- AI Grading Portal -->
-  <style>
-    .btn-scan {
-        background: transparent;
-        color: #00f2ff;
-        border: 1px solid #00f2ff;
-        padding: 5px 15px;
-        cursor: pointer;
-        font-family: 'Courier New', monospace;
-        transition: 0.3s;
+</div>
+
+<style>
+    /* UTILITIES & CORE RESETS */
+    :root {
+        --cyber-cyan: #00f2ff;
+        --cyber-blue: #38bdf8;
+        --cyber-cyan-dim: rgba(0, 242, 255, 0.15);
+        --cyber-glow: 0 0 15px rgba(0, 242, 255, 0.4);
+        --bg-glass: rgba(13, 13, 33, 0.85);
+        --border-glass: rgba(0, 242, 255, 0.2);
     }
-    .btn-scan:hover {
-        background: #00f2ff;
-        color: #000;
-        box-shadow: 0 0 10px #00f2ff;
+
+    .text-blue { color: var(--cyber-blue) !important; }
+    .text-yellow { color: #facc15 !important; }
+
+    /* Blue secondary text on dark teacher dashboard surfaces */
+    .teacher-terminal .text-muted,
+    .teacher-terminal .text-white-50,
+    .teacher-terminal .text-dark,
+    .teacher-terminal .text-secondary,
+    .teacher-terminal .text-gray-800,
+    .teacher-terminal label,
+    .teacher-terminal .form-label,
+    .teacher-terminal .drop-zone-text,
+    .teacher-terminal .cyber-table td,
+    .teacher-terminal .list-group-item.text-muted,
+    .teacher-terminal small.text-muted {
+        color: var(--cyber-blue) !important;
     }
-    .drop-zone {
-        width: 100%;
-        height: 60px;
-        border: 1px dashed #00f2ff;
-        border-radius: 8px;
-        display: flex;
+
+    .teacher-terminal .custom-input,
+    .teacher-terminal .custom-select,
+    .teacher-terminal .custom-input:focus,
+    .teacher-terminal .custom-select:focus {
+        color: var(--cyber-blue) !important;
+    }
+
+    .teacher-terminal .custom-input::placeholder,
+    .teacher-terminal .custom-select::placeholder {
+        color: #7dd3fc !important;
+        opacity: 0.9;
+    }
+
+    .teacher-terminal .custom-select option {
+        background: #0d0d21;
+        color: var(--cyber-blue);
+    }
+
+    .teacher-terminal .cyber-table thead th {
+        color: var(--cyber-cyan) !important;
+    }
+
+    /* Preserve intentional white headings and names */
+    .teacher-terminal .text-white,
+    .teacher-terminal h2.text-white,
+    .teacher-terminal h5.text-white,
+    .teacher-terminal td.text-white,
+    .teacher-terminal .fw-semibold.text-white {
+        color: #ffffff !important;
+    }
+
+    .teacher-terminal td.text-yellow,
+    .teacher-terminal .fw-semibold.text-yellow {
+        color: #facc15 !important;
+    }
+
+    /* Preserve accent colors */
+    .teacher-terminal .text-cyber { color: var(--cyber-cyan) !important; }
+    .teacher-terminal .text-cyber-light { color: #80f9ff !important; }
+    .teacher-terminal .text-warning { color: #fbbf24 !important; }
+    .teacher-terminal .status-committed { color: #4ade80 !important; }
+    .teacher-terminal .status-draft { color: #fbbf24 !important; }
+    .teacher-terminal .fw-bold.text-cyber-light { color: #80f9ff !important; }
+    
+    .font-mono { font-family: 'Courier New', Courier, monospace; }
+    .text-xs { font-size: 0.75rem; }
+    .text-sm { font-size: 0.875rem; }
+    .text-cyber { color: var(--cyber-cyan) !important; }
+
+    .grade-class-tab {
+        display: inline-flex;
         flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        background: rgba(0, 242, 255, 0.05);
-        transition: all 0.3s ease;
-        cursor: pointer;
-        position: relative;
+        align-items: flex-start;
+        gap: 0.1rem;
+        padding: 0.55rem 0.95rem;
+        border: 1px solid var(--border-glass);
+        border-radius: 10px;
+        background: rgba(7, 10, 18, 0.85);
+        color: var(--cyber-blue);
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 0.88rem;
+        transition: all 0.2s ease;
+    }
+    .grade-class-tab-meta {
+        font-size: 0.68rem;
+        color: #7dd3fc;
+        font-weight: 500;
+    }
+    .grade-class-tab:hover,
+    .grade-class-tab.active {
+        border-color: var(--cyber-cyan);
+        background: rgba(0, 242, 255, 0.1);
+        color: var(--cyber-cyan);
+        box-shadow: var(--cyber-glow);
+    }
+    .grade-class-tab.active .grade-class-tab-meta,
+    .grade-class-tab:hover .grade-class-tab-meta {
+        color: #b8f8ff;
+    }
+    .text-cyber-light { color: #80f9ff; }
+    .text-cyber-dim { color: rgba(0, 242, 255, 0.5); }
+    .border-cyber-dim { border-color: rgba(0, 242, 255, 0.1) !important; }
+
+    /* CORE COMPONENT GLASSMORPHISM */
+    .dashboard-card {
+        background: var(--bg-glass);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid var(--border-glass);
+        border-radius: 12px;
+        color: #e2e8f0;
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
         overflow: hidden;
     }
-    .drop-zone:hover {
-        background: rgba(0, 242, 255, 0.15);
-        box-shadow: 0 0 20px rgba(0, 242, 255, 0.4);
+    .card-header {
+        background: rgba(0, 242, 255, 0.03);
+        border-bottom: 1px solid var(--border-glass);
+        padding: 1rem 1.5rem;
     }
-    .drop-zone-text {
-        color: #00f2ff;
-        font-family: 'Courier New', Courier, monospace;
+
+    /* PROFILE & BADGES */
+    .avatar-wrapper {
+        position: relative;
+        width: 85px;
+        height: 85px;
+        border-radius: 12px;
+        padding: 3px;
+        background: linear-gradient(135deg, var(--cyber-cyan), #0055ff);
+        box-shadow: var(--cyber-glow);
+    }
+    .profile-avatar {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 9px;
+    }
+    .profile-avatar-fallback {
+        width: 100%;
+        height: 100%;
+        background: #09091e;
+        border-radius: 9px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: 'Courier New', monospace;
+        font-weight: bold;
+        font-size: 1.5rem;
+        color: var(--cyber-cyan);
+    }
+    .badge-cyber {
+        background: var(--cyber-cyan-dim);
+        border: 1px solid var(--cyber-cyan);
+        color: var(--cyber-cyan);
         text-transform: uppercase;
         letter-spacing: 1px;
-        font-size: 0.7rem;
+        font-size: 0.65rem;
+        padding: 5px 10px;
+    }
+    .academic-badge {
+        background: rgba(0, 0, 0, 0.4);
+        border-left: 3px solid var(--cyber-cyan);
+        padding: 0.5rem 1rem;
+        border-radius: 0 8px 8px 0;
+    }
+
+    /* FORM ELEMENTS overrides */
+    .custom-input, .custom-select {
+        background: rgba(5, 5, 15, 0.6) !important;
+        border: 1px solid rgba(0, 242, 255, 0.25) !important;
+        color: #fff !important;
+        border-radius: 6px;
+        padding: 0.6rem 0.75rem;
+        transition: all 0.25s ease-in-out;
+    }
+    .custom-input:focus, .custom-select:focus {
+        border-color: var(--cyber-cyan) !important;
+        box-shadow: 0 0 8px rgba(0, 242, 255, 0.3) !important;
+        outline: none;
+    }
+    .custom-select option { background: #0d0d21; color: #fff; }
+    .form-label {
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--cyber-blue);
+        font-weight: 600;
+    }
+
+    /* CUSTOM TOGGLE BUTTON FOR CHECKBOX */
+    .custom-checkbox .check-toggle {
+        cursor: pointer;
+        user-select: none;
+        display: flex;
+        align-items: center;
+        color: #fff;
+    }
+    .custom-checkbox .check-toggle .box {
+        width: 18px;
+        height: 18px;
+        border: 1px solid var(--cyber-cyan);
+        border-radius: 4px;
+        margin-right: 10px;
+        display: inline-block;
+        position: relative;
+        background: transparent;
+        transition: all 0.2s;
+    }
+    .custom-checkbox input[type="checkbox"]:checked + .check-toggle .box {
+        background: var(--cyber-cyan);
+        box-shadow: var(--cyber-glow);
+    }
+    .custom-checkbox input[type="checkbox"]:checked + .check-toggle .box::after {
+        content: '✓';
+        position: absolute;
+        color: #000;
+        font-size: 12px;
+        font-weight: bold;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+    }
+
+    /* BUTTON ARSENAL */
+    .btn-cyber-primary {
+        background: linear-gradient(135deg, #00f2ff, #0066ff);
+        color: #000;
+        font-weight: bold;
+        border: none;
+        border-radius: 6px;
+        transition: all 0.3s ease;
+    }
+    .btn-cyber-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--cyber-glow);
+        color: #000;
+    }
+    .btn-cyber-sm {
+        background: var(--cyber-cyan-dim);
+        border: 1px solid var(--cyber-cyan);
+        color: var(--cyber-cyan);
+        font-size: 0.8rem;
+        padding: 0.4rem 0.8rem;
+        border-radius: 4px;
+        transition: all 0.2s;
+    }
+    .btn-cyber-sm:hover {
+        background: var(--cyber-cyan);
+        color: #000;
+        box-shadow: var(--cyber-glow);
+    }
+
+    .class-folder-card {
+        background: rgba(255,255,255,0.03);
+        border: 1px solid rgba(0, 242, 255, 0.2);
+        border-radius: 10px;
+        transition: border-color 0.2s, transform 0.2s;
+    }
+    .class-folder-card:hover {
+        border-color: rgba(0, 242, 255, 0.45);
+        transform: translateY(-1px);
+    }
+    .bg-cyber-dim { background: rgba(0, 242, 255, 0.08); }
+
+    /* INTERACTIVE OCR INGUST PORTAL */
+    .border-cyber-glow { border: 1px solid var(--cyber-cyan); box-shadow: 0 0 20px rgba(0, 242, 255, 0.15); }
+    .bg-cyber-gradient { background: linear-gradient(90deg, rgba(0,242,255,0.1) 0%, rgba(0,0,0,0) 100%); }
+    
+    .cyber-table { color: var(--cyber-blue); }
+    .cyber-table thead th {
+        background: rgba(0,0,0,0.3);
+        border-bottom: 1px solid rgba(0, 242, 255, 0.3);
+        color: var(--cyber-cyan);
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        letter-spacing: 1px;
+        padding: 12px 8px;
+    }
+    .cyber-table tbody tr {
+        border-bottom: 1px solid rgba(255,255,255,0.05);
+        transition: background 0.2s;
+    }
+    .cyber-table tbody tr:hover { background: rgba(0, 242, 255, 0.02); }
+
+    .submission-asset {
+        max-width: 320px;
+        padding: 8px 10px;
+        border: 1px solid rgba(0, 242, 255, 0.15);
+        border-radius: 6px;
+        background: rgba(0, 242, 255, 0.03);
+    }
+
+    .drop-zone {
+        width: 100%;
+        max-width: 280px;
+        padding: 10px;
+        border: 1px dashed rgba(0, 242, 255, 0.3);
+        border-radius: 6px;
+        background: rgba(0, 242, 255, 0.02);
+        transition: all 0.3s ease;
+        cursor: pointer;
         text-align: center;
-        padding: 0 5px;
     }
-    @keyframes pulse-bg {
-        0% { background-color: rgba(10, 10, 25, 0.9); }
-        50% { background-color: rgba(0, 242, 255, 0.1); }
-        100% { background-color: rgba(10, 10, 25, 0.9); }
+    .drop-zone.dragover {
+        border-color: var(--cyber-cyan);
+        background: rgba(0, 242, 255, 0.12);
+        box-shadow: inset 0 0 10px rgba(0,242,255,0.2);
     }
-    .dashboard-pulse {
-        animation: pulse-bg 1s ease-in-out 3;
+    .drop-zone-text {
+        color: var(--cyber-blue);
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        display: block;
     }
-  </style>
-
-  <div class="card mb-4" style="background: rgba(10, 10, 25, 0.9); border: 1px solid #00f2ff; color: #fff;">
-    <div class="card-header" style="border-bottom: 1px solid #00f2ff;">
-        <h4 class="mb-0" style="color: #00f2ff;">AI Grading Portal: OCR Vision Scan</h4>
-    </div>
-    <div class="card-body">
-        <div class="table-responsive">
-            <table class="table table-dark table-hover mb-0" style="background: transparent;">
-                <thead>
-                    <tr style="border-bottom: 1px solid #00f2ff; color: #00f2ff;">
-                        <th>Student Name</th>
-                        <th>Upload Activity</th>
-                        <th>AI Suggestion</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for s in students %}
-                    <tr>
-                        <td class="align-middle">{{ s.full_name }}</td>
-                        <td class="align-middle">
-                            <div class="drop-zone" id="drop-zone-{{ s.id }}" onclick="document.getElementById('file-{{ s.id }}').click()">
-                                <span class="drop-zone-text" id="text-{{ s.id }}">DROP FILE</span>
-                                <input type="file" id="file-{{ s.id }}" style="display: none;" onchange="handleFileSelect({{ s.id }})">
-                            </div>
-                        </td>
-                        <td class="align-middle" id="suggested-{{ s.id }}" style="color: #00f2ff; font-weight: bold; font-family: 'Courier New', monospace;">--</td>
-                        <td class="align-middle">
-                            <button class="btn-scan" id="btn-{{ s.id }}" onclick="runAIScan({{ s.id }})">SCAN</button>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
-  </div>
-
-  <script>
-    let selectedFiles = {};
-
-    function handleFileSelect(studentId) {
-        const fileInput = document.getElementById(`file-${studentId}`);
-        if (fileInput.files.length > 0) {
-            selectedFiles[studentId] = fileInput.files[0];
-            document.getElementById(`text-${studentId}`).innerText = fileInput.files[0].name.substring(0, 15) + "...";
-            document.getElementById(`drop-zone-${studentId}`).style.borderColor = "limegreen";
-            document.getElementById(`drop-zone-${studentId}`).style.background = "rgba(50, 205, 50, 0.1)";
-        }
+    
+    .inference-output {
+        font-family: 'Courier New', monospace;
+        font-weight: bold;
+        color: var(--cyber-cyan);
+        font-size: 1.1rem;
+        text-shadow: 0 0 5px rgba(0,242,255,0.5);
     }
 
-    function triggerDashboardPulse() {
-        const portal = document.querySelector('.card-header h4').parentElement.parentElement;
-        portal.classList.add('dashboard-pulse');
-        setTimeout(() => portal.classList.remove('dashboard-pulse'), 3000);
+    .btn-scan {
+        background: transparent;
+        color: var(--cyber-cyan);
+        border: 1px solid var(--cyber-cyan);
+        border-radius: 4px;
+        padding: 6px 16px;
+        font-family: 'Courier New', monospace;
+        font-weight: bold;
+        font-size: 0.8rem;
+        transition: all 0.25s ease;
+    }
+    .btn-scan:hover {
+        background: var(--cyber-cyan);
+        color: #000;
+        box-shadow: var(--cyber-glow);
     }
 
-    function runAIScan(studentId) {
-        const file = selectedFiles[studentId];
-        if (!file) {
-            alert("Please upload a file first!");
+    /* DOSSIER & DIRECTORIES */
+    .dossier-card {
+        background: rgba(255,255,255,0.03);
+        border: 1px solid rgba(255,255,255,0.07);
+        border-radius: 8px;
+        transition: all 0.2s ease;
+    }
+    .dossier-card:hover {
+        border-color: var(--cyber-cyan-dim);
+        background: rgba(0, 242, 255, 0.03);
+        transform: translateY(-1px);
+    }
+    .btn-cyber-icon {
+        background: rgba(255,255,255,0.05);
+        color: #fff;
+        border: 1px solid rgba(255,255,255,0.1);
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 6px;
+        transition: all 0.2s;
+    }
+    .btn-cyber-icon:hover {
+        background: var(--cyber-cyan-dim);
+        border-color: var(--cyber-cyan);
+        color: var(--cyber-cyan);
+    }
+
+    /* STATUS FLAGS */
+    .status-indicator {
+        font-size: 0.8rem;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+    }
+    .status-indicator .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        margin-right: 6px;
+        display: inline-block;
+    }
+    .status-committed { color: #4ade80; }
+    .status-committed .dot { background-color: #4ade80; box-shadow: 0 0 8px #4ade80; }
+    .status-draft { color: #fbbf24; }
+    .status-draft .dot { background-color: #fbbf24; box-shadow: 0 0 8px #fbbf24; }
+
+    /* HARDWARE KEYFRAME NEURAL SYSTEM REPLICATION */
+    @keyframes pulse-card {
+        0% { border-color: rgba(0, 242, 255, 0.2); box-shadow: 0 0 20px rgba(0, 242, 255, 0.15); }
+        50% { border-color: rgba(0, 242, 255, 0.8); box-shadow: 0 0 30px rgba(0, 242, 255, 0.45); }
+        100% { border-color: rgba(0, 242, 255, 0.2); box-shadow: 0 0 20px rgba(0, 242, 255, 0.15); }
+    }
+    .dashboard-pulse { animation: pulse-card 1s ease-in-out 3; }
+
+    @keyframes machine-blink {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.4; }
+    }
+    .machine-pulse { animation: machine-blink 2s infinite ease-in-out; }
+</style>
+
+<script id="class-subjects-data" type="application/json">{{ class_subjects_by_id | default({}) | tojson }}</script>
+<script>
+    const classSubjectsById = JSON.parse(document.getElementById('class-subjects-data').textContent);
+
+    (function initAssignActivityForm() {
+        const classSelect = document.getElementById('assign_klass_id');
+        const subjectSelect = document.getElementById('assign_subject_name');
+        const subjectHint = document.getElementById('assign_subject_hint');
+        const assignBtn = document.getElementById('assignActivityBtn');
+        if (!classSelect || !subjectSelect) {
             return;
         }
 
-        const btn = document.getElementById(`btn-${studentId}`);
-        btn.innerText = "SCANNING...";
-        btn.style.borderColor = "yellow";
-        btn.style.color = "yellow";
-        
-        triggerDashboardPulse();
+        function refreshSubjectOptions(classId) {
+            const subjects = classSubjectsById[String(classId)] || [];
+            subjectSelect.innerHTML = '';
+            const placeholder = document.createElement('option');
+            placeholder.value = '';
+            placeholder.disabled = true;
+            placeholder.selected = true;
+            placeholder.textContent = subjects.length ? '-- Select Subject --' : '-- No subjects for this class --';
+            subjectSelect.appendChild(placeholder);
 
-        const formData = new FormData();
-        formData.append('assignment', file);
+            subjects.forEach(function(subject) {
+                const option = document.createElement('option');
+                option.value = subject;
+                option.textContent = subject;
+                subjectSelect.appendChild(option);
+            });
 
-        fetch(`/teacher/scan-assignment/${studentId}`, { 
+            const hasSubjects = subjects.length > 0;
+            subjectSelect.disabled = !hasSubjects;
+            subjectSelect.required = hasSubjects;
+            if (assignBtn) {
+                assignBtn.disabled = !hasSubjects;
+            }
+            if (subjectHint) {
+                subjectHint.textContent = hasSubjects
+                    ? subjects.length + ' subject' + (subjects.length === 1 ? '' : 's') + ' available for this class.'
+                    : 'No subjects set up for this class. Ask the principal to assign subjects.';
+            }
+        }
+
+        classSelect.addEventListener('change', function() {
+            refreshSubjectOptions(classSelect.value);
+        });
+
+        if (classSelect.value) {
+            refreshSubjectOptions(classSelect.value);
+        }
+    })();
+
+    document.querySelectorAll('.btn-scan[data-submission-id]').forEach(function(btn) {
+        const submissionId = parseInt(btn.dataset.submissionId, 10);
+        btn.addEventListener('click', function() {
+            runAIScan(submissionId);
+        });
+    });
+
+    function triggerDashboardPulse(submissionId) {
+        const targetRow = document.getElementById(`row-submission-${submissionId}`);
+        if (!targetRow) return;
+        const card = targetRow.closest('.card');
+        if (!card) return;
+        card.classList.add('dashboard-pulse');
+        setTimeout(() => card.classList.remove('dashboard-pulse'), 3000);
+    }
+
+    function runAIScan(submissionId) {
+        const btn = document.getElementById(`btn-${submissionId}`);
+        btn.disabled = true;
+        btn.innerHTML = `<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> ENGINE SCANNING...`;
+        btn.style.borderColor = "#fbbf24";
+        btn.style.color = "#fbbf24";
+
+        triggerDashboardPulse(submissionId);
+
+        const csrfInput = document.querySelector('input[name="csrf_token"]');
+        const csrfToken = csrfInput ? csrfInput.value : '';
+        fetch(`/teacher/scan-submission/${submissionId}`, {
             method: 'POST',
-            body: formData,
             headers: {
-                'X-CSRFToken': '{{ csrf_token() }}'
+                'X-CSRFToken': csrfToken
             }
         })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === "Success") {
-                document.getElementById(`suggested-${studentId}`).innerText = data.suggested_grade;
-                btn.innerText = "DONE";
-                btn.style.borderColor = "limegreen";
-                btn.style.color = "limegreen";
-                console.log("AI Detected Text: " + data.detected_text_snippet);
+        .then(response => response.json().then(data => ({ ok: response.ok, data })))
+        .then(({ ok, data }) => {
+            if (ok && data.status === "Success") {
+                document.getElementById(`suggested-${submissionId}`).innerText = data.suggested_grade;
+                btn.innerHTML = `<i class="bi bi-check2-all"></i> GRADED`;
+                btn.style.borderColor = "#4ade80";
+                btn.style.color = "#4ade80";
+                if (data.detected_text_snippet) {
+                    console.log("AI Context Extracted Chunk: " + data.detected_text_snippet);
+                }
             } else {
-                alert("Error: " + data.message);
-                btn.innerText = "RETRY";
-                btn.style.borderColor = "red";
-                btn.style.color = "red";
+                alert("OCR Parse Error: " + (data.message || "Scan failed."));
+                resetScanButton(btn);
             }
         })
         .catch(error => {
-            console.error(error);
-            btn.innerText = "RETRY";
-            btn.style.borderColor = "red";
-            btn.style.color = "red";
+            console.error("Transmission Error Execution Plan:", error);
+            alert("Inference execution rejected by network gateway.");
+            resetScanButton(btn);
         });
     }
-  </script>
 
-  <hr>
-  <h4>Existing Grades (Current Academic Year)</h4>
-<table class="table">
-  <thead>
-    <tr>
-      <th>Student</th>
-      <th>Period</th>
-      <th>Activity</th>
-      <th>Score</th>
-      <th>Status</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for g in grades %}
-    <tr>
-      <td>{{ g.student.full_name }}</td>
-      <td>Period {{ g.period }}</td>
-      <td>{{ g.activity_type }}</td>
-      <td>{{ g.score }}</td>
-      <td>
-        {% if g.submitted %}
-          Submitted
-        {% else %}
-          Draft
-        {% endif %}
-      </td>
-    </tr>
-    {% else %}
-    <tr>
-      <td colspan="5">No grades recorded yet.</td>
-    </tr>
-    {% endfor %}
-  </tbody>
-</table>
-<hr>
-
+    function resetScanButton(btn) {
+        btn.disabled = false;
+        btn.innerHTML = `<i class="bi bi-exclamation-triangle me-1"></i> RETRY PIPELINE`;
+        btn.style.borderColor = "#f87171";
+        btn.style.color = "#f87171";
+    }
+</script>
 {% endblock %}

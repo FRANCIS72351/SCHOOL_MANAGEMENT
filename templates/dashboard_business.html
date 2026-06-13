@@ -1,318 +1,346 @@
 {% extends 'base.html' %}
-{% block title %}Business Dashboard{% endblock %}
+{% block title %}Business Office{% endblock %}
+
 {% block content %}
-<div class="container-fluid mt-4">
-    <div class="d-flex align-items-center justify-content-between mb-4">
-        <h1 class="h3 mb-0 text-gray-800">Business Dashboard</h1>
+<style>
+    .biz-shell { background: #f4f6fb; min-height: 100vh; padding-bottom: 2rem; }
+    .biz-tab-btn {
+        border: none;
+        background: transparent;
+        color: #64748b;
+        font-weight: 600;
+        padding: 0.75rem 1.25rem;
+        border-bottom: 3px solid transparent;
+    }
+    .biz-tab-btn.active {
+        color: #2563eb;
+        border-bottom-color: #2563eb;
+        background: #fff;
+    }
+    .biz-card {
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+        box-shadow: 0 4px 14px rgba(15, 23, 42, 0.04);
+    }
+    .step-pill {
+        width: 28px; height: 28px;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.8rem;
+        font-weight: 700;
+        background: #e2e8f0;
+        color: #475569;
+    }
+    .step-pill.active { background: #2563eb; color: #fff; }
+    .step-pill.done { background: #16a34a; color: #fff; }
+    .class-pick {
+        border: 2px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 1rem;
+        text-decoration: none;
+        color: inherit;
+        display: block;
+        transition: all 0.15s ease;
+    }
+    .class-pick:hover, .class-pick.selected {
+        border-color: #2563eb;
+        background: #eff6ff;
+        color: inherit;
+    }
+    .student-row {
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 0.85rem 1rem;
+        text-decoration: none;
+        color: inherit;
+        display: block;
+    }
+    .student-row:hover, .student-row.selected {
+        border-color: #16a34a;
+        background: #f0fdf4;
+        color: inherit;
+    }
+    .metric-mini {
+        border-radius: 12px;
+        padding: 1rem 1.1rem;
+        background: #fff;
+        border: 1px solid #e2e8f0;
+    }
+</style>
+
+<div class="container-fluid biz-shell py-4 px-md-4">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
         <div>
-            <a href="{{ url_for('business_management') }}" class="btn btn-sm btn-primary shadow-sm">
-                <i class="fas fa-cog fa-sm text-white-50"></i> Business Management
+            <h1 class="h4 fw-bold mb-1">Business Office</h1>
+            <p class="text-muted small mb-0">
+                {% if active_year %}Session: <strong>{{ active_year.name }}</strong>{% else %}No active academic year{% endif %}
+            </p>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <a href="{{ url_for('business_management') }}" class="btn btn-sm btn-outline-secondary">Advanced Ledger</a>
+            <a href="{{ url_for('export_business', year=selected_year) }}" class="btn btn-sm btn-outline-primary">Export CSV</a>
+        </div>
+    </div>
+
+    <div class="biz-card mb-4">
+        <div class="d-flex flex-wrap border-bottom">
+            <a href="{{ url_for('dashboard', tab='tuition', class_id=selected_class_id or '', student_id=selected_student_id or '') }}"
+               class="biz-tab-btn {% if active_tab == 'tuition' %}active{% endif %}">
+                <i class="fas fa-hand-holding-dollar me-1"></i> Collect Tuition
             </a>
-            <a href="{{ url_for('report_business_pdf', year=selected_year) }}" class="btn btn-sm btn-success shadow-sm">
-                <i class="fas fa-file-pdf fa-sm text-white-50"></i> PDF Report
+            <a href="{{ url_for('dashboard', tab='summary') }}" class="biz-tab-btn {% if active_tab == 'summary' %}active{% endif %}">
+                <i class="fas fa-chart-pie me-1"></i> Summary
             </a>
-            <a href="{{ url_for('export_business', year=selected_year) }}" class="btn btn-sm btn-info shadow-sm">
-                <i class="fas fa-file-csv fa-sm text-white-50"></i> CSV Export
+            <a href="{{ url_for('dashboard', tab='ledger') }}" class="biz-tab-btn {% if active_tab == 'ledger' %}active{% endif %}">
+                <i class="fas fa-list me-1"></i> Recent Activity
             </a>
         </div>
-    </div>
 
-    <!-- User Profile Section -->
-    <div class="card mb-4" style="background: rgba(10, 10, 25, 0.8); border: 1px solid #00f2ff; color: white;">
-        <div class="card-body">
-            <h5 class="card-title" style="color: #00f2ff;">My Profile</h5>
-            <div class="row">
-                <div class="col-md-3">
-                    {% if current_user.photo %}
-                        <img src="{{ url_for('static', filename=current_user.photo) }}" class="img-fluid rounded" alt="Profile Photo">
-                    {% else %}
-                        <img src="{{ url_for('static', filename='images/default-user.png') }}" class="img-fluid rounded" alt="Default Profile">
-                    {% endif %}
+        {% if active_tab == 'tuition' %}
+        <div class="p-4">
+            <div class="d-flex flex-wrap align-items-center gap-3 mb-4">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="step-pill {% if selected_class_id %}done{% else %}active{% endif %}">1</span>
+                    <span class="small fw-semibold">Pick class</span>
                 </div>
-                <div class="col-md-9">
-                    <h4>{{ current_user.full_name }}</h4>
-                    <p><strong>Email:</strong> {{ current_user.email }}</p>
-                    {% if current_user.home_address %}
-                    <p><strong>Home Address:</strong> {{ current_user.home_address }}</p>
-                    {% endif %}
-                    {% if current_user.telephone_number %}
-                    <p><strong>Telephone:</strong> {{ current_user.telephone_number }}</p>
-                    {% endif %}
-                    <p><strong>Role:</strong> {{ current_user.role|title }}</p>
+                <i class="fas fa-chevron-right text-muted small"></i>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="step-pill {% if selected_student_id %}done{% elif selected_class_id %}active{% endif %}">2</span>
+                    <span class="small fw-semibold">Pick student</span>
+                </div>
+                <i class="fas fa-chevron-right text-muted small"></i>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="step-pill {% if selected_student_id %}active{% endif %}">3</span>
+                    <span class="small fw-semibold">Record payment</span>
                 </div>
             </div>
-        </div>
-    </div>
 
-    <!-- Active Academic Year -->
-    <div class="alert alert-info mb-4" style="background: rgba(0, 123, 255, 0.1); border: 1px solid #00f2ff; color: #00f2ff;">
-        <strong>Active Academic Year:</strong> {{ active_year.name }} ({{ active_year.start_date }} - {{ active_year.end_date }})
-    </div>
-    <div class="row">
-        <!-- Total Revenue Card -->
-        <div class="col-xl-4 col-md-6 mb-4">
-            <div class="card border-left-primary shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
-                                Total Revenue</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">${{ "{:.2f}".format(total_revenue) }}</div>
+            <div class="row g-4">
+                <div class="col-lg-4">
+                    <h2 class="h6 fw-bold mb-3">Step 1 — Class</h2>
+                    <form method="get" class="mb-3">
+                        <input type="hidden" name="tab" value="tuition">
+                        <div class="input-group input-group-sm">
+                            <input type="text" name="search_class" class="form-control" placeholder="Search class..." value="{{ search_class or '' }}">
+                            <button class="btn btn-primary" type="submit">Search</button>
                         </div>
-                        <div class="col-auto">
-                            <i class="fas fa-dollar-sign fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Total Expenses Card -->
-        <div class="col-xl-4 col-md-6 mb-4">
-            <div class="card border-left-danger shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
-                                Total Expenses</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">${{ "{:.2f}".format(total_expenses) }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-file-invoice-dollar fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Net Profit Card -->
-        <div class="col-xl-4 col-md-6 mb-4">
-            <div class="card border-left-success shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-                                Net Profit</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">₱{{ "{:.2f}".format(net_profit) }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-wallet fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Student Registration Summary -->
-    <div class="row mb-4">
-        <div class="col-md-4">
-            <div class="card shadow py-2">
-                <div class="card-body">
-                    <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Total Students</div>
-                    <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.students }}</div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card shadow py-2">
-                <div class="card-body">
-                    <div class="text-xs font-weight-bold text-success text-uppercase mb-1">New Students</div>
-                    <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.new_students }}</div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card shadow py-2">
-                <div class="card-body">
-                    <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Returning Students</div>
-                    <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.returning_students }}</div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Tuition Clearance Management -->
-    <div class="card shadow mb-4">
-        <div class="card-header py-3">
-            <h6 class="m-0 font-weight-bold text-primary">Tuition Clearance Management</h6>
-        </div>
-        <div class="card-body">
-            <p>Update student tuition payment status to enable report card downloads.</p>
-            <form method="post" action="{{ url_for('update_tuition', student_id=0) }}">
-                <div class="mb-3">
-                    <label for="student_select" class="form-label">Select Student</label>
-                    <select id="student_select" name="student_id" class="form-select" required>
-                        <option value="">-- Select Student --</option>
-                        {% for student in students %}
-                        <option value="{{ student.id }}">{{ student.full_name }} ({{ student.student_id }})</option>
+                    </form>
+                    <div class="d-flex flex-column gap-2" style="max-height: 420px; overflow-y: auto;">
+                        {% for klass in classes %}
+                        <a href="{{ url_for('dashboard', tab='tuition', class_id=klass.id) }}"
+                           class="class-pick {% if selected_class_id == klass.id %}selected{% endif %}">
+                            <div class="fw-bold">{{ klass.name }}</div>
+                            <div class="small text-muted">{{ klass.student_count }} students · Fee ${{ "{:,.2f}".format(klass.yearly_fees) }}</div>
+                            <div class="small mt-1">
+                                Collected <span class="text-success fw-semibold">${{ "{:,.2f}".format(klass.total_paid) }}</span>
+                                · Balance <span class="text-danger fw-semibold">${{ "{:,.2f}".format(klass.balance) }}</span>
+                            </div>
+                        </a>
+                        {% else %}
+                        <p class="text-muted small">No classes found.</p>
                         {% endfor %}
-                    </select>
+                    </div>
                 </div>
-                <div class="mb-3 form-check">
-                    <input type="checkbox" class="form-check-input" id="tuition_cleared" name="tuition_cleared">
-                    <label class="form-check-label" for="tuition_cleared">Tuition Cleared</label>
-                </div>
-                <button type="submit" class="btn btn-primary">Update Status</button>
-            </form>
-        </div>
-    </div>
 
-    <!-- Class Folders for Fee Management -->
-    <div class="card shadow mb-4">
-        <div class="card-body">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h4 class="mb-0">Class Folders - Fee Management</h4>
-                <form method="get" class="d-flex" style="gap: 0.5rem;">
-                    <input type="text" name="search_class" class="form-control form-control-sm" placeholder="Search classes..." value="{{ request.args.get('search_class', '') }}" />
-                    <button type="submit" class="btn btn-sm btn-primary">Search</button>
-                </form>
-            </div>
-            <div class="row">
-                {% if classes %}
-                    {% for klass in classes %}
-                        <div class="col-md-4 mb-3">
-                            <div class="card h-100 shadow-sm">
-                                <div class="card-body">
-                                    <h5 class="card-title">{{ klass.name }}</h5>
-                                    <p class="card-text text-muted">{{ klass.description or 'No description' }}</p>
-                                    <p class="mb-2"><strong>Students:</strong> {{ klass.student_count }}</p>
-                                    <p class="mb-2"><strong>Total Paid:</strong> ${{ "{:.2f}".format(klass.total_paid) }}</p>
-                                    <a href="{{ url_for('business_class_students', class_id=klass.id) }}" class="btn btn-sm btn-success">Manage Fees</a>
+                <div class="col-lg-4">
+                    <h2 class="h6 fw-bold mb-3">Step 2 — Student</h2>
+                    {% if not selected_class_id %}
+                    <p class="text-muted small">Select a class to see students.</p>
+                    {% else %}
+                    <div class="d-flex flex-column gap-2" style="max-height: 480px; overflow-y: auto;">
+                        {% for s in class_roster %}
+                        <a href="{{ url_for('dashboard', tab='tuition', class_id=selected_class_id, student_id=s.id) }}"
+                           class="student-row {% if selected_student_id == s.id %}selected{% endif %}">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <div class="fw-semibold">{{ s.full_name }}</div>
+                                    <div class="small text-muted">ID {{ s.student_id }}</div>
                                 </div>
+                                {% if s.tuition_cleared %}
+                                <span class="badge bg-success">Cleared</span>
+                                {% elif s.balance > 0 %}
+                                <span class="badge bg-warning text-dark">Owes ${{ "{:,.2f}".format(s.balance) }}</span>
+                                {% else %}
+                                <span class="badge bg-secondary">Paid up</span>
+                                {% endif %}
+                            </div>
+                            <div class="small mt-2 text-muted">
+                                Yearly ${{ "{:,.2f}".format(s.yearly_fee) }} · Paid ${{ "{:,.2f}".format(s.total_paid) }}
+                            </div>
+                        </a>
+                        {% else %}
+                        <p class="text-muted small">No students in this class for the active year.</p>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="col-lg-4">
+                    <h2 class="h6 fw-bold mb-3">Step 3 — Payment</h2>
+                    {% if not selected_student_id %}
+                    <p class="text-muted small">Select a student to record tuition.</p>
+                    {% else %}
+                    {% if selected_student_summary %}
+                    <div class="alert alert-light border small mb-3">
+                        <strong>{{ selected_student_summary.full_name }}</strong><br>
+                        Balance due: <span class="text-danger fw-bold">${{ "{:,.2f}".format(selected_student_summary.balance) }}</span>
+                    </div>
+                    {% endif %}
+                    <form method="post" action="{{ url_for('dashboard', tab='tuition', class_id=selected_class_id, student_id=selected_student_id) }}">
+                        {{ payment_form.hidden_tag() }}
+                        <input type="hidden" name="class_id" value="{{ selected_class_id }}">
+                        <input type="hidden" name="student_id" value="{{ selected_student_id }}">
+
+                        <div class="mb-3">
+                            <label class="form-label small text-muted">Student</label>
+                            {{ payment_form.student(class_='form-select') }}
+                        </div>
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <label class="form-label small text-muted">Term</label>
+                                {{ payment_form.term(class_='form-select') }}
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small text-muted">Installment</label>
+                                {{ payment_form.installment(class_='form-select') }}
                             </div>
                         </div>
-                    {% endfor %}
-                {% else %}
-                    <div class="col-12">
-                        <p class="text-muted">No classes found.</p>
-                    </div>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-
-    <div class="row">
-        <!-- Income Categories Chart -->
-        <div class="col-xl-6 col-lg-6">
-            <div class="card shadow mb-4">
-                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
-                    <h6 class="m-0 font-weight-bold text-primary">Income by Category</h6>
-                </div>
-                <div class="card-body">
-                    <div class="chart-pie pt-4 pb-2">
-                        <canvas id="incomeChart"></canvas>
-                    </div>
+                        <div class="mb-3">
+                            <label class="form-label small text-muted">Amount</label>
+                            {{ payment_form.amount_paid(class_='form-control form-control-lg', placeholder='60,000.00') }}
+                            <div class="form-text">Commas are OK — e.g. 60,000</div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small text-muted">Description</label>
+                            {{ payment_form.description(class_='form-control', placeholder='Tuition Payment') }}
+                        </div>
+                        {{ payment_form.academic_year(class_='d-none') }}
+                        <button type="submit" name="submit_payment" class="btn btn-success w-100 btn-lg">
+                            <i class="fas fa-check me-1"></i> Post Tuition Payment
+                        </button>
+                    </form>
+                    {% endif %}
                 </div>
             </div>
         </div>
-
-        <!-- Expense Categories Chart -->
-        <div class="col-xl-6 col-lg-6">
-            <div class="card shadow mb-4">
-                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
-                    <h6 class="m-0 font-weight-bold text-danger">Expenses by Category</h6>
+        {% elif active_tab == 'summary' %}
+        <div class="p-4">
+            <div class="row g-3 mb-4">
+                <div class="col-md-3">
+                    <div class="metric-mini">
+                        <div class="small text-muted">Tuition Collected</div>
+                        <div class="h4 fw-bold text-success mb-0">${{ "{:,.2f}".format(fee_income_total|default(0)) }}</div>
+                    </div>
                 </div>
-                <div class="card-body">
-                    <div class="chart-pie pt-4 pb-2">
-                        <canvas id="expenseChart"></canvas>
+                <div class="col-md-3">
+                    <div class="metric-mini">
+                        <div class="small text-muted">Total Income</div>
+                        <div class="h4 fw-bold text-primary mb-0">${{ "{:,.2f}".format(total_revenue|default(0)) }}</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="metric-mini">
+                        <div class="small text-muted">Expenses</div>
+                        <div class="h4 fw-bold text-danger mb-0">${{ "{:,.2f}".format(total_expenses|default(0)) }}</div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="metric-mini">
+                        <div class="small text-muted">Net</div>
+                        <div class="h4 fw-bold mb-0">${{ "{:,.2f}".format(net_profit|default(0)) }}</div>
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
-
-    <!-- Recent Transactions -->
-    <div class="card shadow mb-4">
-        <div class="card-header py-3">
-            <h6 class="m-0 font-weight-bold text-primary">Recent Transactions</h6>
-        </div>
-        <div class="card-body">
+            <h3 class="h6 fw-bold mb-3">Class collection overview</h3>
             <div class="table-responsive">
-                <table class="table table-bordered" width="100%" cellspacing="0">
-                    <thead>
+                <table class="table table-sm align-middle mb-0">
+                    <thead class="table-light">
                         <tr>
-                            <th>Date</th>
-                            <th>Description</th>
-                            <th>Category</th>
-                            <th>Type</th>
-                            <th>Amount</th>
+                            <th>Class</th>
+                            <th>Students</th>
+                            <th>Yearly fee</th>
+                            <th>Collected</th>
+                            <th>Balance</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {% for transaction in recent_transactions %}
+                        {% for klass in classes %}
                         <tr>
-                            <td>{{ transaction.date }}</td>
-                            <td>{{ transaction.description }}</td>
-                            <td>{{ transaction.category }}</td>
                             <td>
-                                {% if transaction.type == 'income' %}
-                                    <span class="badge badge-success">Income</span>
-                                {% else %}
-                                    <span class="badge badge-danger">Expense</span>
-                                {% endif %}
+                                <a href="{{ url_for('dashboard', tab='tuition', class_id=klass.id) }}" class="fw-semibold text-decoration-none">
+                                    {{ klass.name }}
+                                </a>
                             </td>
-                            <td>${{ "{:.2f}".format(transaction.amount) }}</td>
-                        </tr>
-                        {% else %}
-                        <tr>
-                            <td colspan="5" class="text-center">No transactions found.</td>
+                            <td>{{ klass.student_count }}</td>
+                            <td>${{ "{:,.2f}".format(klass.yearly_fees) }}</td>
+                            <td class="text-success">${{ "{:,.2f}".format(klass.total_paid) }}</td>
+                            <td class="text-danger fw-semibold">${{ "{:,.2f}".format(klass.balance) }}</td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
         </div>
+        {% else %}
+        <div class="p-4">
+            <div class="row g-4">
+                <div class="col-lg-6">
+                    <h3 class="h6 fw-bold mb-3">Recent tuition payments</h3>
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead class="table-light">
+                                <tr><th>Student</th><th>Amount</th><th>When</th></tr>
+                            </thead>
+                            <tbody>
+                                {% for p in recent_payments %}
+                                <tr>
+                                    <td>
+                                        <div class="fw-semibold">{{ p.student_name }}</div>
+                                        <div class="small text-muted">{{ p.description }} · Term {{ p.term }}</div>
+                                    </td>
+                                    <td class="text-success fw-semibold">${{ "{:,.2f}".format(p.amount) }}</td>
+                                    <td class="small text-muted">{{ p.paid_on.strftime('%b %d, %Y') if p.paid_on else '-' }}</td>
+                                </tr>
+                                {% else %}
+                                <tr><td colspan="3" class="text-muted text-center py-3">No payments yet.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <h3 class="h6 fw-bold mb-3">Ledger entries</h3>
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead class="table-light">
+                                <tr><th>Date</th><th>Type</th><th>Amount</th></tr>
+                            </thead>
+                            <tbody>
+                                {% for t in recent_transactions %}
+                                <tr>
+                                    <td class="small">{{ t.date }}</td>
+                                    <td>
+                                        <span class="badge {% if t.type == 'income' %}bg-success{% else %}bg-danger{% endif %}">
+                                            {{ t.type }}
+                                        </span>
+                                    </td>
+                                    <td class="fw-semibold {% if t.type == 'income' %}text-success{% else %}text-danger{% endif %}">
+                                        ${{ "{:,.2f}".format(t.amount|float) }}
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr><td colspan="3" class="text-muted text-center py-3">No transactions yet.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
     </div>
 </div>
-
-<!-- Chart.js and Custom Scripts -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
-    // Income Chart
-    var ctxIncome = document.getElementById("incomeChart");
-    var incomeChart = new Chart(ctxIncome, {
-        type: 'doughnut',
-        data: {
-            labels: {{ income_categories|map(attribute='0')|list|tojson }},
-            datasets: [{
-                data: {{ income_categories|map(attribute='1')|list|tojson }},
-                backgroundColor: ['#4e73df', '#1cc88a', '#36b9cc', '#f6c23e'],
-                hoverBackgroundColor: ['#2e59d9', '#17a673', '#2c9faf', '#f39c12'],
-                hoverBorderColor: "rgba(234, 236, 244, 1)",
-            }],
-        },
-        options: {
-            maintainAspectRatio: false,
-            cutoutPercentage: 80,
-            legend: {
-                display: true,
-                position: 'bottom'
-            }
-        },
-    });
-
-    // Expense Chart
-    var ctxExpense = document.getElementById("expenseChart");
-    var expenseChart = new Chart(ctxExpense, {
-        type: 'doughnut',
-        data: {
-            labels: {{ expense_categories|map(attribute='0')|list|tojson }},
-            datasets: [{
-                data: {{ expense_categories|map(attribute='1')|list|tojson }},
-                backgroundColor: ['#e74a3b', '#f6c23e', '#858796', '#5a5c69'],
-                hoverBackgroundColor: ['#be2617', '#f39c12', '#6c757d', '#4e73df'],
-                hoverBorderColor: "rgba(234, 236, 244, 1)",
-            }],
-        },
-        options: {
-            maintainAspectRatio: false,
-            cutoutPercentage: 80,
-            legend: {
-                display: true,
-                position: 'bottom'
-            }
-        },
-    });
-</script>
 {% endblock %}

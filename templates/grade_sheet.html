@@ -4,97 +4,309 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Student Report Card - {{ data.student_name }}</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
     <style>
+        :root {
+            --moe-blue: #002d62;
+            --moe-blue-light: #f0f4f8;
+            --moe-accent: #d9534f;
+            --text-main: #1a202c;
+            --text-muted: #4a5568;
+            --border-color: #cbd5e1;
+        }
+
         body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f4;
-            padding: 20px;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background-color: #f1f5f9;
+            color: var(--text-main);
+            margin: 0;
+            padding: 40px 20px;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
         }
+
+        /* Interactive Controls Area */
+        .action-bar {
+            max-width: 950px;
+            margin: 0 auto 20px auto;
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .btn-print {
+            background-color: var(--moe-blue);
+            color: #ffffff;
+            border: none;
+            padding: 10px 24px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 6px -1px rgba(0, 2d, 62, 0.15);
+            transition: all 0.2s ease;
+        }
+
+        .btn-print:hover {
+            background-color: #001f45;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 12px -1px rgba(0, 2d, 62, 0.25);
+        }
+
+        /* Elegant Academic Transcript Container Card */
         .report-card {
-            background: white;
-            padding: 40px;
-            max-width: 900px;
+            background: #ffffff;
+            padding: 50px;
+            max-width: 950px;
             margin: auto;
-            border: 2px solid #000;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+            border: 1px solid #e2e8f0;
+            position: relative;
+            box-sizing: border-box;
+            
+            /* Professional Web Entrance Fade-In Animation */
+            animation: cardEntrance 0.6s cubic-bezier(0.16, 1, 0.3, 1) ease;
         }
+
+        @keyframes cardEntrance {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Ministry Institutional Header Layout */
         .moe-header {
             text-align: center;
-            margin-bottom: 30px;
-            border-bottom: 3px double #000;
-            padding-bottom: 20px;
+            margin-bottom: 35px;
+            border-bottom: 2px solid var(--moe-blue);
+            padding-bottom: 25px;
         }
+
+        .moe-header img {
+            margin-bottom: 12px;
+        }
+
         .moe-header h2 {
-            margin: 5px 0;
-            color: #002D62;
+            font-size: 1.5rem;
+            font-weight: 800;
+            margin: 4px 0;
+            color: var(--moe-blue);
+            letter-spacing: 0.5px;
         }
+
         .moe-header h3 {
-            margin: 5px 0;
-            color: #d9534f;
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin: 4px 0;
+            color: var(--moe-accent);
+            letter-spacing: 1px;
         }
-        table {
+
+        .report-title-badge {
+            display: inline-block;
+            background-color: var(--moe-blue-light);
+            color: var(--moe-blue);
+            font-weight: 700;
+            font-size: 0.85rem;
+            padding: 6px 16px;
+            border-radius: 20px;
+            margin-top: 15px;
+            letter-spacing: 0.5px;
+        }
+
+        /* Identity Profile Meta Matrix Blocks */
+        .meta-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-top: 25px;
+            background: #f8fafc;
+            padding: 15px 20px;
+            border-radius: 10px;
+            border: 1px solid #edf2f7;
+            text-align: left;
+        }
+
+        .meta-item {
+            font-size: 0.88rem;
+            color: var(--text-muted);
+        }
+
+        .meta-item strong {
+            color: var(--text-main);
+            font-weight: 600;
+        }
+
+        /* High-Definition Analytical Ledger Table Styling */
+        .transcript-table {
             width: 100%;
-            border: 2px solid black;
             border-collapse: collapse;
-            margin-top: 20px;
+            margin-top: 30px;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
         }
-        th {
-            background-color: #002D62; /* MoE Blue */
-            color: white;
-            font-size: 12px;
-            padding: 8px;
-            border: 1px solid black;
+
+        .transcript-table th {
+            background-color: var(--moe-blue);
+            color: #ffffff;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 12px 8px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
         }
-        td {
-            border: 1px solid black;
-            font-size: 14px;
-            height: 30px;
+
+        .transcript-table td {
+            border: 1px solid var(--border-color);
+            font-size: 0.9rem;
+            height: 38px;
             text-align: center;
-            padding: 5px;
+            padding: 6px;
+            color: var(--text-main);
         }
+
+        .transcript-table tbody tr {
+            transition: background-color 0.15s ease;
+        }
+
+        .transcript-table tbody tr:hover {
+            background-color: #f8fafc;
+        }
+
         .subject-name {
             text-align: left;
-            padding-left: 10px;
-            font-weight: bold;
+            padding-left: 15px !important;
+            font-weight: 600;
+            color: #2d3748;
+            background-color: #fafafa;
+            width: 25%;
         }
-        .footer {
-            margin-top: 50px;
+
+        /* Monospace alignment for Grades columns */
+        .grade-cell {
+            font-family: 'Courier New', Courier, monospace;
+            font-weight: 600;
+            width: 9%;
+        }
+
+        .final-avg-cell {
+            font-family: 'Courier New', Courier, monospace;
+            font-weight: 700;
+            color: var(--moe-blue);
+            background-color: var(--moe-blue-light);
+            width: 11%;
+        }
+
+        /* Clean Signature Validation Sections */
+        .footer-signatures {
+            margin-top: 60px;
             display: flex;
-            justify-content: space-around;
+            justify-content: space-between;
+            padding: 0 30px;
         }
-        .sig {
+
+        .signature-block {
             text-align: center;
-            width: 200px;
+            width: 220px;
         }
+
+        .signature-line {
+            border-top: 1.5px solid var(--text-main);
+            margin-bottom: 8px;
+        }
+
+        .signature-title {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Absolute Seamless Print Matrix Overrides */
         @media print {
-            body { background: none; padding: 0; }
-            .report-card { border: none; width: 100%; box-shadow: none; }
-            .no-print { display: none; }
-            .moe-header h2 { color: #000 !important; text-transform: uppercase; }
-            .moe-header h3 { color: #000 !important; }
+            body {
+                background: none !important;
+                padding: 0 !important;
+                color: #000000;
+            }
+            .action-bar {
+                display: none !important;
+            }
+            .report-card {
+                border: none !important;
+                padding: 0 !important;
+                width: 100% !important;
+                box-shadow: none !important;
+                margin: 0 !important;
+                transform: none !important;
+                animation: none !important;
+            }
+            .meta-grid {
+                background: none !important;
+                border: 1px solid #000000 !important;
+                padding: 10px !important;
+            }
+            .transcript-table {
+                border: 1px solid #000000 !important;
+            }
+            .transcript-table th {
+                background-color: #f0f0f0 !important;
+                color: #000000 !important;
+                border: 1px solid #000000 !important;
+                font-weight: 700;
+            }
+            .transcript-table td {
+                border: 1px solid #000000 !important;
+                color: #000000 !important;
+            }
+            .subject-name {
+                background: none !important;
+            }
+            .final-avg-cell {
+                background: none !important;
+                color: #000000 !important;
+            }
+            .signature-line {
+                border-top-color: #000000 !important;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="no-print" style="margin-bottom: 20px; text-align: right;">
-        <button onclick="window.print()" style="padding: 10px 20px; cursor: pointer;">Print Report Card</button>
+
+    <div class="action-bar">
+        <button class="btn-print" onclick="window.print()">
+            <i class="fas fa-print"></i> Print Report Card
+        </button>
     </div>
 
     <div class="report-card">
+        
         <div class="moe-header">
-            <img src="{{ url_for('static', filename='images/LOGO.png') }}" alt="Republic of Liberia" width="80">
-            <h2>STANDERD SCHOOL MANAGEMENT</h2>
+            <img src="{{ url_for('static', filename='images/LOGO.png') }}" alt="Republic of Liberia" width="75">
+            <h2>STANDARD SCHOOL MANAGEMENT</h2>
             <h3>MINISTRY OF EDUCATION</h3>
-            <div style="margin-top: 15px; font-weight: bold;">
-                <p>STUDENT PROGRESS REPORT</p>
-                <p>NAME: {{ data.student_name }} | ID: {{ data.student_id }}</p>
-                <p><strong>School Level:</strong> {{ data.level }}</p>
+            <div class="report-title-badge">STUDENT PROGRESS REPORT</div>
+            
+            <div class="meta-grid">
+                <div class="meta-item">STUDENT: <strong>{{ data.student_name }}</strong></div>
+                <div class="meta-item">ID NUMBER: <strong>{{ data.student_id }}</strong></div>
+                <div class="meta-item">SCHOOL LEVEL: <strong>{{ data.level }}</strong></div>
             </div>
         </div>
-        <table>
+
+        <table class="transcript-table">
             <thead>
                 <tr>
-                    <th rowspan="2">Subject</th>
+                    <th rowspan="2">Subject Course</th>
                     <th colspan="3">1st Semester</th>
                     <th colspan="3">2nd Semester</th>
                     <th rowspan="2">Final Avg</th>
@@ -105,79 +317,108 @@
                 </tr>
             </thead>
             <tbody>
-                {% for subject in data.subjects %}
                 <tr>
-                    <td class="subject-name">{{ Physic }}</td>
-                     <td></td><td></td><td></td><td></td><td></td><td></td><td></td>
-                </tr>
-                 <tr>
-                    <td class="subject-name">{{ English }}</td>
-                     <td></td><td></td><td></td><td></td><td></td><td></td><td></td>
-                </tr>
-                 <tr>
-                    <td class="subject-name">{{  Chemistry}}</td>
-                     <td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+                    <td class="subject-name">Physics</td>
+                    <td class="grade-cell"></td><td class="grade-cell"></td><td class="grade-cell"></td>
+                    <td class="grade-cell"></td><td class="grade-cell"></td><td class="grade-cell"></td>
+                    <td class="final-avg-cell"></td>
                 </tr>
                 <tr>
-                    <td class="subject-name">{{ Religious/Education }}</td>
-                     <td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+                    <td class="subject-name">English</td>
+                    <td class="grade-cell"></td><td class="grade-cell"></td><td class="grade-cell"></td>
+                    <td class="grade-cell"></td><td class="grade-cell"></td><td class="grade-cell"></td>
+                    <td class="final-avg-cell"></td>
                 </tr>
-                    <tr>
-                    <td class="subject-name">{{ Economic }}</td>
-                     <td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+                <tr>
+                    <td class="subject-name">Chemistry</td>
+                    <td class="grade-cell"></td><td class="grade-cell"></td><td class="grade-cell"></td>
+                    <td class="grade-cell"></td><td class="grade-cell"></td><td class="grade-cell"></td>
+                    <td class="final-avg-cell"></td>
                 </tr>
-                    <tr>
-                    <td class="subject-name">{{ Vocabulary }}</td>
-                     <td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+                <tr>
+                    <td class="subject-name">Religious Education</td>
+                    <td class="grade-cell"></td><td class="grade-cell"></td><td class="grade-cell"></td>
+                    <td class="grade-cell"></td><td class="grade-cell"></td><td class="grade-cell"></td>
+                    <td class="final-avg-cell"></td>
                 </tr>
-                    <tr>
-                    <td class="subject-name">{{ Geography}}</td>
-                     <td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+                <tr>
+                    <td class="subject-name">Economics</td>
+                    <td class="grade-cell"></td><td class="grade-cell"></td><td class="grade-cell"></td>
+                    <td class="grade-cell"></td><td class="grade-cell"></td><td class="grade-cell"></td>
+                    <td class="final-avg-cell"></td>
                 </tr>
-                    <tr>
-                    <td class="subject-name">{{Mathematics }}</td>
-                     <td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+                <tr>
+                    <td class="subject-name">Vocabulary</td>
+                    <td class="grade-cell"></td><td class="grade-cell"></td><td class="grade-cell"></td>
+                    <td class="grade-cell"></td><td class="grade-cell"></td><td class="grade-cell"></td>
+                    <td class="final-avg-cell"></td>
                 </tr>
-                    <tr>
-                    <td class="subject-name">{{ Accounting }}</td>
-                     <td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+                <tr>
+                    <td class="subject-name">Geography</td>
+                    <td class="grade-cell"></td><td class="grade-cell"></td><td class="grade-cell"></td>
+                    <td class="grade-cell"></td><td class="grade-cell"></td><td class="grade-cell"></td>
+                    <td class="final-avg-cell"></td>
                 </tr>
-                    <tr>
-                    <td class="subject-name">{{ Civics }}</td>
-                     <td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+                <tr>
+                    <td class="subject-name">Mathematics</td>
+                    <td class="grade-cell"></td><td class="grade-cell"></td><td class="grade-cell"></td>
+                    <td class="grade-cell"></td><td class="grade-cell"></td><td class="grade-cell"></td>
+                    <td class="final-avg-cell"></td>
                 </tr>
-                    <tr>
-                    <td class="subject-name">{{ History }}</td>
-                     <td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+                <tr>
+                    <td class="subject-name">Accounting</td>
+                    <td class="grade-cell"></td><td class="grade-cell"></td><td class="grade-cell"></td>
+                    <td class="grade-cell"></td><td class="grade-cell"></td><td class="grade-cell"></td>
+                    <td class="final-avg-cell"></td>
                 </tr>
-                    <tr>
-                    <td class="subject-name">{{ Biology }}</td>
-                     <td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+                <tr>
+                    <td class="subject-name">Civics</td>
+                    <td class="grade-cell"></td><td class="grade-cell"></td><td class="grade-cell"></td>
+                    <td class="grade-cell"></td><td class="grade-cell"></td><td class="grade-cell"></td>
+                    <td class="final-avg-cell"></td>
                 </tr>
-                 <tr>
-                    <td class="subject-name">{{ French }}</td>
-                     <td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+                <tr>
+                    <td class="subject-name">History</td>
+                    <td class="grade-cell"></td><td class="grade-cell"></td><td class="grade-cell"></td>
+                    <td class="grade-cell"></td><td class="grade-cell"></td><td class="grade-cell"></td>
+                    <td class="final-avg-cell"></td>
                 </tr>
-                    <tr>
-                    <td class="subject-name">{{ Physical/Education }}</td>
-                     <td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+                <tr>
+                    <td class="subject-name">Biology</td>
+                    <td class="grade-cell"></td><td class="grade-cell"></td><td class="grade-cell"></td>
+                    <td class="grade-cell"></td><td class="grade-cell"></td><td class="grade-cell"></td>
+                    <td class="final-avg-cell"></td>
                 </tr>
-                    <tr>
-                    <td class="subject-name">{{ Home/Art }}</td>
-                     <td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+                <tr>
+                    <td class="subject-name">French</td>
+                    <td class="grade-cell"></td><td class="grade-cell"></td><td class="grade-cell"></td>
+                    <td class="grade-cell"></td><td class="grade-cell"></td><td class="grade-cell"></td>
+                    <td class="final-avg-cell"></td>
                 </tr>
-                
-                   
-                   
-                   
+                <tr>
+                    <td class="subject-name">Physical Education</td>
+                    <td class="grade-cell"></td><td class="grade-cell"></td><td class="grade-cell"></td>
+                    <td class="grade-cell"></td><td class="grade-cell"></td><td class="grade-cell"></td>
+                    <td class="final-avg-cell"></td>
                 </tr>
-                {% endfor %}
+                <tr>
+                    <td class="subject-name">Home Art</td>
+                    <td class="grade-cell"></td><td class="grade-cell"></td><td class="grade-cell"></td>
+                    <td class="grade-cell"></td><td class="grade-cell"></td><td class="grade-cell"></td>
+                    <td class="final-avg-cell"></td>
+                </tr>
             </tbody>
         </table>
 
-        <div class="footer">
-            <div class="sig">_______________________<br>Teacher's Signature</div>
-            <div class="sig">_______________________<br>Principal's Signature</div>
+        <div class="footer-signatures">
+            <div class="signature-block">
+                <div class="signature-line"></div>
+                <div class="signature-title">Teacher's Signature</div>
+            </div>
+            <div class="signature-block">
+                <div class="signature-line"></div>
+                <div class="signature-title">Principal's Signature</div>
+            </div>
         </div>
     </div>
 </body>

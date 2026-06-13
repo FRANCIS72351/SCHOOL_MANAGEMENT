@@ -4,15 +4,20 @@ from io import StringIO, BytesIO
 import csv
 from datetime import datetime
 from reportlab.pdfgen import canvas
-from models import Student, Grade, Attendance, StudentPayment, Sponsor, BusinessTransaction, AcademicYear
+from models import Student, Grade, Attendance, StudentPayment, Sponsor, BusinessTransaction, AcademicYear, Class, Teacher, ClassSubjectTeacher
 from constants import ROLE_ADMIN, ROLE_REGISTRAR, ROLE_TEACHER, ROLE_BUSINESS
+
+
+def _export_role_allowed(*roles):
+    return (current_user.role or '').strip().lower() in {r.lower() for r in roles}
+
 
 def init_export_routes(app):
     @app.route('/export/students')
     @login_required
     def export_students():
         # allow admins, registrars and business
-        if current_user.role not in [ROLE_ADMIN, ROLE_REGISTRAR, ROLE_BUSINESS]:
+        if not _export_role_allowed(ROLE_ADMIN, ROLE_REGISTRAR, ROLE_BUSINESS):
             flash('Access denied.', 'danger')
             return redirect(url_for('dashboard'))
 
@@ -55,11 +60,27 @@ def init_export_routes(app):
     @app.route('/export/grades')
     @login_required
     def export_grades():
-        if current_user.role not in [ROLE_ADMIN, ROLE_TEACHER]:
+        if not _export_role_allowed(ROLE_ADMIN, ROLE_TEACHER):
             flash('Access denied.', 'danger')
             return redirect(url_for('dashboard'))
 
-        grades = Grade.query.all()
+        grades_query = Grade.query
+        year = request.args.get('year')
+        if year:
+            grades_query = grades_query.join(Student).join(AcademicYear).filter(AcademicYear.name == year)
+        if _export_role_allowed(ROLE_TEACHER) and not _export_role_allowed(ROLE_ADMIN):
+            teacher = Teacher.query.filter_by(user_id=current_user.id).first()
+            class_ids = set()
+            if teacher:
+                for klass in Class.query.filter_by(teacher_id=teacher.id).all():
+                    class_ids.add(klass.id)
+                for alloc in ClassSubjectTeacher.query.filter_by(teacher_id=teacher.id).all():
+                    class_ids.add(alloc.class_id)
+            if class_ids:
+                grades_query = grades_query.filter(Grade.class_id.in_(class_ids))
+            else:
+                grades_query = grades_query.filter(Grade.id == -1)
+        grades = grades_query.all()
         def generate():
             buf = StringIO()
             writer = csv.writer(buf)
@@ -82,11 +103,30 @@ def init_export_routes(app):
     @app.route('/export/attendance')
     @login_required
     def export_attendance():
-        if current_user.role not in [ROLE_ADMIN, ROLE_TEACHER]:
+        if not _export_role_allowed(ROLE_ADMIN, ROLE_TEACHER):
             flash('Access denied.', 'danger')
             return redirect(url_for('dashboard'))
 
-        attendance = Attendance.query.all()
+        attendance_query = Attendance.query
+        if _export_role_allowed(ROLE_TEACHER) and not _export_role_allowed(ROLE_ADMIN):
+            teacher = Teacher.query.filter_by(user_id=current_user.id).first()
+            class_ids = set()
+            if teacher:
+                for klass in Class.query.filter_by(teacher_id=teacher.id).all():
+                    class_ids.add(klass.id)
+                for alloc in ClassSubjectTeacher.query.filter_by(teacher_id=teacher.id).all():
+                    class_ids.add(alloc.class_id)
+            if class_ids:
+                student_ids = [
+                    s.id for s in Student.query.filter(Student.klass_id.in_(class_ids)).all()
+                ]
+                if student_ids:
+                    attendance_query = attendance_query.filter(Attendance.student_id.in_(student_ids))
+                else:
+                    attendance_query = attendance_query.filter(Attendance.id == -1)
+            else:
+                attendance_query = attendance_query.filter(Attendance.id == -1)
+        attendance = attendance_query.all()
         def generate():
             buf = StringIO()
             writer = csv.writer(buf)
@@ -109,7 +149,7 @@ def init_export_routes(app):
     @app.route('/export/payments')
     @login_required
     def export_payments():
-        if current_user.role != ROLE_ADMIN:
+        if not _export_role_allowed(ROLE_ADMIN):
             flash('Access denied.', 'danger')
             return redirect(url_for('dashboard'))
 
@@ -136,7 +176,7 @@ def init_export_routes(app):
     @app.route('/export/sponsors')
     @login_required
     def export_sponsors():
-        if current_user.role not in [ROLE_ADMIN, ROLE_REGISTRAR]:
+        if not _export_role_allowed(ROLE_ADMIN, ROLE_REGISTRAR):
             flash('Access denied.', 'danger')
             return redirect(url_for('dashboard'))
 
@@ -146,7 +186,7 @@ def init_export_routes(app):
         def generate():
             buf = StringIO()
             writer = csv.writer(buf)
-            writer.writerow(['Class Name', 'Teacher Sponsor', 'Class Description'])
+            writer.writerow(['Class Name', 'Teacher Sponsor', 'Grade Level', 'Stream'])
             yield buf.getvalue()
             buf.seek(0)
             buf.truncate(0)
@@ -155,7 +195,8 @@ def init_export_routes(app):
                 writer.writerow([
                     klass.name,
                     sponsor_name,
-                    klass.description or ''
+                    klass.grade_level or '',
+                    klass.stream or '',
                 ])
                 yield buf.getvalue()
                 buf.seek(0)
@@ -165,7 +206,7 @@ def init_export_routes(app):
     @app.route('/export/business')
     @login_required
     def export_business():
-        if current_user.role not in [ROLE_ADMIN, ROLE_BUSINESS]:
+        if not _export_role_allowed(ROLE_ADMIN, ROLE_BUSINESS):
             flash('Access denied.', 'danger')
             return redirect(url_for('dashboard'))
 
@@ -203,7 +244,7 @@ def init_export_routes(app):
     @app.route('/report/business/pdf')
     @login_required
     def report_business_pdf():
-        if current_user.role not in [ROLE_ADMIN, ROLE_BUSINESS]:
+        if not _export_role_allowed(ROLE_ADMIN, ROLE_BUSINESS):
             flash('Access denied.', 'danger')
             return redirect(url_for('dashboard'))
 
@@ -257,14 +298,15 @@ def init_export_routes(app):
     @login_required
     def report_students_pdf():
         # Small students listing PDF for admins/registrars
-        if current_user.role not in ['admin', 'registrar']:
+        if not _export_role_allowed(ROLE_ADMIN, ROLE_REGISTRAR):
             flash('Access denied.', 'danger')
             return redirect(url_for('dashboard'))
 
+        from sqlalchemy.orm import joinedload
         year = request.args.get('year')
-        query = Student.query
+        query = Student.query.options(joinedload(Student.academic_year))
         if year:
-            query = query.filter_by(current_year=year)
+            query = query.join(AcademicYear).filter(AcademicYear.name == year)
         students = query.order_by(Student.last_name, Student.first_name).all()
 
         buffer = BytesIO()

@@ -1,69 +1,449 @@
 {% extends 'base.html' %}
-{% block title %}Grade Entry - {{ klass.name }}{% endblock %}
+{% block title %}MoE Grade Entry - {{ klass.name }}{% endblock %}
+
 {% block content %}
-<h2>Grade Entry for {{ klass.name }}</h2>
-<form method="post" action="{{ url_for('save_grades', class_id=klass.id) }}">
-    <table class="table table-striped">
-        <thead>
-            <tr>
-                <th>Student</th>
-                {% for period in range(1, 7) %}
-                <th>Period {{ period }} CA</th>
-                <th>Period {{ period }} Exam</th>
-                <th>Period {{ period }} Total</th>
-                {% endfor %}
-            </tr>
-        </thead>
-        <tbody>
-            {% for student in students %}
-            <tr>
-                <td>{{ student.full_name }}</td>
-                {% for period in range(1, 7) %}
-                <td>
-                    <input type="number" step="0.1" min="0" max="60" name="ca_{{ student.id }}_{{ period }}" 
-                           value="{{ grades[student.id][period].ca_score if grades[student.id][period] else '' }}" class="form-control">
-                </td>
-                <td>
-                    <input type="number" step="0.1" min="0" max="40" name="exam_{{ student.id }}_{{ period }}" 
-                           value="{{ grades[student.id][period].exam_score if grades[student.id][period] else '' }}" class="form-control">
-                </td>
-                <td>
-                    <span id="total_{{ student.id }}_{{ period }}">
-                        {{ grades[student.id][period].score if grades[student.id][period] else '' }}
-                    </span>
-                </td>
-                {% endfor %}
-            </tr>
+<div class="moe-grade-entry-page">
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+        <div>
+            <a href="{{ url_for('class_grading_hub', class_id=klass.id, subject=selected_subject, period=selected_period) }}" class="moe-link small text-decoration-none">
+                <i class="bi bi-arrow-left me-1"></i>Back to Grading Hub
+            </a>
+            <h2 class="moe-page-title mt-2 mb-1">Teacher Grade Entry Sheet</h2>
+            <p class="moe-subtitle mb-0">Republic of Liberia &mdash; Ministry of Education Standard Format</p>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <a href="{{ url_for('teacher_class_folder', class_id=klass.id) }}" class="btn btn-outline-moe btn-sm">
+                <i class="bi bi-folder2-open me-1"></i>Class Folder
+            </a>
+            {% if selected_subject %}
+            <button type="submit" form="moeGradesForm" class="btn btn-moe-primary btn-sm">
+                <i class="bi bi-save me-1"></i>Save Grades
+            </button>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if teacher_class_tabs and teacher_class_tabs|length > 1 %}
+    <div class="moe-class-tabs mb-4">
+        <div class="moe-class-tabs-label">Switch Class</div>
+        <div class="d-flex flex-wrap gap-2">
+            {% for tab in teacher_class_tabs %}
+            <a href="{{ url_for('grade_entry_class', class_id=tab.id, period=selected_period) }}"
+               class="moe-class-tab {% if tab.active %}active{% endif %}">
+                {{ tab.name }}
+                <small>G{{ tab.grade_level }}{% if tab.stream %} · {{ tab.stream }}{% endif %}</small>
+            </a>
             {% endfor %}
-        </tbody>
-    </table>
-    <button type="submit" class="btn btn-success">Save Grades</button>
-    {% if current_user.role == 'registrar' %}
-    <form method="post" action="{{ url_for('finalize_grades', class_id=klass.id) }}" style="display: inline;">
-        <button type="submit" class="btn btn-warning">Finalize Grades</button>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="moe-sheet-card mb-4">
+        <div class="moe-sheet-header text-center">
+            <img src="{{ url_for('static', filename='images/LOGO.png') }}" alt="Republic of Liberia" width="60" class="mb-2">
+            <h3 class="mb-1">MINISTRY OF EDUCATION</h3>
+            <div class="moe-sheet-badge">Teacher Grade Entry Sheet</div>
+        </div>
+
+        <div class="moe-meta-grid">
+            <div><span class="label">Class</span><strong>{{ klass.name }}</strong></div>
+            <div><span class="label">Grade Level</span><strong>Grade {{ klass.grade_level }}{% if klass.stream %} &middot; {{ klass.stream }}{% endif %}</strong></div>
+            <div><span class="label">Academic Year</span><strong>{{ active_year.name if active_year else 'Not Set' }}</strong></div>
+            <div><span class="label">Teacher</span><strong>{{ teacher_name }}</strong></div>
+            <div><span class="label">Marking Period</span><strong>{{ period_label }}</strong></div>
+            <div><span class="label">Subject</span><strong>{{ selected_subject or 'Not Assigned' }}</strong></div>
+        </div>
+
+        <div class="moe-guidance px-4 py-3">
+            <strong>How grading works:</strong>
+            Activity scores (assignments, quizzes, tests) auto-build a <em>draft</em> standing on the student dashboard.
+            Use <strong>Save Draft</strong> while reviewing, then <strong>Publish to Report Card</strong> when the period grade is official.
+            {% if is_semester_exam %}
+            Enter the semester examination score out of <strong>100</strong> for each student.
+            {% else %}
+            MoE weighting: <strong>CA max 60</strong> + <strong>Exam max 40</strong> = Total 100.
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="moe-filter-card mb-4">
+        <form method="GET" action="{{ url_for('grade_entry_class', class_id=klass.id) }}" class="row g-3 align-items-end">
+            <div class="col-md-5">
+                <label for="subject" class="form-label moe-label">Subject Course</label>
+                <select id="subject" name="subject" class="form-select moe-select" {% if not subjects %}disabled{% endif %} onchange="this.form.submit()">
+                    {% if not subjects %}
+                    <option value="">No subject assigned to you for this class</option>
+                    {% else %}
+                    {% for subject in subjects %}
+                    <option value="{{ subject }}" {% if subject == selected_subject %}selected{% endif %}>{{ subject }}</option>
+                    {% endfor %}
+                    {% endif %}
+                </select>
+            </div>
+            <div class="col-md-5">
+                <label for="period" class="form-label moe-label">Marking Period</label>
+                <select id="period" name="period" class="form-select moe-select" onchange="this.form.submit()">
+                    {% for period_num, period_name in grading_periods %}
+                    <option value="{{ period_num }}" {% if period_num == selected_period %}selected{% endif %}>{{ period_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-moe-primary w-100">Load Sheet</button>
+            </div>
+        </form>
+    </div>
+
+    {% if not subjects %}
+    <div class="alert alert-warning moe-alert">
+        You have no subject allocation for this class. Ask the principal to assign you in
+        <strong>Provision Core Class &rarr; Faculty Roster Allocation</strong>.
+    </div>
+    {% elif not students %}
+    <div class="alert alert-info moe-alert">No students are registered in this class yet.</div>
+    {% else %}
+    <form method="POST" id="moeGradesForm" action="{{ url_for('save_grades', class_id=klass.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="subject" value="{{ selected_subject }}">
+        <input type="hidden" name="period" value="{{ selected_period }}">
+
+        <div class="moe-sheet-card p-0 overflow-hidden">
+            <div class="table-responsive">
+                <table class="table moe-grade-table mb-0 align-middle">
+                    <thead>
+                        <tr>
+                            <th class="text-center" style="width: 50px;">#</th>
+                            <th class="text-start">Student Name</th>
+                            <th class="text-center">Student ID</th>
+                            {% if is_semester_exam %}
+                            <th class="text-center">Exam Score<br><small>(Out of 100)</small></th>
+                            {% else %}
+                            <th class="text-center">CA<br><small>(Max 60)</small></th>
+                            <th class="text-center">Exam<br><small>(Max 40)</small></th>
+                            <th class="text-center">Total<br><small>(100)</small></th>
+                            {% endif %}
+                            <th class="text-center">Grade</th>
+                            <th class="text-start">Remarks</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for student in students %}
+                        {% set existing = grade_rows.get(student.id) %}
+                        <tr>
+                            <td class="text-center text-muted">{{ loop.index }}</td>
+                            <td class="student-name">{{ student.full_name }}</td>
+                            <td class="text-center font-monospace">{{ student.student_id }}</td>
+
+                            {% if is_semester_exam %}
+                            <td class="text-center">
+                                <input type="number" step="0.1" min="0" max="100"
+                                       name="exam_{{ student.id }}"
+                                       value="{{ existing.score if existing and existing.score is not none else '' }}"
+                                       class="form-control moe-score-input mx-auto">
+                            </td>
+                            {% set total = existing.score if existing else none %}
+                            {% else %}
+                            <td class="text-center">
+                                <input type="number" step="0.1" min="0" max="60"
+                                       name="ca_{{ student.id }}"
+                                       value="{{ existing.ca_score if existing and existing.ca_score is not none else '' }}"
+                                       class="form-control moe-score-input mx-auto ca-input"
+                                       data-student="{{ student.id }}">
+                            </td>
+                            <td class="text-center">
+                                <input type="number" step="0.1" min="0" max="40"
+                                       name="exam_{{ student.id }}"
+                                       value="{{ existing.exam_score if existing and existing.exam_score is not none else '' }}"
+                                       class="form-control moe-score-input mx-auto exam-input"
+                                       data-student="{{ student.id }}">
+                            </td>
+                            <td class="text-center">
+                                <span id="total_{{ student.id }}" class="moe-total-badge">
+                                    {% if existing and existing.score is not none %}{{ '%.1f'|format(existing.score) }}{% else %}--{% endif %}
+                                </span>
+                            </td>
+                            {% set total = existing.score if existing else none %}
+                            {% endif %}
+
+                            <td class="text-center grade-letter">
+                                {% if total is not none and total != '' %}{{ total | grade_letter }}{% else %}--{% endif %}
+                            </td>
+                            <td class="remarks-cell">
+                                {% if total is not none and total != '' %}{{ total | remarks }}{% else %}<span class="text-muted">--</span>{% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-between align-items-center mt-4 flex-wrap gap-3">
+            <div class="moe-scale-legend">
+                <strong>MoE Grading Scale:</strong>
+                A (90-100) Excellent &nbsp;|&nbsp; B (80-89) Very Good &nbsp;|&nbsp; C (70-79) Good &nbsp;|&nbsp; D (60-69) Satisfactory &nbsp;|&nbsp; F (Below 60) Failing
+            </div>
+            <div class="d-flex flex-wrap gap-2">
+                <button type="submit" name="publish_action" value="draft" class="btn btn-outline-secondary px-4">
+                    <i class="bi bi-pencil me-2"></i>Save Draft
+                </button>
+                <button type="submit" name="publish_action" value="publish" class="btn btn-moe-primary px-4">
+                    <i class="bi bi-megaphone me-2"></i>Publish to Report Card
+                </button>
+            </div>
+        </div>
     </form>
     {% endif %}
-</form>
+</div>
 
-<script>
-document.addEventListener('input', function(e) {
-    if (e.target.name.startsWith('ca_') || e.target.name.startsWith('exam_')) {
-        const parts = e.target.name.split('_');
-        const studentId = parts[1];
-        const period = parts[2];
-        const caInput = document.querySelector(`input[name="ca_${studentId}_${period}"]`);
-        const examInput = document.querySelector(`input[name="exam_${studentId}_${period}"]`);
-        const totalSpan = document.getElementById(`total_${studentId}_${period}`);
-        
-        const ca = parseFloat(caInput.value) || 0;
-        const exam = parseFloat(examInput.value) || 0;
-        
-        if (ca <= 60 && exam <= 40) {
-            totalSpan.textContent = (ca + exam).toFixed(1);
-        } else {
-            totalSpan.textContent = 'Invalid';
+<style>
+    .moe-grade-entry-page {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 2rem 1rem 3rem;
+    }
+    .moe-class-tabs {
+        background: #f8fafc;
+        border: 1px solid #cbd5e1;
+        border-radius: 12px;
+        padding: 1rem 1.25rem;
+    }
+    .moe-class-tabs-label {
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #64748b;
+        font-weight: 700;
+        margin-bottom: 0.65rem;
+    }
+    .moe-class-tab {
+        display: inline-flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.1rem;
+        padding: 0.55rem 0.95rem;
+        border: 1px solid #cbd5e1;
+        border-radius: 10px;
+        background: #fff;
+        color: #002d62;
+        text-decoration: none;
+        font-weight: 700;
+        font-size: 0.9rem;
+        transition: all 0.2s ease;
+    }
+    .moe-class-tab small {
+        font-weight: 500;
+        color: #64748b;
+        font-size: 0.72rem;
+    }
+    .moe-class-tab:hover,
+    .moe-class-tab.active {
+        border-color: #002d62;
+        background: #002d62;
+        color: #fff;
+        box-shadow: 0 4px 14px rgba(0, 45, 98, 0.15);
+    }
+    .moe-class-tab.active small,
+    .moe-class-tab:hover small {
+        color: rgba(255, 255, 255, 0.8);
+    }
+    .moe-page-title {
+        color: #002d62;
+        font-weight: 800;
+    }
+    .moe-subtitle, .moe-link {
+        color: #4a5568;
+    }
+    .moe-sheet-card, .moe-filter-card {
+        background: #ffffff;
+        border: 1px solid #cbd5e1;
+        border-radius: 12px;
+        box-shadow: 0 8px 24px rgba(0, 45, 98, 0.06);
+    }
+    .moe-sheet-header {
+        padding: 1.5rem 1.5rem 1rem;
+        border-bottom: 2px solid #002d62;
+    }
+    .moe-sheet-header h3 {
+        color: #002d62;
+        font-weight: 800;
+        letter-spacing: 0.5px;
+    }
+    .moe-sheet-badge {
+        display: inline-block;
+        margin-top: 0.5rem;
+        background: #f0f4f8;
+        color: #002d62;
+        font-weight: 700;
+        font-size: 0.85rem;
+        padding: 0.35rem 1rem;
+        border-radius: 999px;
+    }
+    .moe-meta-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 1rem;
+        padding: 1.25rem 1.5rem;
+        background: #f8fafc;
+        border-bottom: 1px solid #e2e8f0;
+    }
+    .moe-meta-grid .label {
+        display: block;
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: #64748b;
+        margin-bottom: 0.15rem;
+    }
+    .moe-guidance {
+        background: #fff;
+        color: #334155;
+        border-top: 1px solid #e2e8f0;
+        font-size: 0.92rem;
+    }
+    .moe-filter-card {
+        padding: 1.25rem 1.5rem;
+    }
+    .moe-label {
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: #002d62;
+        font-weight: 700;
+    }
+    .moe-select, .moe-score-input {
+        border: 1px solid #cbd5e1;
+        border-radius: 6px;
+        color: #1a202c;
+    }
+    .moe-score-input {
+        width: 88px;
+        text-align: center;
+        font-family: 'Courier New', monospace;
+        font-weight: 600;
+    }
+    .moe-grade-table thead th {
+        background: #002d62;
+        color: #ffffff;
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        border: 1px solid rgba(255,255,255,0.15);
+        vertical-align: middle;
+    }
+    .moe-grade-table td {
+        border: 1px solid #cbd5e1;
+        padding: 0.65rem 0.5rem;
+        color: #1a202c;
+        background: #fff;
+    }
+    .moe-grade-table tbody tr:hover td {
+        background: #f8fafc;
+    }
+    .student-name {
+        font-weight: 600;
+        color: #1a202c;
+        min-width: 180px;
+    }
+    .moe-total-badge {
+        display: inline-block;
+        min-width: 52px;
+        padding: 0.35rem 0.5rem;
+        border-radius: 6px;
+        background: #f0f4f8;
+        color: #002d62;
+        font-family: 'Courier New', monospace;
+        font-weight: 700;
+    }
+    .moe-total-badge.invalid {
+        background: #fee2e2;
+        color: #b91c1c;
+    }
+    .grade-letter {
+        font-weight: 800;
+        color: #002d62;
+        font-size: 1rem;
+    }
+    .remarks-cell {
+        font-size: 0.88rem;
+        color: #475569;
+        min-width: 120px;
+    }
+    .btn-moe-primary {
+        background: #002d62;
+        color: #fff;
+        border: none;
+        font-weight: 700;
+    }
+    .btn-moe-primary:hover {
+        background: #001f45;
+        color: #fff;
+    }
+    .btn-outline-moe {
+        border: 1px solid #002d62;
+        color: #002d62;
+        font-weight: 600;
+    }
+    .btn-outline-moe:hover {
+        background: #002d62;
+        color: #fff;
+    }
+    .moe-scale-legend {
+        font-size: 0.82rem;
+        color: #475569;
+        max-width: 760px;
+    }
+    .moe-alert {
+        border-radius: 10px;
+    }
+    @media (max-width: 768px) {
+        .moe-meta-grid {
+            grid-template-columns: 1fr;
         }
     }
+</style>
+
+{% if not is_semester_exam and students %}
+<script>
+document.addEventListener('input', function(e) {
+    if (!e.target.classList.contains('ca-input') && !e.target.classList.contains('exam-input')) {
+        return;
+    }
+    const studentId = e.target.dataset.student;
+    const caInput = document.querySelector(`input[name="ca_${studentId}"]`);
+    const examInput = document.querySelector(`input[name="exam_${studentId}"]`);
+    const totalBadge = document.getElementById(`total_${studentId}`);
+    const row = e.target.closest('tr');
+    const gradeCell = row.querySelector('.grade-letter');
+    const remarksCell = row.querySelector('.remarks-cell');
+
+    const ca = parseFloat(caInput.value);
+    const exam = parseFloat(examInput.value);
+    const caVal = isNaN(ca) ? 0 : ca;
+    const examVal = isNaN(exam) ? 0 : exam;
+
+    if (caInput.value === '' && examInput.value === '') {
+        totalBadge.textContent = '--';
+        totalBadge.classList.remove('invalid');
+        gradeCell.textContent = '--';
+        remarksCell.innerHTML = '<span class="text-muted">--</span>';
+        return;
+    }
+
+    if (caVal > 60 || examVal > 40) {
+        totalBadge.textContent = 'Invalid';
+        totalBadge.classList.add('invalid');
+        gradeCell.textContent = '--';
+        remarksCell.innerHTML = '<span class="text-danger">Out of range</span>';
+        return;
+    }
+
+    const total = caVal + examVal;
+    totalBadge.textContent = total.toFixed(1);
+    totalBadge.classList.remove('invalid');
+    gradeCell.textContent = total >= 90 ? 'A' : total >= 80 ? 'B' : total >= 70 ? 'C' : total >= 60 ? 'D' : 'F';
+    remarksCell.textContent = total >= 90 ? 'Excellent' : total >= 80 ? 'Very Good' : total >= 70 ? 'Good' : total >= 60 ? 'Satisfactory' : 'Failing';
 });
 </script>
+{% endif %}
 {% endblock %}

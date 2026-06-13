@@ -13,3 +13,4 @@ itsdangerous
 waitress
 flask-migrate
 pytesseract
+gunicorn==22.0.0

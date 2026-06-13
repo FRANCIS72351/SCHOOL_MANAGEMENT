@@ -1,165 +1,465 @@
 {% extends 'base.html' %}
-{% block title %}Registrar Dashboard{% endblock %}
+{% block title %}Registrar Executive Management Dashboard{% endblock %}
 {% block content %}
-<div class="container mt-4">
-  <h2>Registrar Dashboard</h2>
 
-  <!-- User Profile Section -->
-  <div class="card mb-4" style="background: rgba(10, 10, 25, 0.8); border: 1px solid #00f2ff; color: white;">
-    <div class="card-body">
-      <h5 class="card-title" style="color: #00f2ff;">My Profile</h5>
-      <div class="row">
-        <div class="col-md-3">
-          {% if current_user.photo %}
-            <img src="{{ url_for('static', filename=current_user.photo) }}" class="img-fluid rounded" alt="Profile Photo">
-          {% else %}
-            <img src="{{ url_for('static', filename='images/default-user.png') }}" class="img-fluid rounded" alt="Default Profile">
-          {% endif %}
+<style>
+    /* System Global Workspace Theme Variables */
+    body {
+        background-color: #0b0f19;
+        color: #e2e8f0;
+        font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    }
+
+    .text-cyan { color: #00f2ff !important; }
+    .text-emerald { color: #10b981 !important; }
+    .text-amber { color: #f59e0b !important; }
+    .text-rose { color: #f43f5e !important; }
+    .text-blue { color: #38bdf8 !important; }
+
+    /* Bright blue for muted/dark secondary text across this dashboard */
+    .registrar-terminal .text-muted,
+    .registrar-terminal .text-white-50,
+    .registrar-terminal label,
+    .registrar-terminal .small.text-muted,
+    .registrar-terminal .badge.text-white-50 {
+        color: #38bdf8 !important;
+    }
+
+    .registrar-terminal .form-cyber,
+    .registrar-terminal .form-cyber:focus {
+        color: #38bdf8 !important;
+    }
+
+    .registrar-terminal .form-cyber::placeholder {
+        color: #7dd3fc !important;
+        opacity: 0.9;
+    }
+
+    .registrar-terminal select.form-cyber option {
+        color: #38bdf8;
+    }
+
+    .registrar-terminal .table-cyber td {
+        color: #e2e8f0 !important;
+    }
+
+    .registrar-terminal .table-cyber .ledger-email,
+    .registrar-terminal .table-cyber .ledger-meta {
+        color: #38bdf8 !important;
+    }
+
+    /* Core Application Glow Title Accentuation */
+    .glow-title {
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        color: #ffffff;
+        text-shadow: 0 0 20px rgba(0, 242, 255, 0.15);
+    }
+
+    /* Modern Glassmorphic Container Nodes */
+    .sec-card {
+        background: #111827;
+        border: 1px solid #1f2937;
+        border-radius: 12px !important;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        transition: border-color 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .sec-card:hover {
+        border-color: rgba(0, 242, 255, 0.25);
+    }
+
+    /* Cybernetic Custom Form Controllers */
+    .form-cyber {
+        background-color: #070a12 !important;
+        border: 1px solid #374151 !important;
+        color: #ffffff !important;
+        border-radius: 8px !important;
+        transition: border-color 0.3s ease;
+    }
+    .form-cyber:focus {
+        border-color: #00f2ff !important;
+        box-shadow: 0 0 10px rgba(0, 242, 255, 0.15) !important;
+    }
+    
+    select.form-cyber option {
+        background-color: #111827;
+        color: #fff;
+    }
+
+    /* Success Submit Button Mechanics */
+    .btn-emerald {
+        background-color: #10b981 !important;
+        color: #070a12 !important;
+        font-weight: 700;
+        transition: all 0.2s ease-in-out;
+        box-shadow: 0 0 15px rgba(16, 185, 129, 0.25);
+        border: none !important;
+    }
+    .btn-emerald:hover {
+        background-color: #059669 !important;
+        color: #ffffff !important;
+        box-shadow: 0 0 25px rgba(16, 185, 129, 0.45) !important;
+        transform: translateY(-1px);
+    }
+
+    /* Sleek Polished Datatables */
+    .table-cyber { color: #e2e8f0 !important; font-size: 0.9rem; }
+    .table-cyber th {
+        background-color: #1f2937 !important;
+        color: #00f2ff !important;
+        border-color: #374151 !important;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        padding: 12px;
+    }
+    .table-cyber td { background-color: transparent !important; border-color: #1f2937 !important; padding: 14px 12px; }
+    .table-cyber tbody tr { transition: background-color 0.2s ease; }
+    .table-cyber tbody tr:hover { background-color: rgba(255, 255, 255, 0.02) !important; }
+
+    /* Hardware Accelerated Animation Framework */
+    .fade-glide-in {
+        opacity: 0;
+        transform: translateY(15px);
+        animation: dashboardFadeGlide 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    .delay-1 { animation-delay: 0.1s; }
+    .delay-2 { animation-delay: 0.2s; }
+    .delay-3 { animation-delay: 0.3s; }
+
+    @keyframes dashboardFadeGlide { to { opacity: 1; transform: translateY(0); } }
+    
+</style>
+
+<div class="container-fluid py-4 px-md-4 registrar-terminal">
+    
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4 pb-3 border-bottom border-secondary border-opacity-10 fade-glide-in">
+        <div>
+            <h2 class="glow-title mb-0"><i class="fas fa-folder-open text-cyan me-2"></i>Registrar Systems Terminal</h2>
+            <p class="text-muted small mb-0">System Authority Level: Academic Records & Lifecycle Operations</p>
         </div>
-        <div class="col-md-9">
-          <h4>{{ current_user.full_name }}</h4>
-          <p><strong>Email:</strong> {{ current_user.email }}</p>
-          {% if current_user.home_address %}
-          <p><strong>Home Address:</strong> {{ current_user.home_address }}</p>
-          {% endif %}
-          {% if current_user.telephone_number %}
-          <p><strong>Telephone:</strong> {{ current_user.telephone_number }}</p>
-          {% endif %}
-          <p><strong>Role:</strong> {{ current_user.role|title }}</p>
+        <span class="badge bg-dark border border-secondary border-opacity-20 text-white-50 px-3 py-2 mt-2 mt-md-0 rounded-3">
+            <i class="fas fa-server text-emerald me-2"></i>Ledger Sync: Active
+        </span>
+    </div>
+
+    {% if active_year %}
+    <div class="alert bg-dark border border-cyan border-opacity-25 text-white mb-4 shadow-sm rounded-3 fade-glide-in delay-1 d-flex align-items-center">
+        <div class="p-2 bg-cyan bg-opacity-10 rounded-3 me-3 text-cyan border border-cyan border-opacity-10">
+            <i class="fas fa-calendar-check fa-fw fa-lg"></i>
         </div>
-      </div>
+        <div>
+            <span class="text-white-50 small d-block uppercase tracking-wider" style="font-size:0.7rem;">Active System Academic Term Session</span>
+            <strong class="text-cyan">{{ active_year.name }}</strong> 
+            <span class="text-muted ms-2">({{ active_year.start_date }} to {{ active_year.end_date }})</span>
+        </div>
     </div>
-  </div>
+    {% endif %}
 
-  <!-- Active Academic Year -->
-  <div class="alert alert-info mb-4" style="background: rgba(0, 123, 255, 0.1); border: 1px solid #00f2ff; color: #00f2ff;">
-    <strong>Active Academic Year:</strong> {{ active_year.name }} ({{ active_year.start_date }} - {{ active_year.end_date }})
-  </div>
-    <div class="col-md-4">
-      <div class="card p-3 shadow-sm border-primary">
-        <div class="fw-bold text-primary">Total Students</div>
-        <div class="h3 mb-0">{{ counts.students }}</div>
-      </div>
-    </div>
-    <div class="col-md-4">
-      <div class="card p-3 shadow-sm border-success">
-        <div class="fw-bold text-success">New Students</div>
-        <div class="h3 mb-0">{{ counts.new_students }}</div>
-      </div>
-    </div>
-    <div class="col-md-4">
-      <div class="card p-3 shadow-sm border-info">
-        <div class="fw-bold text-info">Returning Students</div>
-        <div class="h3 mb-0">{{ counts.returning_students }}</div>
-      </div>
-    </div>
-  </div>
-
-  <div class="card mb-4">
-    <div class="card-body">
-      <div class="d-flex justify-content-between align-items-center mb-3">
-        <h4 class="mb-0">Class Folders</h4>
-        <form method="get" class="d-flex" style="gap: 0.5rem;">
-          <input type="text" name="search_class" class="form-control form-control-sm" placeholder="Search classes..." value="{{ search_class }}" />
-          <button type="submit" class="btn btn-sm btn-primary">Search</button>
-        </form>
-      </div>
-      <div class="row">
-        {% if classes %}
-          {% for klass in classes %}
-            <div class="col-md-4 mb-3">
-              <div class="card h-100 shadow-sm">
-                <div class="card-body">
-                  <h5 class="card-title">{{ klass.name }}</h5>
-                  <p class="card-text text-muted">{{ klass.description or 'No description' }}</p>
-                  <p class="mb-2"><strong>Students:</strong> {{ klass.student_count }}</p>
-                  <a href="{{ url_for('registrar_class_students', class_id=klass.id) }}" class="btn btn-sm btn-primary">View Students</a>
+    <div class="row g-4">
+        
+        <div class="col-xl-4 d-flex flex-column gap-4 fade-glide-in delay-1">
+            
+            <div class="card sec-card p-4">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="position-relative" style="width: 72px; height: 72px; flex-shrink: 0;">
+                        <img src="{{ current_user.photo_url if current_user.photo_url else url_for('static', filename='images/default-avatar.png') }}" class="w-100 h-100 object-fit-cover rounded-3 border border-secondary border-opacity-20" alt="User Avatar">
+                        <span class="position-absolute bottom-0 end-0 bg-emerald border border-dark rounded-circle p-1.5" title="Operator Status: Active"></span>
+                    </div>
+                    <div>
+                        <h5 class="text-white mb-0 font-weight-bold">{{ current_user.full_name }}</h5>
+                        <span class="badge bg-cyan bg-opacity-10 text-cyan small border border-cyan border-opacity-10 mt-1 px-2.5 py-1">{{ current_user.role|title }}</span>
+                    </div>
                 </div>
-              </div>
+                <hr class="border-secondary opacity-10 my-3">
+                <div class="small text-blue d-flex flex-column gap-2">
+                    <div><i class="fas fa-envelope text-blue me-2 fa-fw"></i>{{ current_user.email }}</div>
+                    {% if current_user.telephone_number %}
+                        <div><i class="fas fa-phone text-blue me-2 fa-fw"></i>{{ current_user.telephone_number }}</div>
+                    {% endif %}
+                    {% if current_user.home_address %}
+                        <div><i class="fas fa-map-marker-alt text-blue me-2 fa-fw"></i>{{ current_user.home_address }}</div>
+                    {% endif %}
+                </div>
             </div>
-          {% endfor %}
-        {% else %}
-          <div class="col-12">
-            <p class="text-muted">No classes match your search.</p>
-          </div>
-        {% endif %}
-      </div>
-    </div>
-  </div>
 
-  <div class="card mb-4">
-    <div class="card-body">
-      <h4>Register New Student</h4>
-      <p><a href="{{ url_for('register_student') }}" class="btn btn-outline-primary">Go to Full Registration Form</a></p>
-      <form method="POST" enctype="multipart/form-data">
-        {{ form.hidden_tag() }}
-        <div class="row">
-          <div class="col-md-4 mb-2">{{ form.student_id.label }} {{ form.student_id(class_='form-control') }}</div>
-          <div class="col-md-4 mb-2">{{ form.first_name.label }} {{ form.first_name(class_='form-control') }}</div>
-          <div class="col-md-4 mb-2">{{ form.last_name.label }} {{ form.last_name(class_='form-control') }}</div>
+            <div class="card sec-card p-4">
+                <h6 class="text-white font-weight-bold mb-2"><i class="fas fa-door-open text-amber me-2"></i>Admissions Publishing</h6>
+                <p class="text-muted small mb-3">Upload entrance exam notices and academic year information sheets for parents and students.</p>
+                <div class="d-flex flex-column gap-2">
+                    <a href="{{ url_for('school_media_create') }}" class="btn btn-sm btn-warning text-dark fw-semibold">
+                        <i class="fas fa-upload me-1"></i>Post Entrance / Info Sheet
+                    </a>
+                    <a href="{{ url_for('school_media_manage') }}" class="btn btn-sm btn-outline-secondary text-white">
+                        <i class="fas fa-folder-open me-1"></i>Manage Registrar Documents
+                    </a>
+                </div>
+            </div>
+
+            <div class="row g-3">
+                <div class="col-12 col-sm-4 col-xl-12">
+                    <div class="card bg-dark border border-secondary border-opacity-10 p-3 rounded-3 shadow-sm">
+                        <span class="text-white-50 small d-block mb-1">Total Enrolled Registry</span>
+                        <h4 class="text-cyan font-weight-bold mb-0">{{ counts.students if counts else 0 }} <span class="small text-muted fw-normal fs-6">Nodes</span></h4>
+                    </div>
+                </div>
+                <div class="col-12 col-sm-4 col-xl-12">
+                    <div class="card bg-dark border border-secondary border-opacity-10 p-3 rounded-3 shadow-sm">
+                        <span class="text-white-50 small d-block mb-1">New Intakes Term Counter</span>
+                        <h4 class="text-emerald font-weight-bold mb-0">{{ counts.new_students if counts else 0 }} <span class="small text-muted fw-normal fs-6">Nodes</span></h4>
+                    </div>
+                </div>
+                <div class="col-12 col-sm-4 col-xl-12">
+                    <div class="card bg-dark border border-secondary border-opacity-10 p-3 rounded-3 shadow-sm">
+                        <span class="text-white-50 small d-block mb-1">Returning Active Arrays</span>
+                        <h4 class="text-amber font-weight-bold mb-0">{{ counts.returning_students if counts else 0 }} <span class="small text-muted fw-normal fs-6">Nodes</span></h4>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card sec-card p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="text-white font-weight-bold mb-0"><i class="fas fa-folder-tree text-cyan me-2"></i>Class Folders</h6>
+                    <form method="get" class="d-flex gap-1">
+                        <input type="text" name="search_class" class="form-control form-cyber form-control-sm py-1" style="font-size:0.75rem;" placeholder="Search..." value="{{ search_class or '' }}" />
+                        <button type="submit" class="btn btn-sm btn-primary px-2"><i class="fas fa-magnifying-glass"></i></button>
+                        {% if search_class %}
+                            <a href="{{ url_for('dashboard') }}" class="btn btn-sm btn-secondary px-2"><i class="fas fa-times"></i></a>
+                        {% endif %}
+                    </form>
+                </div>
+                
+                <div class="d-flex flex-column gap-2" style="max-height: 380px; overflow-y: auto; padding-right:4px;">
+                    {% if classes %}
+                        {% for klass in classes %}
+                        <div class="p-2.5 border border-secondary border-opacity-10 rounded-3" style="background: rgba(255,255,255,0.01);">
+                            <div class="d-flex justify-content-between align-items-start mb-1">
+                                <div class="fw-bold text-white small">{{ klass.name }}</div>
+                                <span class="badge bg-cyan bg-opacity-10 text-cyan small border border-cyan border-opacity-10 font-monospace" style="font-size:0.65rem;">{{ klass.student_count if klass.student_count else 0 }} Nodes</span>
+                            </div>
+                            <div class="text-muted small mb-2" style="font-size: 0.72rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ klass.description or 'No structural manifest description parsed' }}</div>
+                            <a href="{{ url_for('registrar_class_students', class_id=klass.id) }}" class="btn btn-sm btn-dark w-100 py-1 border border-secondary border-opacity-20 text-white-50 heading-text fw-semibold style-text" style="font-size:0.72rem;"><i class="fas fa-eye me-1"></i>View Allocation Matrix</a>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center py-4 text-muted small"><i class="fas fa-inbox opacity-25 me-1.5"></i>No matching class records mapped.</div>
+                    {% endif %}
+                </div>
+            </div>
         </div>
-        <div class="row">
-          <div class="col-md-4 mb-2">{{ form.dob.label }} {{ form.dob(class_='form-control') }}</div>
-          <div class="col-md-4 mb-2">{{ form.gender.label }} {{ form.gender(class_='form-select') }}</div>
-          <div class="col-md-4 mb-2">{{ form.level.label }} {{ form.level(class_='form-select') }}</div>
+
+        <div class="col-xl-8 d-flex flex-column gap-4 fade-glide-in delay-2">
+            
+            <div class="card sec-card p-4">
+                <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2 mb-3">
+                    <div>
+                        <h5 class="text-emerald font-weight-bold mb-0"><i class="fas fa-user-plus me-2"></i>Register New Student Account</h5>
+                        <p class="text-muted small mb-0">Instantiate standard profile credentials into core records.</p>
+                    </div>
+                    <a href="{{ url_for('register_student') }}" class="btn btn-sm btn-outline-cyan rounded-3 px-3 py-1.5 fw-semibold" style="font-size:0.8rem;"><i class="fas fa-window-restore me-1.5"></i>Expand Full Portal Form</a>
+                </div>
+                
+                <form method="POST" action="{{ url_for('register_student') }}" enctype="multipart/form-data">
+                    {{ form.hidden_tag() }}
+                    
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            {% for category, message in messages %}
+                                <div class="alert bg-{{ 'emerald' if category == 'success' else 'rose' }} bg-opacity-10 border border-{{ 'emerald' if category == 'success' else 'rose' }} border-opacity-25 text-{{ 'emerald' if category == 'success' else 'rose' }} mb-3 rounded-3 p-3 small">
+                                    <i class="fas fa-info-circle me-2"></i>{{ message }}
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+
+                    {% if form.errors %}
+                        <div class="alert bg-rose bg-opacity-10 border border-rose border-opacity-25 text-rose mb-3 rounded-3 p-3 small">
+                            <strong class="d-block mb-1"><i class="fas fa-triangle-exclamation me-2"></i>Ledger Sync Fault - Field Exceptions Detected:</strong>
+                            <ul class="mb-0 ps-3">
+                            {% for field, errors in form.errors.items() %}
+                                {% for error in errors %}
+                                    <li><strong>{{ form[field].label.text or field|capitalize }}:</strong> {{ error }}</li>
+                                {% endfor %}
+                            {% endfor %}
+                            </ul>
+                        </div>
+                    {% endif %}
+
+                    <div class="row g-3">
+                        <div class="col-sm-6 col-md-4">
+                            <label class="text-white-50 small mb-1">Student Index ID</label>
+                            {{ form.student_id(class_='form-control form-cyber py-2', placeholder='Auto-Generated or Manual ID', value=form.student_id.data or suggested_student_id) }}
+                            <div class="text-muted small mt-1">Leave blank to auto-assign the next ID. Supports thousands of students per year.</div>
+                        </div>
+                        <div class="col-sm-6 col-md-4">
+                            <label class="text-white-50 small mb-1">First Name</label>
+                            {{ form.first_name(class_='form-control form-cyber py-2', placeholder='First Name') }}
+                        </div>
+                        <div class="col-sm-6 col-md-4">
+                            <label class="text-white-50 small mb-1">Last Name</label>
+                            {{ form.last_name(class_='form-control form-cyber py-2', placeholder='Last Name') }}
+                        </div>
+                        
+                        <div class="col-sm-6 col-md-4">
+                            <label class="text-white-50 small mb-1">Date of Birth</label>
+                            {{ form.dob(class_='form-control form-cyber py-2', type='date') }}
+                        </div>
+                        <div class="col-sm-6 col-md-4">
+                            <label class="text-white-50 small mb-1">Gender Node</label>
+                            {{ form.gender(class_='form-select form-cyber py-2') }}
+                        </div>
+                        <div class="col-sm-6 col-md-4">
+                            <label class="text-white-50 small mb-1">Academic Level</label>
+                            {{ form.level(class_='form-select form-cyber py-2') }}
+                        </div>
+                        
+                        <div class="col-sm-6 col-md-4">
+                            <label class="text-white-50 small mb-1">Parent/Guardian Email</label>
+                            {{ form.parent_email(class_='form-control form-cyber py-2', placeholder='parent@domain.com') }}
+                        </div>
+                        <div class="col-sm-6 col-md-4">
+                            <label class="text-white-50 small mb-1">Secure Student Email</label>
+                            {{ form.email(class_='form-control form-cyber py-2', placeholder='student@domain.com') }}
+                        </div>
+                        <div class="col-sm-6 col-md-4">
+                            <label class="text-white-50 small mb-1">Allocated Class Folder</label>
+                            {{ form.klass(class_='form-select form-cyber py-2') }}
+                        </div>
+                        
+                        <div class="col-sm-6 col-md-4">
+                            <label class="text-white-50 small mb-1">Registration Fee ($)</label>
+                            {{ form.registration_fees(class_='form-control form-cyber py-2', placeholder='60,000.00') }}
+                        </div>
+                        <div class="col-sm-6 col-md-4">
+                            <label class="text-white-50 small mb-1">Access System Password</label>
+                            {{ form.password(class_='form-control form-cyber py-2', type='password', placeholder='••••••••') }}
+                        </div>
+                        <div class="col-sm-6 col-md-4">
+                            <label class="text-white-50 small mb-1">Target Academic Year</label>
+                            {{ form.academic_year(class_='form-select form-cyber py-2') }}
+                        </div>
+                        
+                        <div class="col-12 col-md-8">
+                            <label class="text-white-50 small mb-1">Identification Photo Array</label>
+                            {{ form.photo(class_='form-control form-cyber py-2') }}
+                        </div>
+                        <div class="col-12 col-md-4 d-flex align-items-end">
+                            <button type="submit" class="btn btn-emerald w-100 py-2 d-flex align-items-center justify-content-center gap-2">
+                                <i class="fas fa-database small"></i>
+                                <span>Commit Student to Ledger</span>
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <div class="card sec-card p-4">
+                <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-3">
+                    <h5 class="text-white font-weight-bold mb-0"><i class="fas fa-address-book text-cyan me-2"></i>Registered Students Database Ledger</h5>
+                    
+                    <div class="d-flex flex-wrap align-items-center gap-2 w-100 w-md-auto">
+                        <form method="get" class="d-flex flex-grow-1 flex-md-grow-0"> 
+                            <select name="year" class="form-select form-cyber form-select-sm py-1.5" style="font-size:0.8rem; width: 170px;" onchange="this.form.submit()">
+                                <option value="">All Academic Years</option>
+                                {% if years %}
+                                    {% for y in years %}
+                                        <option value="{{ y.name }}" {% if selected_year == y.name %}selected{% endif %}>{{ y.name }}</option>
+                                    {% endfor %}
+                                {% endif %}
+                            </select>
+                        </form>
+                        
+                        <a href="{{ url_for('export_students', year=selected_year) }}" class="btn btn-sm btn-outline-secondary text-white border-secondary border-opacity-30 px-2 py-1.5" style="font-size:0.75rem;" title="Export CSV Payload"><i class="fas fa-file-csv me-1"></i>CSV</a>
+                        <a href="{{ url_for('report_students_pdf', year=selected_year) }}" class="btn btn-sm btn-outline-primary text-cyan border-cyan border-opacity-30 px-2 py-1.5" style="font-size:0.75rem;" title="Export PDF Documentation"><i class="fas fa-file-pdf me-1"></i>PDF</a>
+                    </div>
+                </div>
+
+                <div class="table-responsive rounded-3 border border-secondary border-opacity-10">
+                    <table class="table table-cyber align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Photo Node</th>
+                                <th>Index Keys</th>
+                                <th>Full Identity</th>
+                                <th>Class Room</th>
+                                <th>Secure Email Address</th>
+                                <th>Academic Session</th>
+                                <th class="text-end">Registration Fee</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if students %}
+                                {% for s in students %}
+                                <tr>
+                                    <td>
+                                        <div style="width: 44px; height: 44px;">
+                                            <img src="{{ s.photo_url }}" alt="Student Array Photo" class="w-100 h-100 object-fit-cover rounded border border-secondary border-opacity-20">
+                                        </div>
+                                    </td>
+                                    <!-- Dictionary-safe bracket syntax lookup fallback -->
+                                    <td class="font-monospace text-cyan" style="font-size:0.8rem;">
+                                        #{{ s.student_id if s.student_id else (s['student_id'] if s['student_id'] is defined else s.get('student_id', '-')) }}
+                                    </td>
+                                    <td class="fw-bold text-white">{{ s.first_name }} {{ s.last_name }}</td>
+                                    <!-- Cleaned up classroom string rendering safely without database-relation chaining inside Jinja -->
+                                    <td>
+                                        <span class="ledger-meta">
+                                            <i class="fas fa-folder text-cyan opacity-50 me-1.5 small"></i>
+                                            {{ s.klass.name if s.klass and s.klass.name is defined else (s.klass if s.klass else 'Unallocated') }}
+                                        </span>
+                                    </td>
+                                    <td class="ledger-email" style="font-size:0.8rem;">{{ s.user.email if s.user else (s.parent_email or 'No Email Assigned') }}</td>
+                                    <td>
+                                        <span class="badge bg-secondary bg-opacity-10 text-blue border border-secondary border-opacity-10 px-2 py-1">
+                                            {{ s.academic_year.name if s.academic_year else (active_year.name if active_year else '-') }}
+                                        </span>
+                                    </td>
+                                    <td class="text-end font-monospace text-emerald" style="font-size:0.8rem;">
+                                        ${{ "{:,.2f}".format(s.registration_fees|float) if s.registration_fees else "0.00" }}
+                                    </td>
+                                    <td class="text-end">
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{{ url_for('edit_student', student_id=s.id) }}" class="btn btn-sm btn-warning rounded-start px-2.5 py-1" style="font-size:0.75rem;" title="Edit student profile"><i class="fas fa-user-gear me-1"></i>Edit</a>
+                                            <a href="{{ url_for('edit_student', student_id=s.id) }}#fee" class="btn btn-sm btn-emerald rounded-end px-2.5 py-1" style="font-size:0.75rem;" title="Edit registration fee"><i class="fas fa-coins me-1"></i>Fees</a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="8" class="text-center py-4 text-muted small"><i class="fas fa-inbox opacity-25 me-1.5"></i>No structural student nodes initialized inside this directory frame yet.</td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+
+                {% if students_pagination and students_pagination.pages > 1 %}
+                <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2 mt-3">
+                    <div class="small text-muted">
+                        Showing {{ students_pagination.items|length }} of {{ students_pagination.total }} students
+                        {% if selected_year %}for {{ selected_year }}{% elif active_year %}for {{ active_year.name }}{% endif %}
+                    </div>
+                    <nav aria-label="Student ledger pagination">
+                        <ul class="pagination pagination-sm mb-0">
+                            <li class="page-item {% if not students_pagination.has_prev %}disabled{% endif %}">
+                                <a class="page-link" href="{{ url_for('register_student', page=students_pagination.prev_num, year=selected_year or '') }}">Previous</a>
+                            </li>
+                            <li class="page-item disabled">
+                                <span class="page-link">Page {{ students_pagination.page }} / {{ students_pagination.pages }}</span>
+                            </li>
+                            <li class="page-item {% if not students_pagination.has_next %}disabled{% endif %}">
+                                <a class="page-link" href="{{ url_for('register_student', page=students_pagination.next_num, year=selected_year or '') }}">Next</a>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+                {% endif %}
+            </div>
+
         </div>
-        <div class="row">
-          <div class="col-md-4 mb-2">{{ form.parent_email.label }} {{ form.parent_email(class_='form-control') }}</div>
-          <div class="col-md-4 mb-2">{{ form.email.label }} {{ form.email(class_='form-control') }}</div>
-          <div class="col-md-4 mb-2">{{ form.klass.label }} {{ form.klass(class_='form-select') }}</div>
-        </div>
-        <div class="row">
-          <div class="col-md-4 mb-2">{{ form.registration_fees.label }} {{ form.registration_fees(class_='form-control') }}</div>
-          <div class="col-md-4 mb-2">{{ form.password.label }} {{ form.password(class_='form-control') }}</div>
-          <div class="col-md-4 mb-2">{{ form.academic_year.label }} {{ form.academic_year(class_='form-select') }}</div>
-        </div>
-        <div class="row">
-          <div class="col-md-4 mb-2">{{ form.photo.label }} {{ form.photo(class_='form-control') }}</div>
-        </div>
-        <div class="mb-2">{{ form.submit(class_='btn btn-primary') }}</div>
-      </form>
-    </div>
-  </div>
-  <form method="get" class="mb-3"> 
-    <div class="row">
-      <div class="col-md-4">
-        <select name="year" class="form-select" onchange="this.form.submit()">
-          <option value="">All Academic Years</option>
-          {% for y in years %}
-            <option value="{{ y.name }}" {% if selected_year==y.name %}selected{% endif %}>{{ y.name }}</option>
-          {% endfor %}
-        </select>
-      </div>
-    </div>
-  </form>
-  <div class="mb-3">
-    <a href="{{ url_for('export_students', year=selected_year) }}" class="btn btn-outline-secondary">Export Students CSV</a>
-    <a href="{{ url_for('report_students_pdf', year=selected_year) }}" class="btn btn-outline-primary ms-2">Download Students PDF</a>
-   
+    </div> 
   
-  </div>
-  <h4>Registered Students</h4>
-  <table class="table table-bordered table-striped">
-    <thead>
-      <tr><th>Photo</th><th>ID</th><th>Name</th><th>Class</th><th>Email</th><th>Year</th><th>Edit</th></tr>
-    </thead>
-    <tbody>
-      {% for s in students %}
-      <tr>
-        <td>
-          <img src="{{ s.photo_url }}" alt="{{ s.first_name }} {{ s.last_name }}" class="img-thumbnail" style="max-width: 60px;">
-        </td>
-        <td>{{ s.student_id }}</td>
-        <td>{{ s.first_name }} {{ s.last_name }}</td>
-        <td>{{ s.klass }}</td>
-        <td>{{ s.email }}</td>
-        <td>{{ s.current_year or '-' }}</td>
-        <td><a href="{{ url_for('edit_student', student_id=s.id) }}" class="btn btn-sm btn-warning">Edit</a></td>
-      </tr>
-      {% else %}
-      <tr><td colspan="7" class="text-center">No students registered yet.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
 </div>
 {% endblock %}

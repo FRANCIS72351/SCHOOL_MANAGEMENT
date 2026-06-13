@@ -1,85 +1,186 @@
-{% extends "base.html" %}
-
-{% block title %}Contact Us - Modern School System{% endblock %}
-
+{% extends 'base.html' %}
+{% block title %}Contact Institutional Support Channels{% endblock %}
 {% block content %}
-<div class="container py-5">
-  <div class="row g-4 align-items-center">
-    <div class="col-lg-6">
-      <h1 class="fw-bold text-primary mb-3">Get in Touch</h1>
-      <p class="text-muted mb-4">
-        Have questions or need assistance? Our team is here to support your academic journey.
-        Reach out using the details below or send us a message.
-      </p>
-      <div class="d-flex align-items-start mb-3">
-        <div class="me-3 text-primary fs-3">
-          <span class="material-symbols-rounded">call</span>
-        </div>
-        <div>
-          <h5 class="fw-semibold mb-1">Phone</h5>
-          <p class="mb-0">+231---775--275--959</p>
-        </div>
-      </div>
-      <div class="d-flex align-items-start mb-3">
-        <div class="me-3 text-primary fs-3">
-          <span class="material-symbols-rounded">mail</span>
-        </div>
-        <div>
-          <h5 class="fw-semibold mb-1">Email</h5>
-          <p class="mb-0">xhangocharm@gmail.com</p>
-        </div>
-      </div>
-      <div class="d-flex align-items-start mb-3">
-        <div class="me-3 text-primary fs-3">
-          <span class="material-symbols-rounded">location_on</span>
-        </div>
-        <div>
-          <h5 class="fw-semibold mb-1">Location</h5>
-          <p class="mb-0">Monrovia, Liberia<br>Muslin Congress high School</p>
-        </div>
-      </div>
-      <div class="mt-4">
-        <h5 class="fw-semibold">Office Hours</h5>
-        <p class="mb-1">Monday - Friday: 8:00 AM - 5:00 PM</p>
-        <p class="mb-0">Saturday: 9:00 AM - 1:00 PM</p>
-      </div>
+
+<style>
+    /* Executive Deep Space Workspace Setup */
+    body {
+        background-color: #0b0f19;
+        color: #e2e8f0;
+        font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    }
+
+    .text-cyan { color: #00f2ff; }
+    .glow-title {
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        color: #ffffff;
+        text-shadow: 0 0 20px rgba(0, 242, 255, 0.15);
+    }
+
+    /* Cyber Glassmorphic Panel Cards */
+    .sec-card {
+        background: #111827;
+        border: 1px solid #1f2937;
+        border-radius: 16px !important;
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+        transition: border-color 0.3s ease;
+    }
+    .sec-card:hover {
+        border-color: rgba(0, 242, 255, 0.25);
+    }
+
+    /* Interactive Operational Form Controls */
+    .form-cyber {
+        background-color: #070a12 !important;
+        border: 1px solid #374151 !important;
+        color: #ffffff !important;
+        border-radius: 8px !important;
+        padding: 12px 16px;
+        transition: border-color 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .form-cyber:focus {
+        border-color: #00f2ff !important;
+        box-shadow: 0 0 12px rgba(0, 242, 255, 0.2) !important;
+        outline: none;
+    }
+    .form-cyber::placeholder {
+        color: #4b5563;
+    }
+
+    /* Icon Container Vector Backdrops */
+    .icon-backdrop {
+        width: 48px;
+        height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(0, 242, 255, 0.05);
+        border: 1px solid rgba(0, 242, 255, 0.15);
+        border-radius: 10px;
+    }
+
+    /* Hardware Accelerated Animations */
+    .fade-glide-in {
+        opacity: 0;
+        transform: translateY(20px);
+        animation: contactFadeGlide 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    .delay-1 { animation-delay: 0.15s; }
+    .delay-2 { animation-delay: 0.3s; }
+
+    @keyframes contactFadeGlide {
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+</style>
+
+<div class="container py-5 px-md-5">
+    
+    <div class="text-center mb-5 pb-2 border-bottom border-secondary border-opacity-10 fade-glide-in">
+        <h2 class="glow-title mb-2"><i class="fas fa-headset text-cyan me-3"></i>Connect With Our Matrix</h2>
+        <p class="text-muted mx-auto" style="max-width: 600px;">Have structural inquiries or need operational database assistance? Our administrative team is standing by to resolve your support ticket endpoints.</p>
     </div>
 
-    <div class="col-lg-6">
-      <div class="card shadow-lg border-0 rounded-4">
-        <div class="card-body p-4">
-          <h4 class="fw-semibold text-primary mb-3">Send Us a Message</h4>
-          <form>
-            <div class="mb-3">
-              <label for="contactName" class="form-label">Full Name</label>
-              <input type="text" class="form-control" id="contactName" placeholder="Your Name" required>
-            </div>
-            <div class="mb-3">
-              <label for="contactEmail" class="form-label">Email Address</label>
-              <input type="email" class="form-control" id="contactEmail" placeholder="name@example.com" required>
-            </div>
-            <div class="mb-3">
-              <label for="contactSubject" class="form-label">Subject</label>
-              <input type="text" class="form-control" id="contactSubject" placeholder="How can we help?">
-            </div>
-            <div class="mb-3">
-              <label for="contactMessage" class="form-label">Message</label>
-              <textarea class="form-control" id="contactMessage" rows="4" placeholder="Enter your message" required></textarea>
-            </div>
-            <button type="submit" class="btn btn-primary w-100">Submit</button>
-          </form>
-        </div>
-      </div>
-    </div>
-  </div>
+    <div class="row g-5 align-items-stretch">
+        
+        <div class="col-lg-6 d-flex flex-column justify-content-between fade-glide-in delay-1">
+            <div>
+                <h4 class="text-white font-weight-bold mb-3">Institutional Contacts</h4>
+                <p class="text-muted mb-4 lh-relaxed">
+                    Direct your requests through the physical vectors or remote routing endpoints mapped out below. Our management framework is optimized for quick response turnarounds.
+                </p>
 
-  <div class="row mt-5">
-    <div class="col-12">
-      <div class="ratio ratio-16x9 shadow rounded" style="overflow: hidden;">
-        <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3937.409967785771!2d-10.796655684827467!3d6.3162859273765725!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x101f3f39eded10f1%3A0xc38b3c205b5b6189!2sMonrovia%2C%20Liberia!5e0!3m2!1sen!2s!4v1700000000000!5m2!1sen!2s"
-                width="600" height="450" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
-      </div>
+                <div class="d-flex align-items-center mb-4">
+                    <div class="icon-backdrop me-3 text-cyan shadow-sm">
+                        <i class="fas fa-phone-alt fa-lg"></i>
+                    </div>
+                    <div>
+                        <h6 class="text-white-50 small mb-0 font-weight-bold">Voice Support Line</h6>
+                        <div class="text-white fw-semibold">+231889358194</div>
+                    </div>
+                </div>
+
+                <div class="d-flex align-items-center mb-4">
+                    <div class="icon-backdrop me-3 text-cyan shadow-sm">
+                        <i class="fas fa-envelope fa-lg"></i>
+                    </div>
+                    <div>
+                        <h6 class="text-white-50 small mb-0 font-weight-bold">Digital Desk Interface</h6>
+                        <div class="text-white fw-semibold">xhangocharm@gmail.com</div>
+                    </div>
+                </div>
+
+                <div class="d-flex align-items-center mb-4">
+                    <div class="icon-backdrop me-3 text-cyan shadow-sm">
+                        <i class="fas fa-map-marker-alt fa-lg"></i>
+                    </div>
+                    <div>
+                        <h6 class="text-white-50 small mb-0 font-weight-bold">Business Headquarters</h6>
+                        <div class="text-white fw-semibold">3G DESIGN,Newport Street Monrovia, Liberia</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-4 p-4 border border-secondary border-opacity-10 rounded-3" style="background: rgba(255,255,255,0.01);">
+                <h6 class="text-white font-weight-bold mb-3"><i class="far fa-clock text-cyan me-2"></i>Standard Operating Hours</h6>
+                <div class="d-flex justify-content-between small text-muted mb-1">
+                    <span>Monday through Friday:</span>
+                    <span class="text-white">8:00 AM – 5:00 PM</span>
+                </div>
+                <div class="d-flex justify-content-between small text-muted">
+                    <span>Saturday Session Matrix:</span>
+                    <span class="text-white">9:00 AM – 1:00 PM</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6 d-flex fade-glide-in delay-2">
+            <div class="card sec-card p-4 w-100 d-flex flex-column justify-content-center">
+                <h4 class="text-white font-weight-bold mb-1">Transmit Message Intercept</h4>
+                <p class="text-muted small mb-4">Your connection stream will be encrypted and routed to the secure dashboard admin index queue.</p>
+                
+                <form action="#" method="POST">
+                    <div class="mb-3">
+                        <label class="form-label text-white-50 small font-weight-bold">Sender Identity (Full Name)</label>
+                        <input type="text" class="form-control form-cyber" placeholder="Enter full name identity..." required autocomplete="off">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label text-white-50 small font-weight-bold">Email Return String Vector</label>
+                        <input type="email" class="form-control form-cyber" placeholder="e.g., identity@domain.edu" required autocomplete="off">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label text-white-50 small font-weight-bold">Subject Parameter Context</label>
+                        <input type="text" class="form-control form-cyber" placeholder="Specify request type query category..." required>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label text-white-50 small font-weight-bold">Message Content Stream</label>
+                        <textarea class="form-control form-cyber" rows="4" placeholder="Draft your detailed message parameters here safely..." required></textarea>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100 py-2.5 font-weight-bold shadow-sm rounded-3">
+                        <i class="fas fa-paper-plane me-2"></i>Dispatch Form Payload
+                    </button>
+                </form>
+            </div>
+        </div>
+
     </div>
-  </div>
+
+    <div class="row mt-5 pt-3 fade-glide-in delay-2">
+        <div class="col-12">
+            <div class="ratio ratio-21x9 shadow-lg rounded-3 border border-secondary border-opacity-10" style="overflow: hidden; max-height: 380px;">
+                <iframe src="https://maps.google.com/maps?q=3G DESIGN%20School%20%20Management,%20Monrovia,%20Liberia&t=&z=14&ie=UTF8&iwloc=&output=embed"
+                        width="100%" height="100%" style="border:0; filter: grayscale(1) invert(0.9) contrast(1.2);" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+            </div>
+        </div>
+    </div>
+
 </div>
+
 {% endblock %}

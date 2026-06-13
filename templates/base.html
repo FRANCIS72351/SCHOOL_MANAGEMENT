@@ -1,80 +1,252 @@
 <!doctype html>
-<html>
+<html lang="en">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block title %}School System{% endblock %}</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <link href="https://unpkg.com/aos@2.3.4/dist/aos.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
     <style>
-      .card, .alert, .btn, .form-control, .navbar, .badge, .img-fluid {
-        border-radius: 2px !important;
-      }
+        :root {
+            --primary-brand: #4e73df;
+            --primary-dark: #2e59d9;
+            --surface-bg: #f8fafc;
+            --text-main: #1a202c;
+            --text-muted: #718096;
+            --glass-nav: rgba(255, 255, 255, 0.92);
+        }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background-color: var(--surface-bg);
+            color: var(--text-main);
+            overflow-x: hidden;
+            padding-top: 85px; /* Smooth padding configuration for fixed header */
+        }
+
+        /* Modernized Fixed Glassmorphism Top Navbar Layout */
+        .navbar-custom {
+            background: var(--glass-nav);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+            padding: 0.75rem 0;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+            transition: all 0.3s ease;
+        }
+
+        .navbar-brand-custom {
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            color: var(--primary-brand) !important;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* Interactive Link Hover Underline Logic */
+        .navbar-custom .nav-link {
+            color: #4a5568 !important;
+            font-weight: 500;
+            font-size: 0.92rem;
+            padding: 0.5rem 1rem !important;
+            border-radius: 8px;
+            position: relative;
+            transition: all 0.2s ease;
+        }
+
+        .navbar-custom .nav-link:hover {
+            color: var(--primary-brand) !important;
+            background: rgba(78, 115, 223, 0.05);
+        }
+
+        /* Clean Dropdown Panel Overhauls */
+        .dropdown-menu-custom {
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+            padding: 0.5rem;
+            animation: navDropdownFade 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .dropdown-item-custom {
+            border-radius: 8px;
+            padding: 0.6rem 1.2rem;
+            font-size: 0.88rem;
+            font-weight: 500;
+            color: #4a5568;
+            transition: all 0.15s ease;
+        }
+
+        .dropdown-item-custom:hover {
+            background-color: rgba(78, 115, 223, 0.08);
+            color: var(--primary-brand);
+        }
+
+        /* Smooth CSS Keyframe Dropdown Defs */
+        @keyframes navDropdownFade {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Polished UI Action Elements */
+        .btn, .card, .alert, .form-control, .badge {
+            border-radius: 10px !important; /* Replaced blocky 2px look with clean modern rounded arcs */
+        }
+
+        .btn-primary {
+            background-color: var(--primary-brand);
+            border-color: var(--primary-brand);
+            font-weight: 600;
+            padding: 0.6rem 1.5rem;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-dark);
+            border-color: var(--primary-dark);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(78, 115, 223, 0.25);
+        }
+
+        /* Animated Dispatched Toast System Messages */
+        .alert-toast {
+            border: none;
+            border-left: 4px solid #4e73df;
+            background: #ffffff;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            animation: slideInToast 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        
+        .alert-success { border-left-color: #1cc88a !important; }
+        .alert-danger { border-left-color: #e74a3b !important; }
+        .alert-warning { border-left-color: #f6c23e !important; }
+
+        @keyframes slideInToast {
+            from { transform: translateY(-15px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
     </style>
+    {% block head %}{% endblock %}
   </head>
   <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4">
+
+    <nav class="navbar navbar-expand-lg fixed-top navbar-custom">
       <div class="container">
-        <a class="navbar-brand" href="{{ url_for('index') }}">School Management System</a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar" aria-controls="mainNavbar" aria-expanded="false" aria-label="Toggle navigation">
+        <a class="navbar-brand navbar-brand-custom" href="{{ url_for('index') }}">
+          <i class="fas fa-graduation-cap fa-lg"></i>
+          <span>School Management</span>
+        </a>
+        
+        <button class="navbar-toggler border-0 shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar" aria-controls="mainNavbar" aria-expanded="false" aria-label="Toggle navigation">
           <span class="navbar-toggler-icon"></span>
         </button>
+        
         <div class="collapse navbar-collapse" id="mainNavbar">
-          <ul class="navbar-nav ms-auto">
-            <li class="nav-item"><a class="nav-link" href="{{ url_for('index') }}">Home</a></li>
+          <ul class="navbar-nav ms-auto align-items-lg-center">
+            <li class="nav-item"><a class="nav-link" href="{{ url_for('index') }}"><i class="fas fa-home fa-sm mr-1"></i> Home</a></li>
             <li class="nav-item"><a class="nav-link" href="{{ url_for('about') }}">About</a></li>
+            <li class="nav-item"><a class="nav-link" href="{{ url_for('school_media_gallery') }}"><i class="fas fa-photo-video fa-sm mr-1"></i> School Media</a></li>
             <li class="nav-item"><a class="nav-link" href="{{ url_for('contact') }}">Contact</a></li>
+            
             {% if current_user.is_authenticated %}
-              <li class="nav-item"><a class="nav-link" href="{{ url_for('dashboard') }}">Dashboard</a></li>
-              {% if current_user.role == "Principal" %}
-                <li class="nav-item"><a class="nav-link" href="{{ url_for('principal_dashboard') }}">Principal Dash</a></li>
-              {% endif %}
-              {% if current_user.role == "VPA" %}
-                <li class="nav-item"><a class="nav-link" href="{{ url_for('vpa_dashboard') }}">VPA Dashboard</a></li>
-              {% endif %}
-              {% if current_user.role == "VPI" %}
-                <li class="nav-item"><a class="nav-link" href="{{ url_for('vpi_dashboard') }}">VPI Dashboard</a></li>
-              {% endif %}
-              {% if current_user.role == "Dean" %}
-                <li class="nav-item"><a class="nav-link" href="{{ url_for('dean_dashboard') }}">Dean Dashboard</a></li>
-              {% endif %}
+              {% set user_role = (current_user.role or '')|lower %}
+              <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle font-weight-bold" href="#" id="dashboardDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                  <i class="fas fa-th-large fa-sm mr-1 text-primary"></i> Workspaces
+                </a>
+                <ul class="dropdown-menu dropdown-menu-end dropdown-menu-custom border-0" aria-labelledby="dashboardDropdown">
+                  <li><a class="dropdown-item dropdown-item-custom" href="{{ url_for('dashboard') }}"><i class="fas fa-user-shield fa-sm mr-2"></i>General Dashboard</a></li>
+                  
+                  {% if user_role == "principal" %}
+                    <li><a class="dropdown-item dropdown-item-custom font-weight-bold text-dark" href="{{ url_for('principal_dashboard') }}"><i class="fas fa-crown fa-sm mr-2 text-warning"></i>Principal Portal</a></li>
+                  {% endif %}
+                  {% if user_role == "vpa" %}
+                    <li><a class="dropdown-item dropdown-item-custom" href="{{ url_for('vpa_dashboard') }}"><i class="fas fa-paste fa-sm mr-2"></i>VPA Dashboard</a></li>
+                  {% endif %}
+                  {% if user_role == "vpi" %}
+                    <li><a class="dropdown-item dropdown-item-custom" href="{{ url_for('vpi_dashboard') }}"><i class="fas fa-book fa-sm mr-2"></i>VPI Dashboard</a></li>
+                  {% endif %}
+                  {% if user_role == "dean" %}
+                    <li><a class="dropdown-item dropdown-item-custom" href="{{ url_for('dean_dashboard') }}"><i class="fas fa-user-tie fa-sm mr-2"></i>Dean Dashboard</a></li>
+                  {% endif %}
+                </ul>
+              </li>
+
               {% if announcements_link %}
-                <li class="nav-item"><a class="nav-link" href="{{ url_for('announcements') }}">Announcements</a></li>
+                <li class="nav-item"><a class="nav-link" href="{{ url_for('announcements') }}"><i class="fas fa-bullhorn fa-sm mr-1"></i> Announcements</a></li>
               {% endif %}
-              {% if current_user.role == "admin" %}
-                <li class="nav-item"><a class="nav-link" href="{{ url_for('admin_events_list') }}">Manage Events</a></li>
+              
+              {% if can_manage_events %}
+                <li class="nav-item"><a class="nav-link" href="{{ url_for('admin_events_list') }}"><i class="fas fa-calendar-minus fa-sm mr-1"></i> Manage Events</a></li>
               {% endif %}
-              <li class="nav-item"><a class="nav-link" href="{{ url_for('events_list') }}">Events</a></li>
-              <li class="nav-item"><a class="nav-link" href="{{ url_for('logout') }}">Logout</a></li>
+              {% if can_manage_school_media %}
+                <li class="nav-item"><a class="nav-link" href="{{ url_for('school_media_manage') }}"><i class="fas fa-cloud-upload-alt fa-sm mr-1"></i> Manage Media</a></li>
+              {% endif %}
+              
+              <li class="nav-item"><a class="nav-link" href="{{ url_for('events_list') }}"><i class="fas fa-calendar-alt fa-sm mr-1"></i> Events</a></li>
+              <li class="nav-item ms-lg-2"><a class="btn btn-sm btn-outline-danger px-3 rounded-pill mt-2 mt-lg-0 font-weight-bold" href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt fa-sm"></i> Logout</a></li>
             {% else %}
-              <li class="nav-item"><a class="nav-link" href="{{ url_for('login') }}">Login</a></li>
+              <li class="nav-item ms-lg-2"><a class="btn btn-sm btn-primary text-white rounded-pill shadow-sm px-4 mt-2 mt-lg-0" href="{{ url_for('login') }}"><i class="fas fa-sign-in-alt fa-sm mr-1"></i> Portal Login</a></li>
             {% endif %}
           </ul>
         </div>
       </div>
     </nav>
-    <div class="container">
+
+    <div class="container my-4">
       {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
-          {% for category, msg in messages %}
-            <div class="alert alert-{{ category }}">{{ msg }}</div>
-          {% endfor %}
+          <div class="flash-messages-wrapper mb-4">
+            {% for category, msg in messages %}
+              <div class="alert alert-{{ category }} alert-toast alert-dismissible fade show p-3" role="alert">
+                <i class="fas {% if category == 'success' %}fa-check-circle text-success{% elif category == 'danger' %}fa-exclamation-circle text-danger{% else %}fa-info-circle text-info{% endif %} fa-lg"></i>
+                <div>{{ msg }}</div>
+                <button type="button" class="btn-close shadow-none" data-bs-dismiss="alert" aria-label="Close"></button>
+              </div>
+            {% endfor %}
+          </div>
         {% endif %}
       {% endwith %}
+
       {% block content %}{% endblock %}
     </div>
-    <!-- AOS (Animate On Scroll) -->
-<link href="https://unpkg.com/aos@2.3.4/dist/aos.css" rel="stylesheet">
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- AOS Script -->
-<script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
-<script>
-  AOS.init({
-    duration: 1000,
-    once: true,
-  });
-</script>
+    <script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", function() {
+        // Run Animate On Scroll Engine Setup Parameters
+        AOS.init({
+          duration: 800,
+          easing: 'cubic-bezier(0.25, 1, 0.5, 1)',
+          once: true,
+        });
 
+        // Dynamic Header Transform Tracking Scrolling State Checks
+        const navbar = document.querySelector('.navbar-custom');
+        window.addEventListener('scroll', () => {
+          if (window.scrollY > 20) {
+            navbar.style.boxShadow = '0 10px 30px rgba(0, 0, 0, 0.04)';
+            navbar.style.background = 'rgba(255, 255, 255, 0.98)';
+          } else {
+            navbar.style.boxShadow = '0 4px 20px rgba(0, 0, 0, 0.02)';
+            navbar.style.background = 'rgba(255, 255, 255, 0.92)';
+          }
+        });
+      });
+    </script>
+    {% block scripts %}{% endblock %}
   </body>
 </html>

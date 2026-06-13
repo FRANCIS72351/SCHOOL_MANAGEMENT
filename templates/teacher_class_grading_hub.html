@@ -1,0 +1,266 @@
+{% extends 'base.html' %}
+{% block title %}Grading Hub — {{ klass.name }}{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/grading_hub.css') }}">
+<div class="class-grading-hub">
+
+    <div class="hub-header mb-4">
+        <a href="{{ url_for('teacher_class_folder', class_id=klass.id) }}" class="small text-decoration-none text-muted d-inline-block mb-2">
+            <i class="bi bi-arrow-left me-1"></i>Back to {{ klass.name }}
+        </a>
+        <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
+            <div>
+                <h1 class="h4 fw-bold mb-1"><i class="bi bi-mortarboard text-primary me-2"></i>Class Grading Hub</h1>
+                <p class="text-muted small mb-0">
+                    {{ klass.name }} · Grade {{ klass.grade_level }}{% if klass.stream %} · {{ klass.stream }}{% endif %}
+                    · {{ active_year.name if active_year else 'No year' }}
+                </p>
+            </div>
+            <a href="{{ url_for('grade_entry_class', class_id=klass.id, subject=selected_subject, period=selected_period) }}"
+               class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-printer me-1"></i>Printable MoE Sheet
+            </a>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('class_grading_hub', class_id=klass.id) }}" class="row g-3 align-items-end">
+                <input type="hidden" name="hub_tab" value="{{ hub_tab }}">
+                <div class="col-md-5">
+                    <label class="form-label small fw-semibold text-muted">Subject</label>
+                    <select name="subject" class="form-select" {% if not subjects %}disabled{% endif %} onchange="this.form.submit()">
+                        {% if not subjects %}
+                        <option>No subjects assigned</option>
+                        {% else %}
+                        {% for subject in subjects %}
+                        <option value="{{ subject }}" {% if subject == selected_subject %}selected{% endif %}>{{ subject }}</option>
+                        {% endfor %}
+                        {% endif %}
+                    </select>
+                </div>
+                <div class="col-md-5">
+                    <label class="form-label small fw-semibold text-muted">Marking Period</label>
+                    <select name="period" class="form-select" onchange="this.form.submit()">
+                        {% for period_num, period_name in grading_periods %}
+                        <option value="{{ period_num }}" {% if period_num == selected_period %}selected{% endif %}>{{ period_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100">Apply</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% if not subjects %}
+    <div class="alert alert-warning">No subjects assigned for this class. Ask the principal to allocate you in Faculty Roster.</div>
+    {% else %}
+
+    <ul class="nav grading-hub-tabs mb-4" role="tablist">
+        <li class="nav-item">
+            <a class="nav-link {% if hub_tab == 'activities' %}active{% endif %}"
+               href="{{ url_for('class_grading_hub', class_id=klass.id, subject=selected_subject, period=selected_period, hub_tab='activities') }}">
+                <i class="bi bi-list-task me-1"></i>Activities
+                {% if activity_cards %}<span class="tab-badge bg-primary">{{ activity_cards|length }}</span>{% endif %}
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if hub_tab == 'moe' %}active{% endif %}"
+               href="{{ url_for('class_grading_hub', class_id=klass.id, subject=selected_subject, period=selected_period, hub_tab='moe') }}">
+                <i class="bi bi-grid-3x3-gap me-1"></i>Period Grades (MoE)
+            </a>
+        </li>
+    </ul>
+
+    {% if hub_tab == 'activities' %}
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <p class="text-muted small mb-0">
+            Activities for <strong>{{ selected_subject }}</strong> · {{ period_label }} — grade submissions, then publish period totals on the MoE tab.
+        </p>
+        <a href="{{ url_for('teacher_dashboard', tab='activities') }}#assign-classroom-activity" class="btn btn-sm btn-outline-primary">
+            <i class="bi bi-plus-lg me-1"></i>New Activity
+        </a>
+    </div>
+
+    {% if activity_cards %}
+    <div class="row g-3">
+        {% for card in activity_cards %}
+        {% set act = card.activity %}
+        <div class="col-md-6 col-lg-4">
+            <div class="card h-100 border-0 shadow-sm hub-activity-card">
+                <div class="card-body d-flex flex-column">
+                    <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                        <h3 class="h6 fw-bold mb-0">{{ act.title }}</h3>
+                        <span class="badge bg-light text-dark border">{{ act.activity_type or 'Assignment' }}</span>
+                    </div>
+                    <p class="small text-muted mb-3 flex-grow-1">{{ act.description[:100] if act.description else 'No instructions' }}{% if act.description and act.description|length > 100 %}…{% endif %}</p>
+                    <div class="d-flex flex-wrap gap-2 small mb-3">
+                        <span class="badge bg-secondary">{{ card.graded_count }}/{{ card.roster_size }} graded</span>
+                        {% if card.pending_count %}
+                        <span class="badge bg-warning text-dark">{{ card.pending_count }} pending</span>
+                        {% endif %}
+                    </div>
+                    <a href="{{ url_for('activity_detail', assessment_id=act.id) }}" class="btn btn-primary btn-sm w-100">
+                        <i class="bi bi-pencil-square me-1"></i>Grade Activity
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center py-5 bg-white rounded shadow-sm">
+        <i class="bi bi-journal-x fs-1 text-muted mb-2 d-block"></i>
+        <p class="text-muted mb-2">No activities for {{ selected_subject }} in {{ period_label }} yet.</p>
+        <a href="{{ url_for('teacher_dashboard', tab='activities') }}" class="btn btn-primary btn-sm">Assign from Dashboard</a>
+    </div>
+    {% endif %}
+
+    {% else %}
+    <div class="grading-workflow-banner mb-4" style="background: linear-gradient(135deg, #002d62, #1e40af);">
+        <strong class="text-white d-block mb-2">{{ selected_subject }} · {{ period_label }}</strong>
+        <ol class="workflow-steps">
+            <li><span class="step-num">1</span> Activity scores build draft standing automatically</li>
+            <li><span class="step-num">2</span> Adjust CA + Exam below if needed</li>
+            <li><span class="step-num">3</span> Publish when ready for report cards</li>
+        </ol>
+    </div>
+
+    {% if not students %}
+    <div class="alert alert-info">No students in this class yet.</div>
+    {% else %}
+    <form method="POST" id="hubMoeForm" action="{{ url_for('save_grades', class_id=klass.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="subject" value="{{ selected_subject }}">
+        <input type="hidden" name="period" value="{{ selected_period }}">
+        <input type="hidden" name="return_to" value="grading_hub">
+
+        <div class="card border-0 shadow-sm overflow-hidden">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0 hub-moe-table">
+                    <thead class="table-dark">
+                        <tr>
+                            <th class="ps-3">#</th>
+                            <th>Student</th>
+                            <th class="text-center">ID</th>
+                            {% if is_semester_exam %}
+                            <th class="text-center">Exam (100)</th>
+                            {% else %}
+                            <th class="text-center">CA (60)</th>
+                            <th class="text-center">Exam (40)</th>
+                            <th class="text-center">Total</th>
+                            {% endif %}
+                            <th class="text-center">Grade</th>
+                            <th class="pe-3">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for student in students %}
+                        {% set existing = grade_rows.get(student.id) %}
+                        <tr>
+                            <td class="ps-3 text-muted">{{ loop.index }}</td>
+                            <td class="fw-semibold">{{ student.full_name }}</td>
+                            <td class="text-center font-monospace small">{{ student.student_id }}</td>
+                            {% if is_semester_exam %}
+                            <td class="text-center">
+                                <input type="number" step="0.1" min="0" max="100" name="exam_{{ student.id }}"
+                                       value="{{ existing.score if existing and existing.score is not none else '' }}"
+                                       class="form-control form-control-sm hub-score-input mx-auto">
+                            </td>
+                            {% set total = existing.score if existing else none %}
+                            {% else %}
+                            <td class="text-center">
+                                <input type="number" step="0.1" min="0" max="60" name="ca_{{ student.id }}"
+                                       value="{{ existing.ca_score if existing and existing.ca_score is not none else '' }}"
+                                       class="form-control form-control-sm hub-score-input mx-auto hub-ca-input" data-student="{{ student.id }}">
+                            </td>
+                            <td class="text-center">
+                                <input type="number" step="0.1" min="0" max="40" name="exam_{{ student.id }}"
+                                       value="{{ existing.exam_score if existing and existing.exam_score is not none else '' }}"
+                                       class="form-control form-control-sm hub-score-input mx-auto hub-exam-input" data-student="{{ student.id }}">
+                            </td>
+                            <td class="text-center">
+                                <span id="hub_total_{{ student.id }}" class="badge bg-light text-dark border font-monospace">
+                                    {% if existing and existing.score is not none %}{{ '%.1f'|format(existing.score) }}{% else %}--{% endif %}
+                                </span>
+                            </td>
+                            {% set total = existing.score if existing else none %}
+                            {% endif %}
+                            <td class="text-center fw-bold hub-grade-letter">
+                                {% if total is not none and total != '' %}{{ total | grade_letter }}{% else %}--{% endif %}
+                            </td>
+                            <td class="pe-3 small">
+                                {% if existing and existing.submitted %}
+                                <span class="badge bg-success">Published</span>
+                                {% elif existing %}
+                                <span class="badge bg-warning text-dark">Draft</span>
+                                {% else %}
+                                <span class="badge bg-secondary">—</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mt-4">
+            <p class="small text-muted mb-0">MoE: CA max 60 + Exam max 40 = 100</p>
+            <div class="d-flex flex-wrap gap-2">
+                <button type="submit" name="publish_action" value="draft" class="btn btn-outline-secondary px-4">
+                    <i class="bi bi-save me-1"></i>Save Draft
+                </button>
+                <button type="submit" name="publish_action" value="publish" class="btn btn-primary px-4">
+                    <i class="bi bi-megaphone me-1"></i>Publish to Report Card
+                </button>
+            </div>
+        </div>
+    </form>
+    {% endif %}
+    {% endif %}
+    {% endif %}
+</div>
+
+<style>
+    .class-grading-hub { max-width: 1140px; margin: 0 auto; padding: 1.5rem 1rem 3rem; }
+    .hub-header { padding-top: 0.5rem; }
+    .hub-activity-card { transition: transform 0.15s, box-shadow 0.15s; }
+    .hub-activity-card:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(15,23,42,0.1) !important; }
+    .hub-score-input { width: 80px; text-align: center; font-family: monospace; font-weight: 600; }
+    .hub-moe-table thead th { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.03em; }
+</style>
+
+{% if hub_tab == 'moe' and not is_semester_exam and students %}
+<script>
+document.addEventListener('input', function(e) {
+    if (!e.target.classList.contains('hub-ca-input') && !e.target.classList.contains('hub-exam-input')) return;
+    const sid = e.target.dataset.student;
+    const ca = parseFloat(document.querySelector(`input[name="ca_${sid}"]`).value) || 0;
+    const exam = parseFloat(document.querySelector(`input[name="exam_${sid}"]`).value) || 0;
+    const badge = document.getElementById(`hub_total_${sid}`);
+    const row = e.target.closest('tr');
+    const gradeCell = row.querySelector('.hub-grade-letter');
+    const caEmpty = document.querySelector(`input[name="ca_${sid}"]`).value === '';
+    const examEmpty = document.querySelector(`input[name="exam_${sid}"]`).value === '';
+    if (caEmpty && examEmpty) {
+        badge.textContent = '--';
+        gradeCell.textContent = '--';
+        return;
+    }
+    if (ca > 60 || exam > 40) {
+        badge.textContent = 'Err';
+        badge.className = 'badge bg-danger';
+        gradeCell.textContent = '--';
+        return;
+    }
+    const total = ca + exam;
+    badge.textContent = total.toFixed(1);
+    badge.className = 'badge bg-light text-dark border font-monospace';
+    gradeCell.textContent = total >= 90 ? 'A' : total >= 80 ? 'B' : total >= 70 ? 'C' : total >= 60 ? 'D' : 'F';
+});
+</script>
+{% endif %}
+{% endblock %}

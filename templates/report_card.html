@@ -1,81 +1,364 @@
-{% extends 'base.html' %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Report Card - {{ data.student_name }}</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <style>
+        :root {
+            --moe-blue: #002d62;
+            --moe-blue-light: #f0f4f8;
+            --moe-accent: #d9534f;
+            --text-main: #1a202c;
+            --text-muted: #4a5568;
+            --border-color: #cbd5e1;
+        }
 
-{% block title %}Report Card - {{ student.full_name }}{% endblock %}
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background-color: #f1f5f9;
+            color: var(--text-main);
+            margin: 0;
+            padding: 40px 20px;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
 
-{% block content %}
-<div class="container mt-4">
-    <div class="no-print">
-        <h2>Report Card for {{ student.full_name }}</h2>
-        {% if not student.tuition_cleared and current_user.role not in ['admin', 'teacher', 'registrar'] %}
-            <div class="alert alert-warning">Report card download is blocked due to outstanding tuition fees.</div>
-        {% else %}
-            <div class="mb-3">
-                <a href="{{ url_for('download_report_card', student_id=student.id) }}" class="btn btn-primary">Download PDF</a>
-                <button onclick="window.print()" class="btn btn-secondary">Print Report Card</button>
-            </div>
-        {% endif %}
+        /* Interactive Controls Area */
+        .action-bar {
+            max-width: 950px;
+            margin: 0 auto 20px auto;
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .btn-print {
+            background-color: var(--moe-blue);
+            color: #ffffff;
+            border: none;
+            padding: 10px 24px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 6px -1px rgba(0, 2d, 62, 0.15);
+            transition: all 0.2s ease;
+        }
+
+        .btn-print:hover {
+            background-color: #001f45;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 12px -1px rgba(0, 2d, 62, 0.25);
+        }
+
+        /* Elegant Academic Transcript Container Card */
+        .report-card {
+            background: #ffffff;
+            padding: 50px;
+            max-width: 950px;
+            margin: auto;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+            border: 1px solid #e2e8f0;
+            position: relative;
+            box-sizing: border-box;
+            
+            /* Professional Web Entrance Fade-In Animation */
+            animation: cardEntrance 0.6s cubic-bezier(0.16, 1, 0.3, 1) ease;
+        }
+
+        @keyframes cardEntrance {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Ministry Institutional Header Layout */
+        .moe-header {
+            text-align: center;
+            margin-bottom: 35px;
+            border-bottom: 2px solid var(--moe-blue);
+            padding-bottom: 25px;
+        }
+
+        .moe-header img {
+            margin-bottom: 12px;
+        }
+
+        .moe-header h2 {
+            font-size: 1.5rem;
+            font-weight: 800;
+            margin: 4px 0;
+            color: var(--moe-blue);
+            letter-spacing: 0.5px;
+        }
+
+        .moe-header h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin: 4px 0;
+            color: var(--moe-accent);
+            letter-spacing: 1px;
+        }
+
+        .report-title-badge {
+            display: inline-block;
+            background-color: var(--moe-blue-light);
+            color: var(--moe-blue);
+            font-weight: 700;
+            font-size: 0.85rem;
+            padding: 6px 16px;
+            border-radius: 20px;
+            margin-top: 15px;
+            letter-spacing: 0.5px;
+        }
+
+        /* Identity Profile Meta Matrix Blocks */
+        .meta-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-top: 25px;
+            background: #f8fafc;
+            padding: 15px 20px;
+            border-radius: 10px;
+            border: 1px solid #edf2f7;
+            text-align: left;
+        }
+
+        .meta-item {
+            font-size: 0.88rem;
+            color: var(--text-muted);
+        }
+
+        .meta-item strong {
+            color: var(--text-main);
+            font-weight: 600;
+        }
+
+        /* High-Definition Analytical Ledger Table Styling */
+        .transcript-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 30px;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+        }
+
+        .transcript-table th {
+            background-color: var(--moe-blue);
+            color: #ffffff;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 12px 8px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .transcript-table td {
+            border: 1px solid var(--border-color);
+            font-size: 0.9rem;
+            height: 38px;
+            text-align: center;
+            padding: 6px;
+            color: var(--text-main);
+        }
+
+        .transcript-table tbody tr {
+            transition: background-color 0.15s ease;
+        }
+
+        .transcript-table tbody tr:hover {
+            background-color: #f8fafc;
+        }
+
+        .subject-name {
+            text-align: left;
+            padding-left: 15px !important;
+            font-weight: 600;
+            color: #2d3748;
+            background-color: #fafafa;
+            width: 25%;
+        }
+
+        /* Monospace alignment for Grades columns */
+        .grade-cell {
+            font-family: 'Courier New', Courier, monospace;
+            font-weight: 600;
+            width: 9%;
+        }
+
+        .final-avg-cell {
+            font-family: 'Courier New', Courier, monospace;
+            font-weight: 700;
+            color: var(--moe-blue);
+            background-color: var(--moe-blue-light);
+            width: 11%;
+        }
+
+        /* Clean Signature Validation Sections */
+        .footer-signatures {
+            margin-top: 60px;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 30px;
+        }
+
+        .signature-block {
+            text-align: center;
+            width: 220px;
+        }
+
+        .signature-line {
+            border-top: 1.5px solid var(--text-main);
+            margin-bottom: 8px;
+        }
+
+        .signature-title {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Absolute Seamless Print Matrix Overrides */
+        @media print {
+            body {
+                background: none !important;
+                padding: 0 !important;
+                color: #000000;
+            }
+            .action-bar {
+                display: none !important;
+            }
+            .report-card {
+                border: none !important;
+                padding: 0 !important;
+                width: 100% !important;
+                box-shadow: none !important;
+                margin: 0 !important;
+                transform: none !important;
+                animation: none !important;
+            }
+            .meta-grid {
+                background: none !important;
+                border: 1px solid #000000 !important;
+                padding: 10px !important;
+            }
+            .transcript-table {
+                border: 1px solid #000000 !important;
+            }
+            .transcript-table th {
+                background-color: #f0f0f0 !important;
+                color: #000000 !important;
+                border: 1px solid #000000 !important;
+                font-weight: 700;
+            }
+            .transcript-table td {
+                border: 1px solid #000000 !important;
+                color: #000000 !important;
+            }
+            .subject-name {
+                background: none !important;
+            }
+            .final-avg-cell {
+                background: none !important;
+                color: #000000 !important;
+            }
+            .signature-line {
+                border-top-color: #000000 !important;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="action-bar">
+        <button class="btn-print" onclick="window.print()">
+            <i class="fas fa-print"></i> Print Report Card
+        </button>
     </div>
 
-    <div class="report-card" style="border: 2px solid #000; padding: 30px; background: white;">
-        <div class="moe-header text-center">
-            <img src="{{ url_for('static', filename='images/LOGO.png') }}" alt="Logo" width="80">
-            <h2 style="margin:0;">STANDARD SCHOOL MANAGEMENT</h2>
-            <h3 style="margin:0;">MINISTRY OF EDUCATION</h3>
-            <div style="margin-top: 15px; font-weight: bold; border-top: 1px solid #000; border-bottom: 1px solid #000; padding: 10px 0;">
-                <p style="margin:0;">STUDENT PROGRESS REPORT</p>
-                <p style="margin:0;">NAME: {{ data.student_name }} | ID: {{ data.student_id }}</p>
-                <p style="margin:0;"><strong>School Level:</strong> {{ data.level }}</p>
+    <div class="report-card">
+        
+        <div class="moe-header">
+            <img src="{{ url_for('static', filename='images/LOGO.png') }}" alt="Republic of Liberia" width="75">
+            <h2>STANDARD SCHOOL MANAGEMENT</h2>
+            <h3>MINISTRY OF EDUCATION</h3>
+            <div class="report-title-badge">STUDENT PROGRESS REPORT</div>
+            
+            <div class="meta-grid">
+                <div class="meta-item">STUDENT: <strong>{{ data.student_name }}</strong></div>
+                <div class="meta-item">ID NUMBER: <strong>{{ data.student_id }}</strong></div>
+                <div class="meta-item">ACADEMIC LEVEL: <strong>{{ data.level }}</strong></div>
             </div>
         </div>
 
-        <table class="table table-bordered mt-3" style="border: 1px solid black;">
+        <table class="transcript-table">
             <thead>
-                <tr class="text-center bg-light">
-                    <th rowspan="2" style="vertical-align: middle;">Subject</th>
-                    <th colspan="5">1st Semester</th>
-                    <th colspan="5">2nd Semester</th>
-                    <th rowspan="2" style="vertical-align: middle;">Final Avg</th>
+             <tr>
+                    <th rowspan="2" style="vertical-align: middle;">Subject Course</th>
+                    <th colspan="4" style="text-center">1st Semester</th> <th rowspan="2" style="vertical-align: middle;" class="text-center">1st Sem Avg</th>
+                    <th colspan="4" style="text-center">2nd Semester</th> <th rowspan="2" style="vertical-align: middle;" class="text-center">Final Avg</th>
                 </tr>
-                <tr class="text-center bg-light">
-                    <!-- 1st Sem -->
-                    <th>P1</th><th>P2</th><th>P3</th><th>Exam</th><th>Avg</th>
-                    <!-- 2nd Sem -->
-                    <th>P4</th><th>P5</th><th>P6</th><th>Exam</th><th>Avg</th>
+                <tr>
+                    <th class="text-center">P1</th>
+                    <th class="text-center">P2</th>
+                    <th class="text-center">P3</th>
+                    <th class="text-center">Exam</th>
+                    
+                    <th class="text-center">P4</th>
+                    <th class="text-center">P5</th>
+                    <th class="text-center">P6</th>
+                    <th class="text-center">F. Exam</th>
                 </tr>
             </thead>
             <tbody>
-                {% for subject in data.subjects %}
-                <tr>
-                    <td class="font-weight-bold">{{ subject.name }}</td>
-                    <!-- 1st Sem Data -->
-                    <td class="text-center">{{ subject.p1 }}</td>
-                    <td class="text-center">{{ subject.p2 }}</td>
-                    <td class="text-center">{{ subject.p3 }}</td>
-                    <td class="text-center">{{ subject.exam }}</td>
-                    <td class="text-center">{{ subject.avg }}</td>
-                    <!-- 2nd Sem Data -->
-                    <td class="text-center">{{ subject.p4 }}</td>
-                    <td class="text-center">{{ subject.p5 }}</td>
-                    <td class="text-center">{{ subject.p6 }}</td>
-                    <td class="text-center">{{ subject.final_exam }}</td>
-                    <td class="text-center">{{ subject.final_avg }}</td>
-                    <!-- Final Column -->
-                    <td class="text-center font-weight-bold bg-light">{{ subject.final_avg }}</td>
-                </tr>
-                {% endfor %}
+                {% if data.subjects %}
+                    {% for subject in data.subjects %}
+                    <tr>
+                        <td class="subject-name">{{ subject.name }}</td>
+                        <td class="grade-cell text-center">{{ subject.p1 or '-' }}</td>
+                        <td class="grade-cell text-center">{{ subject.p2 or '-' }}</td>
+                        <td class="grade-cell text-center">{{ subject.p3 or '-' }}</td>
+                        <td class="grade-cell text-center">{{ subject.exam or '-' }}</td>
+                        <td class="grade-cell text-center fw-bold">{{ subject.avg or '-' }}</td>
+                        <td class="grade-cell text-center">{{ subject.p4 or '-' }}</td>
+                        <td class="grade-cell text-center">{{ subject.p5 or '-' }}</td>
+                        <td class="grade-cell text-center">{{ subject.p6 or '-' }}</td>
+                        <td class="grade-cell text-center">{{ subject.final_exam or '-' }}</td> 
+                        <td class="final-avg-cell text-center fw-bold">{{ subject.final_avg or '-' }}</td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="11" class="text-center text-muted">
+                            No subjects configured for this student's class. Use Subject Setup first.
+                        </td>
+                    </tr>
+                {% endif %}
             </tbody>
         </table>
 
-        <div class="footer d-flex justify-content-between mt-5">
-            <div class="text-center">
-                <p>_______________________</p>
-                <p>Teacher's Signature</p>
+        <div class="footer-signatures">
+            <div class="signature-block">
+                <div class="signature-line"></div>
+                <div class="signature-title">Teacher's Signature</div>
             </div>
-            <div class="text-center">
-                <p>_______________________</p>
-                <p>Principal's Signature</p>
+            <div class="signature-block">
+                <div class="signature-line"></div>
+                <div class="signature-title">Principal's Signature</div>
             </div>
         </div>
     </div>
-</div>
-{% endblock %}
+</body>
+</html>

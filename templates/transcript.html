@@ -42,6 +42,11 @@
 </ul>
 
 <!-- QR Code for verification -->
-<img src="data:image/png;base64,{{ qr_code }}" alt="Verification QR Code">
-<p>Scan to verify authenticity</p>
+<div class="mt-4 p-3 border rounded bg-light d-inline-block text-center">
+    <img src="data:image/png;base64,{{ qr_code }}" alt="Verification QR Code" class="mb-2">
+    <p class="small text-muted mb-1">Scan to verify authenticity on the school website</p>
+    {% if verify_url %}
+    <p class="small mb-0"><a href="{{ verify_url }}" target="_blank" rel="noopener">{{ verify_url }}</a></p>
+    {% endif %}
+</div>
 {% endblock %}
