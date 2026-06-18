@@ -8,6 +8,7 @@ from itsdangerous import URLSafeTimedSerializer
 import pyotp
 from reportlab.pdfgen import canvas
 from decorators import role_required  # Adjust this import to match your layout
+from constants import ROLE_ADMIN
 from utils import (
     build_student_financials,
     parse_currency_amount,
@@ -129,7 +130,7 @@ from models import (
     Attendance, Sponsor, Announcement, Discipline, Payroll,
     Assessment, AcademicYear, BusinessTransaction, StudentPayment,
     Leader, LeaderCategory, Event, SchoolMedia, SecurityLog, Suspension, Room,
-    Asset, MaintenanceTicket, Activity, Submission,
+    Asset, MaintenanceTicket, Activity, Submission, RolloverLog,
     SponsorWelfareNote, ClassAnnouncement,
 )
 from forms import (
@@ -768,7 +769,23 @@ STREAM_SUBJECT_PRESETS = {
     ],
 }
 
-MOE_PASSING_SCORE = 70
+MOE_PASSING_SCORE = int(os.environ.get('PROMOTION_PASS_SCORE', '70'))
+
+
+def promotion_pass_score():
+    """Configurable MoE promotion average threshold (default 70%)."""
+    try:
+        return int(current_app.config.get('PROMOTION_PASS_SCORE', MOE_PASSING_SCORE))
+    except RuntimeError:
+        return MOE_PASSING_SCORE
+
+
+def max_failing_subjects_for_promotion():
+    """Maximum failing subjects allowed for promotion (default 2)."""
+    try:
+        return int(current_app.config.get('MAX_FAILING_SUBJECTS', 2))
+    except RuntimeError:
+        return 2
 
 
 def _subject_key(name):
@@ -1514,6 +1531,9 @@ db_path = os.path.abspath(os.path.join(INSTANCE_PATH, 'keeptrack_full.db'))
 # Assign SQLALCHEMY configuration parameters
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', f'sqlite:///{db_path}')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['PROMOTION_PASS_SCORE'] = int(os.environ.get('PROMOTION_PASS_SCORE', '70'))
+app.config['MAX_FAILING_SUBJECTS'] = int(os.environ.get('MAX_FAILING_SUBJECTS', '2'))
+MOE_PASSING_SCORE = app.config['PROMOTION_PASS_SCORE']
 configure_app(app)
 
 # =====================================================================
@@ -5433,6 +5453,374 @@ def class_set_sponsor(class_id):
     return redirect(url_for('class_create'))
 
 # ------------------------ ACADEMIC YEAR ROLLOVER WIZARD ---------------------------
+def _student_grade_level(student):
+    """Resolve a student's grade tier from stored grade_level or assigned class."""
+    if student.grade_level:
+        return student.grade_level
+    if student.klass_id:
+        klass = student.assigned_class or db.session.get(Class, student.klass_id)
+        if klass:
+            return klass.grade_level
+    return None
+
+
+def check_promotion_criteria(student, academic_year=None):
+    """
+    MoE promotion standard: configurable average threshold and max failing subjects.
+    Students without grades for the year are not promoted.
+    """
+    if not student:
+        return False
+    if academic_year is None:
+        academic_year = AcademicYear.query.filter_by(is_active=True).first()
+    if not academic_year:
+        return False
+
+    pass_score = promotion_pass_score()
+    max_failing = max_failing_subjects_for_promotion()
+
+    grades = Grade.query.filter_by(
+        student_id=student.id,
+        academic_year_id=academic_year.id,
+    ).all()
+    if not grades:
+        return False
+
+    subject_averages = {}
+    for grade in grades:
+        subject_key = (grade.subject_name or grade.subject or '').strip().lower()
+        if not subject_key:
+            continue
+        score = grade.score if grade.score is not None else grade.final_average
+        if score is None:
+            continue
+        subject_averages.setdefault(subject_key, []).append(float(score))
+
+    if not subject_averages:
+        return False
+
+    failed_count = 0
+    grand_total = 0.0
+    for scores in subject_averages.values():
+        avg = sum(scores) / len(scores)
+        grand_total += avg
+        if avg < pass_score:
+            failed_count += 1
+
+    final_average = grand_total / len(subject_averages)
+    return failed_count <= max_failing and final_average >= pass_score
+
+
+def _next_academic_year_name(name):
+    """Advance labels like 2025-2026 to 2026-2027."""
+    import re
+    match = re.match(r'^(\d{4})\s*[-–/]\s*(\d{4})$', (name or '').strip())
+    if match:
+        start_y, end_y = int(match.group(1)), int(match.group(2))
+        return f"{start_y + 1}-{end_y + 1}"
+    return None
+
+
+def _resolve_or_create_next_academic_year(active_year):
+    """End the current year and activate (or create) the next academic year."""
+    if not active_year:
+        return None
+
+    next_name = _next_academic_year_name(active_year.name)
+    if not next_name:
+        if active_year.start_date:
+            y = active_year.start_date.year
+            next_name = f"{y + 1}-{y + 2}"
+        else:
+            next_name = f"{active_year.name} (Next)"
+
+    active_year.is_active = False
+    if not active_year.end_date:
+        active_year.end_date = datetime.now(timezone.utc).date()
+
+    existing = AcademicYear.query.filter_by(name=next_name).first()
+    if existing:
+        db.session.execute(
+            db.update(AcademicYear).where(AcademicYear.id != existing.id).values(is_active=False)
+        )
+        existing.is_active = True
+        return existing
+
+    if active_year.start_date:
+        try:
+            start_date = active_year.start_date.replace(year=active_year.start_date.year + 1)
+        except ValueError:
+            start_date = active_year.start_date + timedelta(days=365)
+    else:
+        start_date = datetime.now(timezone.utc).date()
+
+    end_date = None
+    if active_year.end_date:
+        try:
+            end_date = active_year.end_date.replace(year=active_year.end_date.year + 1)
+        except ValueError:
+            end_date = active_year.end_date + timedelta(days=365)
+
+    target_year = AcademicYear(
+        name=next_name,
+        start_date=start_date,
+        end_date=end_date,
+        is_active=True,
+        created_by=current_user.id,
+    )
+    db.session.add(target_year)
+    db.session.flush()
+    db.session.execute(
+        db.update(AcademicYear).where(AcademicYear.id != target_year.id).values(is_active=False)
+    )
+    target_year.is_active = True
+    return target_year
+
+
+def _rollover_already_run_today(from_year_id):
+    """Soft guard: block duplicate rollover for the same source year on the same UTC day."""
+    if not from_year_id:
+        return False
+    today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+    return RolloverLog.query.filter(
+        RolloverLog.from_year_id == from_year_id,
+        RolloverLog.created_at >= today_start,
+    ).first() is not None
+
+
+def record_rollover_audit(
+    *,
+    mode,
+    from_year,
+    to_year,
+    promoted,
+    retained,
+    graduated,
+    re_registration=0,
+):
+    """Persist rollover counts and a general activity audit entry."""
+    log = RolloverLog(
+        user_id=current_user.id,
+        from_year_id=from_year.id if from_year else None,
+        from_year_name=from_year.name if from_year else None,
+        to_year_id=to_year.id if to_year else None,
+        to_year_name=to_year.name if to_year else None,
+        promoted=promoted,
+        retained=retained,
+        graduated=graduated,
+        re_registration=re_registration,
+        rollover_mode=mode,
+    )
+    db.session.add(log)
+
+    from_label = from_year.name if from_year else '—'
+    to_label = to_year.name if to_year else '—'
+    activity = Activity(
+        user_id=current_user.id,
+        action=(
+            f"Academic rollover ({mode}): {from_label} → {to_label} — "
+            f"{promoted} promoted, {retained} retained, {graduated} graduated"
+        ),
+        module='Academic',
+        ip_address=request.remote_addr,
+    )
+    db.session.add(activity)
+    return log
+
+
+def _compute_next_year_label(active_year):
+    """Return the label the quick rollover would use for the next academic year."""
+    if not active_year:
+        return None
+    next_name = _next_academic_year_name(active_year.name)
+    if next_name:
+        return next_name
+    if active_year.start_date:
+        y = active_year.start_date.year
+        return f"{y + 1}-{y + 2}"
+    return f"{active_year.name} (Next)"
+
+
+def preview_moe_academic_rollover(active_year=None):
+    """Dry-run summary for the one-click MoE promotion rollover."""
+    if active_year is None:
+        active_year = AcademicYear.query.filter_by(is_active=True).first()
+
+    preview = {
+        'active_year': active_year,
+        'next_year_name': _compute_next_year_label(active_year),
+        'promoted': 0,
+        'retained': 0,
+        'graduated': 0,
+        're_registration': 0,
+        'student_total': 0,
+        'no_active_year': active_year is None,
+        'no_students': True,
+        'already_rolled_today': False,
+        'pass_score': promotion_pass_score(),
+        'max_failing': max_failing_subjects_for_promotion(),
+        'warnings': [],
+        'can_execute': False,
+    }
+
+    if not active_year:
+        preview['warnings'].append(
+            'No active academic year found. Create and activate a year first.'
+        )
+        return preview
+
+    preview['already_rolled_today'] = _rollover_already_run_today(active_year.id)
+    if preview['already_rolled_today']:
+        preview['warnings'].append(
+            'A rollover for this academic year was already recorded today. '
+            'Proceed only if you intend to run it again.'
+        )
+
+    students = Student.query.filter_by(
+        academic_year_id=active_year.id,
+        status='ACTIVE',
+    ).all()
+    preview['student_total'] = len(students)
+    preview['no_students'] = len(students) == 0
+    if preview['no_students']:
+        preview['warnings'].append('No active students are enrolled in the current academic year.')
+
+    classes = Class.query.order_by(Class.grade_level.asc(), Class.name.asc()).all()
+    promotion_map = build_default_promotion_map(classes)
+
+    for student in students:
+        passed = check_promotion_criteria(student, active_year)
+        grade_level = _student_grade_level(student)
+
+        if grade_level == 12:
+            if passed:
+                preview['graduated'] += 1
+            else:
+                preview['retained'] += 1
+        elif passed:
+            target_class = promotion_map.get(student.klass_id) if student.klass_id else None
+            if target_class == 'graduate':
+                preview['graduated'] += 1
+            else:
+                preview['promoted'] += 1
+        else:
+            preview['retained'] += 1
+
+        preview['re_registration'] += 1
+
+    preview['can_execute'] = (
+        not preview['no_active_year']
+        and not preview['no_students']
+    )
+    return preview
+
+
+def execute_moe_academic_rollover(active_year=None, *, allow_repeat_today=False):
+    """
+    One-click academic year rollover with MoE-based student promotion.
+    Returns result dict; raises ValueError on guard failures.
+    """
+    if active_year is None:
+        active_year = AcademicYear.query.filter_by(is_active=True).first()
+    if not active_year:
+        raise ValueError('No active academic year found. Create and activate a year first.')
+
+    if _rollover_already_run_today(active_year.id) and not allow_repeat_today:
+        raise ValueError(
+            'A rollover for this academic year was already run today. '
+            'Check the audit log or confirm to run again.'
+        )
+
+    students = Student.query.filter_by(
+        academic_year_id=active_year.id,
+        status='ACTIVE',
+    ).all()
+    if not students:
+        raise ValueError('No active students are enrolled in the current academic year.')
+
+    target_year = _resolve_or_create_next_academic_year(active_year)
+    classes = Class.query.order_by(Class.grade_level.asc(), Class.name.asc()).all()
+    promotion_map = build_default_promotion_map(classes)
+    class_cache = {c.id: c for c in classes}
+
+    promoted = retained = graduated = re_registration = 0
+
+    for student in students:
+        passed = check_promotion_criteria(student, active_year)
+        grade_level = _student_grade_level(student)
+
+        if grade_level == 12:
+            if passed:
+                student.status = 'GRADUATED'
+                student.klass_id = None
+                graduated += 1
+            else:
+                student.status = 'REPEAT'
+                student.registration_type = 'Returning'
+                student.tuition_cleared = False
+                student.academic_year_id = target_year.id
+                retained += 1
+                re_registration += 1
+            continue
+
+        student.registration_type = 'Returning'
+        student.tuition_cleared = False
+        student.academic_year_id = target_year.id
+        re_registration += 1
+
+        if passed:
+            target_class = promotion_map.get(student.klass_id) if student.klass_id else None
+            if isinstance(target_class, int):
+                student.klass_id = target_class
+                promoted_class = class_cache.get(target_class)
+                if promoted_class:
+                    student.grade_level = promoted_class.grade_level
+            elif grade_level:
+                student.grade_level = min(12, grade_level + 1)
+            promoted += 1
+        else:
+            student.status = 'REPEAT'
+            retained += 1
+
+    record_rollover_audit(
+        mode='quick',
+        from_year=active_year,
+        to_year=target_year,
+        promoted=promoted,
+        retained=retained,
+        graduated=graduated,
+        re_registration=re_registration,
+    )
+    db.session.commit()
+
+    return {
+        'target_year_name': target_year.name,
+        'promoted': promoted,
+        'retained': retained,
+        'graduated': graduated,
+        're_registration': re_registration,
+    }
+
+
+def format_rollover_flash_summary(results):
+    """Build a detailed post-rollover flash message."""
+    retained = results.get('retained', results.get('repeat', 0))
+    parts = [
+        (
+            f"Rollover complete: {results.get('promoted', 0)} promoted, "
+            f"{retained} retained, {results.get('graduated', 0)} graduated."
+        ),
+        f"New year: {results.get('target_year_name', '—')}",
+    ]
+    if results.get('re_registration'):
+        parts.append(f"{results['re_registration']} students marked for re-registration")
+    if results.get('re_enrolled'):
+        parts.append(f"{results['re_enrolled']} students re-enrolled")
+    if results.get('ended_year_name'):
+        parts.insert(0, f"Ended {results['ended_year_name']}.")
+    return ' '.join(parts)
+
+
 def _rollover_role_guard():
     if current_user.role.lower() not in ['admin', 'principal']:
         flash("Unauthorized access.", "danger")
@@ -5629,8 +6017,77 @@ def execute_academic_rollover(
 
         results['re_enrolled'] += 1
 
+    retained_count = results.get('repeat', 0)
+    record_rollover_audit(
+        mode='wizard',
+        from_year=db.session.get(AcademicYear, source_year_id) if source_year_id else None,
+        to_year=target_year,
+        promoted=results['promoted'],
+        retained=retained_count,
+        graduated=results['graduated'],
+        re_registration=results['re_enrolled'],
+    )
     db.session.commit()
     return results
+
+
+@app.route('/admin/academic-rollover', methods=['GET', 'POST'])
+@login_required
+@role_required(ROLE_ADMIN)
+def academic_rollover():
+    """Preview and execute one-click academic year rollover with MoE-based promotion."""
+    preview = preview_moe_academic_rollover()
+
+    if request.method == 'GET':
+        return render_template(
+            'academic_rollover_preview.html',
+            preview=preview,
+            wizard_url=url_for('academic_year_rollover'),
+        )
+
+    if request.form.get('preview'):
+        preview = preview_moe_academic_rollover()
+        if request.form.get('format') == 'json' or request.accept_mimetypes.best == 'application/json':
+            return jsonify({
+                'promoted': preview['promoted'],
+                'retained': preview['retained'],
+                'graduated': preview['graduated'],
+                're_registration': preview['re_registration'],
+                'student_total': preview['student_total'],
+                'next_year_name': preview['next_year_name'],
+                'pass_score': preview['pass_score'],
+                'max_failing': preview['max_failing'],
+                'warnings': preview['warnings'],
+                'can_execute': preview['can_execute'],
+            })
+        return render_template(
+            'academic_rollover_preview.html',
+            preview=preview,
+            wizard_url=url_for('academic_year_rollover'),
+            show_preview=True,
+        )
+
+    if not preview['can_execute']:
+        flash(preview['warnings'][0] if preview['warnings'] else 'Rollover cannot be executed.', 'warning')
+        return redirect(url_for('academic_rollover'))
+
+    allow_repeat = request.form.get('allow_repeat_today') == '1'
+    if preview['already_rolled_today'] and not allow_repeat:
+        flash(
+            'A rollover for this academic year was already run today. '
+            'Acknowledge the warning on the preview page to proceed.',
+            'warning',
+        )
+        return redirect(url_for('academic_rollover'))
+
+    try:
+        results = execute_moe_academic_rollover(allow_repeat_today=allow_repeat)
+        flash(format_rollover_flash_summary(results), 'success')
+    except Exception as exc:
+        db.session.rollback()
+        flash(f"Rollover failed: {exc}", "danger")
+
+    return redirect(url_for('dashboard'))
 
 
 @app.route('/academic-years/rollover', methods=['GET', 'POST'])
@@ -5701,23 +6158,7 @@ def academic_year_rollover():
                         registration_fee_amount=form.registration_fee_amount.data,
                         exclude_statuses=exclude_statuses,
                     )
-                    summary_parts = [
-                        f"Rollover complete for {results['target_year_name']}.",
-                        f"{results['re_enrolled']} students re-enrolled",
-                    ]
-                    if results.get('promoted'):
-                        summary_parts.append(f"{results['promoted']} promoted")
-                    if results.get('graduated'):
-                        summary_parts.append(f"{results['graduated']} graduated")
-                    if results.get('fees_recorded'):
-                        summary_parts.append(f"{results['fees_recorded']} registration fees posted")
-                    if results.get('tuition_reset'):
-                        summary_parts.append(f"{results['tuition_reset']} tuition flags reset")
-                    if results.get('skipped'):
-                        summary_parts.append(f"{results['skipped']} skipped")
-                    if results.get('ended_year_name'):
-                        summary_parts.insert(1, f"Ended {results['ended_year_name']}.")
-                    flash(" ".join(summary_parts) + ".", "success")
+                    flash(format_rollover_flash_summary(results), 'success')
                     return redirect(url_for('academic_years'))
                 except Exception as exc:
                     db.session.rollback()

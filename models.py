@@ -492,6 +492,34 @@ class Activity(db.Model):
     def __repr__(self):
         return f"<Activity ID {self.id} | User {self.user_id} | Action: {self.action}>"
 
+
+class RolloverLog(db.Model):
+    """Audit trail for academic year rollover operations."""
+    __tablename__ = "rollover_logs"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='SET NULL'), nullable=True)
+    from_year_id = db.Column(db.Integer, db.ForeignKey('academic_years.id', ondelete='SET NULL'), nullable=True)
+    from_year_name = db.Column(db.String(32), nullable=True)
+    to_year_id = db.Column(db.Integer, db.ForeignKey('academic_years.id', ondelete='SET NULL'), nullable=True)
+    to_year_name = db.Column(db.String(32), nullable=True)
+    promoted = db.Column(db.Integer, default=0, nullable=False)
+    retained = db.Column(db.Integer, default=0, nullable=False)
+    graduated = db.Column(db.Integer, default=0, nullable=False)
+    re_registration = db.Column(db.Integer, default=0, nullable=False)
+    rollover_mode = db.Column(db.String(20), default='quick', nullable=False)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+
+    user = db.relationship("User", backref=db.backref("rollover_logs", lazy="dynamic"))
+    from_year = db.relationship("AcademicYear", foreign_keys=[from_year_id])
+    to_year = db.relationship("AcademicYear", foreign_keys=[to_year_id])
+
+    def __repr__(self):
+        return (
+            f"<RolloverLog {self.from_year_name} → {self.to_year_name} "
+            f"by user {self.user_id}>"
+        )
+
 # =====================================================================
 # 12. ACADEMIC SUBMISSIONS & ASSIGNMENT GRADING PIPELINE
 # =====================================================================
