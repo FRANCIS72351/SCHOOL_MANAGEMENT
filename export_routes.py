@@ -23,7 +23,10 @@ def init_export_routes(app):
 
         from sqlalchemy.orm import joinedload
         year = request.args.get('year')
-        query = Student.query.options(joinedload(Student.klass), joinedload(Student.academic_year))
+        query = Student.query.options(
+            joinedload(Student.assigned_class),
+            joinedload(Student.academic_year),
+        )
         if year:
             query = query.join(AcademicYear).filter(AcademicYear.name == year)
         students = query.order_by(Student.last_name, Student.first_name).all()
