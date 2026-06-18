@@ -232,3 +232,225 @@
     .grade-input-group input[type="number"],
     .grade-input-group input[type="text"] { width: 100%; }
 }
+
+/* Period grade entry — step flow & sticky controls */
+.grade-entry-flow {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1.25rem;
+}
+.grade-entry-step {
+    flex: 1 1 140px;
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.65rem 0.85rem;
+    border-radius: 10px;
+    border: 1px solid rgba(56, 189, 248, 0.15);
+    background: rgba(255, 255, 255, 0.03);
+    font-size: 0.8rem;
+    color: #94a3b8;
+    transition: all 0.2s ease;
+}
+.grade-entry-step .step-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: rgba(56, 189, 248, 0.12);
+    color: #64748b;
+    font-weight: 700;
+    font-size: 0.75rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.grade-entry-step.active {
+    border-color: rgba(0, 242, 255, 0.45);
+    background: rgba(0, 242, 255, 0.08);
+    color: #e2e8f0;
+}
+.grade-entry-step.active .step-icon {
+    background: rgba(0, 242, 255, 0.25);
+    color: #00f2ff;
+    box-shadow: 0 0 10px rgba(0, 242, 255, 0.3);
+}
+.grade-entry-step.done {
+    border-color: rgba(74, 222, 128, 0.35);
+    color: #a7f3d0;
+}
+.grade-entry-step.done .step-icon {
+    background: rgba(74, 222, 128, 0.2);
+    color: #4ade80;
+}
+
+.grade-entry-sticky {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: rgba(13, 13, 33, 0.95);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(0, 242, 255, 0.15);
+    border-radius: 12px;
+    padding: 1rem 1.25rem;
+    margin-bottom: 1.25rem;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+.grade-entry-context {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 1rem;
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    font-size: 0.82rem;
+}
+.grade-entry-progress-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+.grade-progress-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.3rem 0.65rem;
+    border-radius: 20px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.04);
+    color: #94a3b8;
+}
+.grade-progress-pill .pill-value {
+    font-family: 'Courier New', monospace;
+    color: #e2e8f0;
+}
+.grade-progress-pill.pill-graded { border-color: rgba(251, 191, 36, 0.35); color: #fbbf24; }
+.grade-progress-pill.pill-pending { border-color: rgba(148, 163, 184, 0.35); }
+.grade-progress-pill.pill-published { border-color: rgba(74, 222, 128, 0.35); color: #4ade80; }
+
+.period-total-badge.pass {
+    background: rgba(74, 222, 128, 0.15);
+    color: #4ade80;
+    border: 1px solid rgba(74, 222, 128, 0.35);
+}
+.period-total-badge.fail {
+    background: rgba(239, 68, 68, 0.15);
+    color: #f87171;
+    border: 1px solid rgba(239, 68, 68, 0.35);
+}
+.period-total-badge.partial {
+    background: rgba(251, 191, 36, 0.12);
+    color: #fbbf24;
+    border: 1px solid rgba(251, 191, 36, 0.3);
+}
+
+.grade-empty-state {
+    text-align: center;
+    padding: 2.5rem 1.5rem;
+    border-radius: 12px;
+    border: 1px dashed rgba(56, 189, 248, 0.25);
+    background: rgba(255, 255, 255, 0.02);
+}
+.grade-empty-state .empty-icon {
+    font-size: 2.5rem;
+    opacity: 0.4;
+    margin-bottom: 0.75rem;
+    display: block;
+}
+.grade-empty-state h6 {
+    color: #e2e8f0;
+    font-weight: 600;
+    margin-bottom: 0.35rem;
+}
+.grade-empty-state p {
+    color: #94a3b8;
+    font-size: 0.85rem;
+    margin: 0;
+}
+
+.grade-action-bar {
+    position: sticky;
+    bottom: 0;
+    z-index: 15;
+    background: rgba(13, 13, 33, 0.97);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(0, 242, 255, 0.15);
+    border-radius: 12px;
+    padding: 1rem 1.25rem;
+    margin-top: 1rem;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
+}
+.grade-action-bar .action-hint {
+    font-size: 0.78rem;
+    color: #94a3b8;
+    line-height: 1.4;
+}
+.grade-action-bar .action-hint strong { color: #38bdf8; }
+
+.grade-sheet-loading {
+    position: relative;
+    pointer-events: none;
+    opacity: 0.55;
+}
+.grade-sheet-loading::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(13, 13, 33, 0.4);
+    border-radius: inherit;
+    z-index: 5;
+}
+.grade-loading-spinner {
+    display: none;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.82rem;
+    color: #38bdf8;
+}
+.grade-loading-spinner.show { display: inline-flex; }
+
+/* Mobile: stacked student rows */
+@media (max-width: 767.98px) {
+    .grade-sheet-table thead { display: none; }
+    .grade-sheet-table tbody tr {
+        display: block;
+        margin-bottom: 0.75rem;
+        padding: 0.85rem;
+        border: 1px solid rgba(0, 242, 255, 0.12);
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.02);
+    }
+    .grade-sheet-table tbody td {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.35rem 0 !important;
+        border: none !important;
+    }
+    .grade-sheet-table tbody td::before {
+        content: attr(data-label);
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: #64748b;
+        font-weight: 600;
+        margin-right: 0.75rem;
+    }
+    .grade-sheet-table tbody td:first-child { display: none; }
+    .grade-sheet-table tbody td:nth-child(2) {
+        font-size: 1rem;
+        padding-bottom: 0.5rem !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+        margin-bottom: 0.35rem;
+    }
+    .grade-sheet-table tbody td:nth-child(2)::before { display: none; }
+    .grade-sheet-table .score-input { width: 100% !important; max-width: 120px; }
+    .grade-entry-sticky { top: 0; padding: 0.85rem; }
+    .grade-entry-flow { flex-direction: column; }
+    .grade-entry-step { flex: 1 1 auto; }
+}

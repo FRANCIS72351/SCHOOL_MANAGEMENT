@@ -31,6 +31,9 @@ SCHEMA_UPDATES = (
     {"table": "business_transactions", "description": "Add is_deleted column", "sql": "ALTER TABLE business_transactions ADD COLUMN is_deleted BOOLEAN DEFAULT 0;"},
     {"table": "business_transactions", "description": "Add deleted_at column", "sql": "ALTER TABLE business_transactions ADD COLUMN deleted_at DATETIME;"},
     {"table": "business_transactions", "description": "Add deleted_by_id column", "sql": "ALTER TABLE business_transactions ADD COLUMN deleted_by_id INTEGER;"},
+
+    {"table": "school_fees", "description": "Add class_id column", "sql": "ALTER TABLE school_fees ADD COLUMN class_id INTEGER REFERENCES classes(id);"},
+    {"table": "school_fees", "description": "Add fee_type column", "sql": "ALTER TABLE school_fees ADD COLUMN fee_type VARCHAR(30) DEFAULT 'tuition';"},
 )
 
 if __name__ == "__main__":

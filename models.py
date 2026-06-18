@@ -750,21 +750,25 @@ class Payroll(db.Model):
 
 class SchoolFee(db.Model):
     """
-    Configuration Model: Sets up the base tuition fee amount required 
-    for a specific academic year.
+    Configuration Model: Tuition and per-class registration fees for an academic year.
+    When class_id is null, amount applies as the year-wide tuition default.
+    When fee_type is 'registration', amount is the registration fee for that class/year.
     """
     __tablename__ = "school_fees"
 
     id = db.Column(db.Integer, primary_key=True)
     academic_year_id = db.Column(db.Integer, db.ForeignKey("academic_years.id", ondelete="CASCADE"), nullable=False)
+    class_id = db.Column(db.Integer, db.ForeignKey("classes.id", ondelete="CASCADE"), nullable=True)
+    fee_type = db.Column(db.String(30), default="tuition", nullable=False)
     amount = db.Column(db.Numeric(10, 2), nullable=False)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
 
-    # Relationships
     academic_year = db.relationship("AcademicYear", backref=db.backref("fees_records", lazy="dynamic", cascade="all, delete-orphan"))
+    klass = db.relationship("Class", backref=db.backref("fee_schedules", lazy="dynamic"))
 
     def __repr__(self):
-        return f"<SchoolFee ID {self.id} | Year ID {self.academic_year_id} | Amount: {self.amount}>"
+        label = f"Class {self.class_id}" if self.class_id else "Year-wide"
+        return f"<SchoolFee {self.fee_type} | Year {self.academic_year_id} | {label} | ${self.amount}>"
 
 
 class StudentPayment(db.Model):

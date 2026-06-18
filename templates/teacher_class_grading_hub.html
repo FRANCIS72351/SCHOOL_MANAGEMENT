@@ -85,8 +85,8 @@
         <p class="text-muted small mb-0">
             Activities for <strong>{{ selected_subject }}</strong> · {{ period_label }} — grade submissions, then publish period totals on the MoE tab.
         </p>
-        <a href="{{ url_for('teacher_dashboard', tab='activities') }}#assign-classroom-activity" class="btn btn-sm btn-outline-primary">
-            <i class="bi bi-plus-lg me-1"></i>New Activity
+        <a href="{{ url_for('teacher_dashboard', tab='grades', grade_class_id=klass.id, grade_subject=selected_subject, grade_period=selected_period) }}" class="btn btn-sm btn-outline-primary">
+            <i class="bi bi-pencil-square me-1"></i>Period Grade Sheet
         </a>
     </div>
 
@@ -120,7 +120,7 @@
     <div class="text-center py-5 bg-white rounded shadow-sm">
         <i class="bi bi-journal-x fs-1 text-muted mb-2 d-block"></i>
         <p class="text-muted mb-2">No activities for {{ selected_subject }} in {{ period_label }} yet.</p>
-        <a href="{{ url_for('teacher_dashboard', tab='activities') }}" class="btn btn-primary btn-sm">Assign from Dashboard</a>
+        <a href="{{ url_for('teacher_dashboard', tab='grades', grade_class_id=klass.id, grade_subject=selected_subject, grade_period=selected_period) }}" class="btn btn-primary btn-sm">Enter Period Grades</a>
     </div>
     {% endif %}
 

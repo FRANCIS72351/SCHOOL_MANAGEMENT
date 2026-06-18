@@ -20,8 +20,8 @@
             <a href="{{ url_for('grade_entry_class', class_id=klass.id) }}" class="btn btn-cyber-sm">
                 <i class="bi bi-pencil-square me-1"></i>Grade Entry
             </a>
-            <a href="{{ url_for('teacher_dashboard') }}#assign-classroom-activity" class="btn btn-cyber-sm">
-                <i class="bi bi-send me-1"></i>Assign Activity
+            <a href="{{ url_for('teacher_dashboard', tab='grades', grade_class_id=klass.id) }}" class="btn btn-cyber-sm">
+                <i class="bi bi-pencil-square me-1"></i>Period Grades
             </a>
             <a href="{{ url_for('teacher_class_folder', class_id=klass.id) }}" class="btn btn-outline-light btn-sm">
                 <i class="bi bi-folder2-open me-1"></i>Class Folder

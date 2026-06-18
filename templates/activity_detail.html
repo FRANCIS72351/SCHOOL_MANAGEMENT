@@ -12,8 +12,8 @@
                     <i class="bi bi-arrow-left me-1"></i>Back to Grading Hub
                 </a>
                 {% else %}
-                <a href="{{ url_for('teacher_dashboard', tab='activities') }}" class="text-white-50 small text-decoration-none d-inline-block mb-2">
-                    <i class="bi bi-arrow-left me-1"></i>Back to Activities
+                <a href="{{ url_for('teacher_dashboard', tab='grades') }}" class="text-white-50 small text-decoration-none d-inline-block mb-2">
+                    <i class="bi bi-arrow-left me-1"></i>Back to Grade Entry
                 </a>
                 {% endif %}
                 <h1 class="h4 fw-bold mb-2">{{ activity.title }}</h1>

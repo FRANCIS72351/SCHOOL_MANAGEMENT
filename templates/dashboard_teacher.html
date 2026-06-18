@@ -44,13 +44,14 @@
 
     <div class="grading-workflow-banner">
         <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
-            <strong class="text-white"><i class="bi bi-diagram-3 me-2"></i>Grading Workflow</strong>
-            <span class="small opacity-75">Assign → Grade work → Publish to report card</span>
+            <strong class="text-white"><i class="bi bi-diagram-3 me-2"></i>Period Grade Entry</strong>
+            <span class="small opacity-75">Class → Subject &amp; Period → Enter scores → Save or publish</span>
         </div>
         <ol class="workflow-steps">
-            <li><span class="step-num">1</span> Assign activities to your class</li>
-            <li><span class="step-num">2</span> Grade submissions (draft standing updates automatically)</li>
-            <li><span class="step-num">3</span> Review on MoE sheet &amp; publish to report card</li>
+            <li><span class="step-num">1</span> Select your class</li>
+            <li><span class="step-num">2</span> Choose subject &amp; marking period</li>
+            <li><span class="step-num">3</span> Enter CA (max 60) &amp; exam (max 40) scores</li>
+            <li><span class="step-num">4</span> Save draft or publish to report cards</li>
         </ol>
     </div>
 
@@ -60,12 +61,12 @@
             <div class="stat-label">My Classes</div>
         </div>
         <div class="grading-stat-card">
-            <div class="stat-value">{{ activities|length }}</div>
-            <div class="stat-label">Activities</div>
+            <div class="stat-value">{{ assigned_subjects|length }}</div>
+            <div class="stat-label">My Subjects</div>
         </div>
         <div class="grading-stat-card">
-            <div class="stat-value text-warning">{{ pending_grading_count|default(0) }}</div>
-            <div class="stat-label">Awaiting Grade</div>
+            <div class="stat-value text-success">{{ published_grade_count|default(0) }}</div>
+            <div class="stat-label">Published</div>
         </div>
         <div class="grading-stat-card">
             <div class="stat-value">{{ grades|length }}</div>
@@ -82,15 +83,8 @@
         </li>
         <li class="nav-item">
             <a class="nav-link {% if active_tab == 'grades' %}active{% endif %}"
-               href="{{ url_for('teacher_dashboard', tab='grades', grade_class_id=grade_class_id) }}">
+               href="{{ url_for('teacher_dashboard', tab='grades', grade_class_id=grade_class_id, grade_subject=grade_subject, grade_period=grade_period) }}">
                 <i class="bi bi-pencil-square me-1"></i>Grade Entry
-            </a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link {% if active_tab == 'activities' %}active{% endif %}"
-               href="{{ url_for('teacher_dashboard', tab='activities', grade_class_id=grade_class_id) }}">
-                <i class="bi bi-list-task me-1"></i>Activities &amp; Grading
-                {% if pending_grading_count %}<span class="tab-badge bg-warning text-dark">{{ pending_grading_count }}</span>{% endif %}
             </a>
         </li>
     </ul>
@@ -218,106 +212,228 @@
     <div class="tab-pane {% if active_tab == 'grades' %}show active{% endif %}" id="tab-grades">
         <div class="row g-4">
         <div class="col-lg-12">
-    <div class="card dashboard-card h-100">
+    <div class="card dashboard-card h-100" id="gradeEntryCard">
         <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
-            <h5 class="mb-0 text-white"><i class="bi bi-file-earmark-plus me-2 text-cyber"></i>MoE Quick Grade Entry</h5>
-            {% if grade_class_id %}
-            <a href="{{ url_for('class_grading_hub', class_id=grade_class_id) }}" class="btn btn-cyber-sm">
-                <i class="bi bi-mortarboard me-1"></i> Grading Hub
-            </a>
-            {% endif %}
+            <h5 class="mb-0 text-white"><i class="bi bi-table me-2 text-cyber"></i>Period Grade Sheet</h5>
+            <div class="d-flex align-items-center gap-2">
+                <span class="grade-loading-spinner" id="gradeLoadingSpinner" aria-live="polite">
+                    <span class="spinner-border spinner-border-sm text-cyan" role="status" aria-hidden="true"></span>
+                    Loading…
+                </span>
+                {% if grade_class_id %}
+                <a href="{{ url_for('class_grading_hub', class_id=grade_class_id, subject=grade_subject, period=grade_period) }}" class="btn btn-cyber-sm">
+                    <i class="bi bi-mortarboard me-1"></i> Full Grading Hub
+                </a>
+                {% endif %}
+            </div>
         </div>
                 <div class="card-body p-4">
+                    {% set step_class = 1 if grade_class_id else 0 %}
+                    {% set step_subject = 1 if selected_grade_class and grade_entry_subjects and grade_subject else 0 %}
+                    {% set step_scores = 1 if grade_entry_students else 0 %}
+                    <div class="grade-entry-flow" aria-label="Grade entry steps">
+                        <div class="grade-entry-step {% if step_class %}done{% elif class_cards %}active{% endif %}">
+                            <span class="step-icon">1</span>
+                            <span>Select class</span>
+                        </div>
+                        <div class="grade-entry-step {% if step_scores %}done{% elif step_subject %}active{% endif %}">
+                            <span class="step-icon">2</span>
+                            <span>Subject &amp; period</span>
+                        </div>
+                        <div class="grade-entry-step {% if step_scores %}active{% endif %}">
+                            <span class="step-icon">3</span>
+                            <span>Enter scores</span>
+                        </div>
+                        <div class="grade-entry-step">
+                            <span class="step-icon">4</span>
+                            <span>Save / publish</span>
+                        </div>
+                    </div>
+
+                    <div class="grade-entry-sticky" id="gradeEntrySticky">
                     {% if class_cards %}
-                    <div class="grade-class-tabs mb-4">
-                        <div class="text-blue small mb-2 fw-semibold text-uppercase" style="letter-spacing:0.04em;">Your Classes</div>
-                        <div class="d-flex flex-wrap gap-2">
+                    <div class="grade-class-tabs">
+                        <div class="text-blue small mb-2 fw-semibold text-uppercase" style="letter-spacing:0.04em;">Step 1 — Class</div>
+                        <div class="d-flex flex-wrap gap-2" id="gradeClassTabs">
                             {% for card in class_cards %}
-                            <a href="{{ url_for('teacher_dashboard', tab='grades', grade_class_id=card.id) }}#moe-quick-grade-entry"
-                               class="grade-class-tab {% if grade_class_id == card.id %}active{% endif %}">
+                            <a href="{{ url_for('teacher_dashboard', tab='grades', grade_class_id=card.id, grade_subject=grade_subject if grade_class_id == card.id else none, grade_period=grade_period) }}"
+                               class="grade-class-tab grade-nav-link {% if grade_class_id == card.id %}active{% endif %}"
+                               data-loading="true">
                                 <i class="bi bi-folder2-open me-1"></i>{{ card.name }}
-                                <span class="grade-class-tab-meta">G{{ card.grade_level }}{% if card.stream %} · {{ card.stream }}{% endif %}</span>
+                                <span class="grade-class-tab-meta">G{{ card.grade_level }}{% if card.stream %} · {{ card.stream }}{% endif %} · {{ card.student_count }} students</span>
                             </a>
                             {% endfor %}
                         </div>
                     </div>
                     {% endif %}
 
-                    <p class="text-blue small mb-3" id="moe-quick-grade-entry">
-                        {% if selected_grade_class %}
-                        Entering grades for <strong class="text-cyber">{{ selected_grade_class.name }}</strong>.
-                        Switch class using the tabs above, or open the <strong>Full Class Sheet</strong> for bulk entry.
-                        {% else %}
-                        Ask the principal to assign you to a class to use MoE grade entry.
-                        {% endif %}
-                    </p>
-
-                    {% if selected_grade_class and grade_entry_students %}
-                    <form method="POST" action="{{ url_for('add_grade') }}" class="cyber-form">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <input type="hidden" name="activity_type" value="Period Assessment">
+                    {% if selected_grade_class and grade_entry_subjects %}
+                    <form method="GET" action="{{ url_for('teacher_dashboard') }}" class="row g-3 align-items-end mt-3" id="gradeFilterForm">
+                        <input type="hidden" name="tab" value="grades">
                         <input type="hidden" name="grade_class_id" value="{{ grade_class_id }}">
-                        <div class="row g-3">
-                            <div class="col-md-6">
-                                <label for="student" class="form-label">Student</label>
-                                <select id="student" name="student_id" class="form-select custom-select" required>
-                                    <option value="" disabled selected>-- Select Student --</option>
+                        <div class="col-md-5">
+                            <label for="grade_subject" class="form-label">Step 2 — Subject</label>
+                            <select id="grade_subject" name="grade_subject" class="form-select custom-select grade-filter-select">
+                                {% for subject in grade_entry_subjects %}
+                                <option value="{{ subject }}" {% if subject == grade_subject %}selected{% endif %}>{{ subject }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-5">
+                            <label for="grade_period" class="form-label">Marking Period</label>
+                            <select id="grade_period" name="grade_period" class="form-select custom-select grade-filter-select">
+                                {% for period_num, period_name in grading_periods %}
+                                <option value="{{ period_num }}" {% if period_num == grade_period %}selected{% endif %}>{{ period_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <button type="submit" class="btn btn-cyber-sm w-100">
+                                <i class="bi bi-arrow-repeat me-1"></i>Load
+                            </button>
+                        </div>
+                    </form>
+
+                    <div class="grade-entry-context">
+                        <span>
+                            <i class="bi bi-mortarboard me-1 text-cyber"></i>
+                            <strong class="text-cyber">{{ selected_grade_class.name }}</strong>
+                            · {{ grade_subject }} · {{ period_label }}
+                        </span>
+                        <span class="text-muted small">MoE: CA 60 + Exam 40 = 100 · Pass ≥ 70%</span>
+                        {% if grade_student_count %}
+                        <div class="grade-entry-progress-pills ms-md-auto">
+                            <span class="grade-progress-pill">
+                                <i class="bi bi-people"></i> Students
+                                <span class="pill-value">{{ grade_student_count }}</span>
+                            </span>
+                            <span class="grade-progress-pill pill-graded">
+                                <i class="bi bi-pencil"></i> Graded
+                                <span class="pill-value">{{ grade_graded_count }}</span>
+                            </span>
+                            <span class="grade-progress-pill pill-pending">
+                                <i class="bi bi-hourglass-split"></i> Pending
+                                <span class="pill-value">{{ grade_pending_count }}</span>
+                            </span>
+                            <span class="grade-progress-pill pill-published">
+                                <i class="bi bi-send-check"></i> Published
+                                <span class="pill-value">{{ grade_published_count }}</span>
+                            </span>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                    </div><!-- /grade-entry-sticky -->
+
+                    {% if selected_grade_class and grade_entry_subjects %}
+                    {% if grade_entry_students %}
+                    <form method="POST" action="{{ url_for('save_grades', class_id=grade_class_id) }}" id="periodGradesForm">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="subject" value="{{ grade_subject }}">
+                        <input type="hidden" name="period" value="{{ grade_period }}">
+                        <input type="hidden" name="return_to" value="teacher_dashboard">
+
+                        <div class="table-responsive rounded-3 border border-cyber-dim mt-3" id="gradeSheetTableWrap">
+                            <table class="table cyber-table align-middle mb-0 grade-sheet-table">
+                                <thead>
+                                    <tr>
+                                        <th class="ps-4 text-center" style="width:48px">#</th>
+                                        <th>Student</th>
+                                        <th class="text-center">CA <small class="d-block fw-normal opacity-75">Max 60</small></th>
+                                        <th class="text-center">Exam <small class="d-block fw-normal opacity-75">Max 40</small></th>
+                                        <th class="text-center">Total</th>
+                                        <th class="pe-4 text-center">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
                                     {% for s in grade_entry_students %}
-                                        <option value="{{ s.id }}">{{ s.full_name }}</option>
+                                    {% set existing = grade_rows.get(s.id) %}
+                                    <tr data-student-row="{{ s.id }}">
+                                        <td class="ps-4 text-center text-muted">{{ loop.index }}</td>
+                                        <td class="fw-semibold text-yellow" data-label="Student">{{ s.full_name }}</td>
+                                        <td class="text-center" data-label="CA">
+                                            <input type="number" step="0.1" min="0" max="60"
+                                                   name="ca_{{ s.id }}"
+                                                   value="{{ existing.ca_score if existing and existing.ca_score is not none else '' }}"
+                                                   class="form-control custom-input ca-input score-input mx-auto text-center"
+                                                   style="width:88px" data-student="{{ s.id }}"
+                                                   data-row-index="{{ loop.index }}"
+                                                   placeholder="—"
+                                                   aria-label="CA score for {{ s.full_name }}">
+                                        </td>
+                                        <td class="text-center" data-label="Exam">
+                                            <input type="number" step="0.1" min="0" max="40"
+                                                   name="exam_{{ s.id }}"
+                                                   value="{{ existing.exam_score if existing and existing.exam_score is not none else '' }}"
+                                                   class="form-control custom-input exam-input score-input mx-auto text-center"
+                                                   style="width:88px" data-student="{{ s.id }}"
+                                                   data-row-index="{{ loop.index }}"
+                                                   placeholder="—"
+                                                   aria-label="Exam score for {{ s.full_name }}">
+                                        </td>
+                                        <td class="text-center" data-label="Total">
+                                            <span id="total_{{ s.id }}" class="period-total-badge" data-pass-threshold="70">
+                                                {% if existing and existing.score is not none %}{{ '%.1f'|format(existing.score) }}{% else %}—{% endif %}
+                                            </span>
+                                        </td>
+                                        <td class="pe-4 text-center" data-label="Status">
+                                            {% if existing and existing.submitted %}
+                                            <span class="status-indicator status-committed"><span class="dot"></span> Published</span>
+                                            {% elif existing %}
+                                            <span class="status-indicator status-draft"><span class="dot"></span> Draft</span>
+                                            {% else %}
+                                            <span class="text-muted small">Pending</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
                                     {% endfor %}
-                                </select>
-                            </div>
+                                </tbody>
+                            </table>
+                        </div>
 
-                            <div class="col-md-6">
-                                <label for="subject" class="form-label">Subject Course</label>
-                                <select id="subject" name="subject" class="form-select custom-select" required>
-                                    <option value="" disabled selected>-- Select Subject --</option>
-                                    {% for subject in grade_entry_subjects %}
-                                        <option value="{{ subject }}">{{ subject }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-
-                            <div class="col-md-4">
-                                <label for="period" class="form-label">Marking Period</label>
-                                <select id="period" name="period" class="form-select custom-select" required>
-                                    <option value="" disabled selected>-- Select Period --</option>
-                                    {% for period_num, period_name in grading_periods %}
-                                        <option value="{{ period_num }}">{{ period_name }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-
-                            <div class="col-md-4">
-                                <label for="ca_score" class="form-label">CA Score (Max 60)</label>
-                                <input type="number" step="0.1" min="0" max="60" id="ca_score" name="ca_score" class="form-control custom-input" placeholder="0.0">
-                            </div>
-
-                            <div class="col-md-4">
-                                <label for="exam_score" class="form-label">Exam Score (Max 40 / 100)</label>
-                                <input type="number" step="0.1" min="0" max="100" id="exam_score" name="exam_score" class="form-control custom-input" placeholder="0.0">
-                            </div>
-
-                            <div class="col-12 mt-4 d-flex align-items-center justify-content-between">
-                                <div class="form-check custom-checkbox">
-                                    <input type="checkbox" class="form-check-input" id="submitCheck" name="submitted" checked hidden-checkbox>
-                                    <label class="form-check-label check-toggle" for="submitCheck">
-                                        <span class="box"></span> Commit Record <small class="text-muted d-block text-xs">(Uncheck to save as Draft)</small>
-                                    </label>
+                        <div class="grade-action-bar">
+                            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+                                <div class="action-hint">
+                                    <strong>Save Draft</strong> — keeps scores private; you can edit later.<br>
+                                    <strong>Publish to Report Card</strong> — sends {{ period_label }} grades to student report cards.
                                 </div>
-                                <button type="submit" class="btn btn-cyber-primary px-4"><i class="bi bi-save me-2"></i>Save Grade</button>
+                                <div class="d-flex flex-wrap gap-2">
+                                    <button type="submit" name="publish_action" value="draft" class="btn btn-cyber-sm px-4" id="saveDraftBtn">
+                                        <i class="bi bi-save me-2"></i>Save Draft
+                                    </button>
+                                    <button type="submit" name="publish_action" value="publish" class="btn btn-cyber-primary px-4" id="publishGradesBtn"
+                                            data-period-label="{{ period_label }}">
+                                        <i class="bi bi-send-check me-2"></i>Publish to Report Card
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </form>
+                    {% else %}
+                    <div class="grade-empty-state mt-3">
+                        <i class="bi bi-people empty-icon"></i>
+                        <h6>No students in this class</h6>
+                        <p>{{ selected_grade_class.name }} has no enrolled students yet. Check back after registration.</p>
+                    </div>
+                    {% endif %}
+
                     {% elif selected_grade_class %}
-                    <div class="text-center text-blue py-4 small">
-                        <i class="bi bi-people d-block fs-3 mb-2 opacity-50"></i>
-                        No students in {{ selected_grade_class.name }} yet.
+                    <div class="grade-empty-state mt-3">
+                        <i class="bi bi-book empty-icon"></i>
+                        <h6>No subjects assigned</h6>
+                        <p>You have no subject allocation for {{ selected_grade_class.name }}. Ask the principal to set up your subjects.</p>
                     </div>
                     {% elif not class_cards %}
-                    <div class="text-center text-blue py-4 small">
-                        <i class="bi bi-inbox d-block fs-3 mb-2 opacity-50"></i>
-                        No class assignments yet.
+                    <div class="grade-empty-state mt-3">
+                        <i class="bi bi-inbox empty-icon"></i>
+                        <h6>No class assignments yet</h6>
+                        <p>Ask the principal to assign you to a class or subject in <strong>Provision Core Class</strong>.</p>
+                    </div>
+                    {% else %}
+                    <div class="grade-empty-state mt-3">
+                        <i class="bi bi-folder2-open empty-icon"></i>
+                        <h6>Select a class to begin</h6>
+                        <p>Choose one of your assigned classes above to enter period grades.</p>
                     </div>
                     {% endif %}
                 </div>
@@ -360,7 +476,7 @@
                         <tr>
                             <td colspan="5" class="text-center text-muted py-5">
                                 <i class="bi bi-inbox-fill d-block fs-2 mb-2 text-cyber-dim"></i>
-                                No grade records yet. Grade student work or use the MoE sheet.
+                                No grade records yet. Enter period grades above or use the Full Grading Hub.
                             </td>
                         </tr>
                         {% endfor %}
@@ -372,270 +488,6 @@
         </div>
     </div>
     </div><!-- /tab-grades -->
-
-    <div class="tab-pane {% if active_tab == 'activities' %}show active{% endif %}" id="tab-activities">
-
-    <div class="card dashboard-card my-4" id="assign-classroom-activity">
-        <div class="card-header d-flex align-items-center justify-content-between">
-            <h5 class="mb-0 text-white"><i class="bi bi-send-check me-2 text-cyber"></i>Assign Classroom Activity</h5>
-            <span class="badge bg-secondary rounded-pill">{{ activities|length }}</span>
-        </div>
-        <div class="card-body p-4">
-            {% if teaching_classes %}
-            <form method="POST" action="{{ url_for('assign_activity') }}" enctype="multipart/form-data" class="cyber-form" id="assignActivityForm">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <div class="row g-3">
-                    <div class="col-md-4">
-                        <label for="assign_klass_id" class="form-label">Target Class</label>
-                        <select id="assign_klass_id" name="klass_id" class="form-select custom-select" required>
-                            <option value="" disabled selected>-- Select Class --</option>
-                            {% for klass in teaching_classes %}
-                                <option value="{{ klass.id }}">{{ klass.name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="col-md-4">
-                        <label for="assign_subject_name" class="form-label">Subject</label>
-                        <select id="assign_subject_name" name="subject_name" class="form-select custom-select" disabled>
-                            <option value="" disabled selected>-- Select class first --</option>
-                        </select>
-                        <div id="assign_subject_hint" class="form-text text-blue small mt-1">Subjects update when you pick a class.</div>
-                    </div>
-                    <div class="col-md-4">
-                        <label for="marking_period" class="form-label">Marking Period</label>
-                        <select id="marking_period" name="marking_period" class="form-select custom-select" required>
-                            {% for period_num, period_name in grading_periods[:6] %}
-                            <option value="{{ period_num }}">{{ period_name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="col-md-6">
-                        <label for="title" class="form-label">Activity Title</label>
-                        <input type="text" id="title" name="title" class="form-control custom-input" placeholder="e.g. Chapter 3 Quiz" required>
-                    </div>
-                    <div class="col-md-6">
-                        <label for="evaluation_type" class="form-label">Evaluation Type</label>
-                        <select id="evaluation_type" name="evaluation_type" class="form-select custom-select" required>
-                            <option value="Assignment">Assignment</option>
-                            <option value="Class Work">Class Work</option>
-                            <option value="Quiz">Quiz</option>
-                            <option value="Test">Test</option>
-                            <option value="Exam">Period Exam</option>
-                        </select>
-                    </div>
-                    <div class="col-12">
-                        <label for="description" class="form-label">Instructions</label>
-                        <textarea id="description" name="description" class="form-control custom-input" rows="2" placeholder="What should students do?"></textarea>
-                    </div>
-                    <div class="col-md-4">
-                        <label for="submission_mode" class="form-label">How Students Submit</label>
-                        <select id="submission_mode" name="submission_mode" class="form-select custom-select" required>
-                            <option value="file_upload">Upload File</option>
-                            <option value="text_entry">Type Answers Online</option>
-                        </select>
-                    </div>
-                    <div class="col-md-8">
-                        <label for="task_file" class="form-label">Assignment File for Students to Download</label>
-                        <input type="file" id="task_file" name="task_file" class="form-control custom-input">
-                        <div class="form-text text-blue small">Upload the worksheet, PDF, or instructions file — students see a <strong>Download Assignment</strong> button on their dashboard.</div>
-                    </div>
-                    <div class="col-12">
-                        <p class="text-blue small mb-2">When you grade submissions, scores auto-calculate a <strong>draft</strong> period standing. Publish from the MoE Grade Entry sheet.</p>
-                    </div>
-                    <div class="col-12 text-end mt-2">
-                        <button type="submit" id="assignActivityBtn" class="btn btn-cyber-primary px-4"><i class="bi bi-send me-2"></i>Assign to Class</button>
-                    </div>
-                </div>
-            </form>
-            {% else %}
-            <div class="text-center text-blue py-4 small">
-                <i class="bi bi-inbox d-block fs-3 mb-2 opacity-50"></i>
-                No classes assigned yet. Ask the principal to link you to a class before assigning activities.
-            </div>
-            {% endif %}
-        </div>
-    </div>
-
-    <div class="card dashboard-card mb-4">
-        <div class="card-header d-flex align-items-center justify-content-between">
-            <h5 class="mb-0 text-white"><i class="bi bi-list-task me-2 text-cyber"></i>Assigned Activities</h5>
-            <span class="badge bg-secondary rounded-pill">{{ activities|length }}</span>
-        </div>
-        <div class="card-body p-4">
-            {% if activities %}
-            <div class="table-responsive">
-                <table class="table cyber-table align-middle mb-0">
-                    <thead>
-                        <tr>
-                            <th class="ps-4">Activity</th>
-                            <th>Subject</th>
-                            <th>Period</th>
-                            <th>Type</th>
-                            <th class="pe-4 text-end">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for activity in activities %}
-                        <tr>
-                            <td class="ps-4 fw-semibold text-white">{{ activity.title }}</td>
-                            <td>{{ activity.subject_name or '—' }}</td>
-                            <td>P{{ activity.marking_period or 1 }}</td>
-                            <td>{{ activity.activity_type or 'Assignment' }}</td>
-                            <td class="pe-4 text-end">
-                                <a href="{{ url_for('activity_detail', assessment_id=activity.id) }}" class="btn btn-sm btn-cyber-primary me-1">
-                                    <i class="bi bi-pencil-square me-1"></i>Set Scores
-                                </a>
-                                {% if activity.klass %}
-                                <a href="{{ url_for('class_grading_hub', class_id=activity.klass_id, subject=activity.subject_name, period=activity.marking_period or 1, hub_tab='moe') }}" class="btn btn-sm btn-outline-light">Period Grades</a>
-                                {% endif %}
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            {% else %}
-            <div class="text-center text-muted small py-4">
-                No active activities are assigned to your classes yet.
-            </div>
-            {% endif %}
-        </div>
-    </div>
-
-    <div class="card dashboard-card mb-4">
-        <div class="card-header d-flex align-items-center justify-content-between">
-            <h5 class="mb-0 text-white"><i class="bi bi-journal-check me-2 text-cyber"></i>Recent Activity Submissions</h5>
-            <span class="badge bg-secondary rounded-pill">{{ recent_submissions|length }}</span>
-        </div>
-        <div class="card-body p-4">
-            {% if recent_submissions %}
-            <div class="table-responsive">
-                <table class="table cyber-table align-middle mb-0">
-                    <thead>
-                        <tr>
-                            <th class="ps-4">Student</th>
-                            <th>Activity</th>
-                            <th>Class</th>
-                            <th>Submitted</th>
-                            <th>Score</th>
-                            <th class="pe-4 text-end">Grade</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for submission in recent_submissions %}
-                        <tr>
-                            <td class="ps-4 fw-semibold text-white">{{ submission.student.full_name }}</td>
-                            <td>
-                                {% if submission.assessment %}
-                                <a href="{{ url_for('activity_detail', assessment_id=submission.assessment.id) }}" class="text-info text-decoration-none">
-                                    {{ submission.assessment.title }}
-                                </a>
-                                {% else %}
-                                Submission
-                                {% endif %}
-                            </td>
-                            <td>{{ submission.assessment.klass.name if submission.assessment and submission.assessment.klass else '—' }}</td>
-                            <td>{{ submission.submitted_at.strftime('%Y-%m-%d %H:%M') }}</td>
-                            <td class="font-monospace">
-                                {% if submission.is_graded %}
-                                    {{ submission.score }}/{{ submission.assessment.max_score if submission.assessment else 100 }}
-                                {% else %}
-                                    <span class="badge bg-warning text-dark">Pending</span>
-                                {% endif %}
-                            </td>
-                            <td class="pe-4 text-end">
-                                {% if submission.assessment %}
-                                <form method="POST" action="{{ url_for('grade_submission', submission_id=submission.id) }}" class="d-inline-flex align-items-center">
-                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                    <input type="number" name="score" step="0.1" min="0" max="{{ submission.assessment.max_score or 100 }}"
-                                           value="{{ submission.score if submission.is_graded else '' }}"
-                                           class="form-control form-control-sm" style="width:80px" placeholder="Score" required>
-                                    <button type="submit" class="btn btn-sm btn-outline-success ms-1">Save</button>
-                                </form>
-                                {% endif %}
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            {% else %}
-            <div class="text-center text-muted small py-4">
-                No submitted assignments or tasks have been received for your classes yet.
-            </div>
-            {% endif %}
-        </div>
-    </div>
-
-    <div class="card dashboard-card my-5 border-cyber-glow">
-        <div class="card-header bg-cyber-gradient d-flex align-items-center justify-content-between py-3">
-            <h5 class="mb-0 text-white fw-bold tracking-wide">
-                <i class="bi bi-cpu me-2 machine-pulse"></i>AI GRADING PORTAL: COGNITIVE VISION ENGINE
-            </h5>
-            <span class="badge bg-dark border border-cyber text-cyber font-mono text-xs px-3 py-2">MODALITY: OCR SCAN</span>
-        </div>
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table cyber-table align-middle mb-0">
-                    <thead>
-                        <tr>
-                            <th class="ps-4">Student Identity</th>
-                            <th>Submitted Activity</th>
-                            <th class="text-center">AI Score Result</th>
-                            <th class="pe-4 text-end">Execution Pipeline</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for submission in ai_scan_queue %}
-                        <tr id="row-submission-{{ submission.id }}">
-                            <td class="ps-4 fw-semibold text-yellow">{{ submission.student.full_name }}</td>
-                            <td>
-                                <div class="submission-asset">
-                                    <div class="fw-semibold text-cyber-light small">
-                                        {% if submission.assessment %}
-                                        <a href="{{ url_for('activity_detail', assessment_id=submission.assessment.id) }}" class="text-info text-decoration-none">
-                                            {{ submission.assessment.title }}
-                                        </a>
-                                        {% else %}
-                                        Activity
-                                        {% endif %}
-                                    </div>
-                                    <div class="small text-muted mt-1">
-                                        <i class="bi bi-file-earmark-check text-success me-1"></i>
-                                        Submitted {{ submission.submitted_at.strftime('%b %d, %Y %H:%M') }}
-                                    </div>
-                                    {% if submission.file_path %}
-                                    <a href="{{ url_for('teacher_download_submission', submission_id=submission.id) }}" class="small text-info text-decoration-none">
-                                        <i class="bi bi-download me-1"></i>View submitted work
-                                    </a>
-                                    {% endif %}
-                                </div>
-                            </td>
-                            <td class="text-center">
-                                <div class="inference-output" id="suggested-{{ submission.id }}">--</div>
-                            </td>
-                            <td class="pe-4 text-end">
-                                <button type="button" class="btn-scan" id="btn-{{ submission.id }}" data-submission-id="{{ submission.id }}">
-                                    <i class="bi bi-lightning-charge me-1"></i> SCAN
-                                </button>
-                            </td>
-                        </tr>
-                        {% else %}
-                        <tr>
-                            <td colspan="4" class="text-center text-muted py-5">
-                                <i class="bi bi-inbox d-block fs-2 mb-2 text-cyber-dim"></i>
-                                No student file submissions are waiting for AI scan yet.
-                                <div class="small mt-2">Students must upload their assignment first. Scanned scores will appear here and in Recent Activity Submissions.</div>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
-    </div><!-- /tab-activities -->
     </div><!-- /tab-content -->
 
 </div>
@@ -662,7 +514,6 @@
     .teacher-terminal .text-gray-800,
     .teacher-terminal label,
     .teacher-terminal .form-label,
-    .teacher-terminal .drop-zone-text,
     .teacher-terminal .cyber-table td,
     .teacher-terminal .list-group-item.text-muted,
     .teacher-terminal small.text-muted {
@@ -914,10 +765,6 @@
     }
     .bg-cyber-dim { background: rgba(0, 242, 255, 0.08); }
 
-    /* INTERACTIVE OCR INGUST PORTAL */
-    .border-cyber-glow { border: 1px solid var(--cyber-cyan); box-shadow: 0 0 20px rgba(0, 242, 255, 0.15); }
-    .bg-cyber-gradient { background: linear-gradient(90deg, rgba(0,242,255,0.1) 0%, rgba(0,0,0,0) 100%); }
-    
     .cyber-table { color: var(--cyber-blue); }
     .cyber-table thead th {
         background: rgba(0,0,0,0.3);
@@ -933,63 +780,6 @@
         transition: background 0.2s;
     }
     .cyber-table tbody tr:hover { background: rgba(0, 242, 255, 0.02); }
-
-    .submission-asset {
-        max-width: 320px;
-        padding: 8px 10px;
-        border: 1px solid rgba(0, 242, 255, 0.15);
-        border-radius: 6px;
-        background: rgba(0, 242, 255, 0.03);
-    }
-
-    .drop-zone {
-        width: 100%;
-        max-width: 280px;
-        padding: 10px;
-        border: 1px dashed rgba(0, 242, 255, 0.3);
-        border-radius: 6px;
-        background: rgba(0, 242, 255, 0.02);
-        transition: all 0.3s ease;
-        cursor: pointer;
-        text-align: center;
-    }
-    .drop-zone.dragover {
-        border-color: var(--cyber-cyan);
-        background: rgba(0, 242, 255, 0.12);
-        box-shadow: inset 0 0 10px rgba(0,242,255,0.2);
-    }
-    .drop-zone-text {
-        color: var(--cyber-blue);
-        font-size: 0.7rem;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        display: block;
-    }
-    
-    .inference-output {
-        font-family: 'Courier New', monospace;
-        font-weight: bold;
-        color: var(--cyber-cyan);
-        font-size: 1.1rem;
-        text-shadow: 0 0 5px rgba(0,242,255,0.5);
-    }
-
-    .btn-scan {
-        background: transparent;
-        color: var(--cyber-cyan);
-        border: 1px solid var(--cyber-cyan);
-        border-radius: 4px;
-        padding: 6px 16px;
-        font-family: 'Courier New', monospace;
-        font-weight: bold;
-        font-size: 0.8rem;
-        transition: all 0.25s ease;
-    }
-    .btn-scan:hover {
-        background: var(--cyber-cyan);
-        color: #000;
-        box-shadow: var(--cyber-glow);
-    }
 
     /* DOSSIER & DIRECTORIES */
     .dossier-card {
@@ -1040,133 +830,182 @@
     .status-draft { color: #fbbf24; }
     .status-draft .dot { background-color: #fbbf24; box-shadow: 0 0 8px #fbbf24; }
 
-    /* HARDWARE KEYFRAME NEURAL SYSTEM REPLICATION */
-    @keyframes pulse-card {
-        0% { border-color: rgba(0, 242, 255, 0.2); box-shadow: 0 0 20px rgba(0, 242, 255, 0.15); }
-        50% { border-color: rgba(0, 242, 255, 0.8); box-shadow: 0 0 30px rgba(0, 242, 255, 0.45); }
-        100% { border-color: rgba(0, 242, 255, 0.2); box-shadow: 0 0 20px rgba(0, 242, 255, 0.15); }
+    .period-total-badge {
+        display: inline-block;
+        min-width: 52px;
+        padding: 0.35rem 0.5rem;
+        border-radius: 6px;
+        background: rgba(0, 242, 255, 0.1);
+        color: #80f9ff;
+        font-family: 'Courier New', monospace;
+        font-weight: 700;
     }
-    .dashboard-pulse { animation: pulse-card 1s ease-in-out 3; }
+    .period-total-badge.invalid {
+        background: rgba(239, 68, 68, 0.15);
+        color: #f87171;
+        border: 1px solid rgba(239, 68, 68, 0.35);
+    }
+    .period-total-badge.pass {
+        background: rgba(74, 222, 128, 0.15);
+        color: #4ade80;
+        border: 1px solid rgba(74, 222, 128, 0.35);
+    }
+    .period-total-badge.fail {
+        background: rgba(239, 68, 68, 0.15);
+        color: #f87171;
+        border: 1px solid rgba(239, 68, 68, 0.35);
+    }
+    .period-total-badge.partial {
+        background: rgba(251, 191, 36, 0.12);
+        color: #fbbf24;
+        border: 1px solid rgba(251, 191, 36, 0.3);
+    }
 
-    @keyframes machine-blink {
-        0%, 100% { opacity: 1; }
-        50% { opacity: 0.4; }
+    .score-input:focus {
+        transform: scale(1.02);
     }
-    .machine-pulse { animation: machine-blink 2s infinite ease-in-out; }
+
 </style>
 
-<script id="class-subjects-data" type="application/json">{{ class_subjects_by_id | default({}) | tojson }}</script>
 <script>
-    const classSubjectsById = JSON.parse(document.getElementById('class-subjects-data').textContent);
+(function() {
+    const PASS_THRESHOLD = 70;
 
-    (function initAssignActivityForm() {
-        const classSelect = document.getElementById('assign_klass_id');
-        const subjectSelect = document.getElementById('assign_subject_name');
-        const subjectHint = document.getElementById('assign_subject_hint');
-        const assignBtn = document.getElementById('assignActivityBtn');
-        if (!classSelect || !subjectSelect) {
+    function updateTotalBadge(studentId) {
+        const caInput = document.querySelector('input[name="ca_' + studentId + '"]');
+        const examInput = document.querySelector('input[name="exam_' + studentId + '"]');
+        const totalBadge = document.getElementById('total_' + studentId);
+        if (!caInput || !examInput || !totalBadge) return;
+
+        const ca = parseFloat(caInput.value);
+        const exam = parseFloat(examInput.value);
+        const caVal = isNaN(ca) ? 0 : ca;
+        const examVal = isNaN(exam) ? 0 : exam;
+
+        totalBadge.classList.remove('invalid', 'pass', 'fail', 'partial');
+
+        if (caInput.value === '' && examInput.value === '') {
+            totalBadge.textContent = '—';
             return;
         }
-
-        function refreshSubjectOptions(classId) {
-            const subjects = classSubjectsById[String(classId)] || [];
-            subjectSelect.innerHTML = '';
-            const placeholder = document.createElement('option');
-            placeholder.value = '';
-            placeholder.disabled = true;
-            placeholder.selected = true;
-            placeholder.textContent = subjects.length ? '-- Select Subject --' : '-- No subjects for this class --';
-            subjectSelect.appendChild(placeholder);
-
-            subjects.forEach(function(subject) {
-                const option = document.createElement('option');
-                option.value = subject;
-                option.textContent = subject;
-                subjectSelect.appendChild(option);
-            });
-
-            const hasSubjects = subjects.length > 0;
-            subjectSelect.disabled = !hasSubjects;
-            subjectSelect.required = hasSubjects;
-            if (assignBtn) {
-                assignBtn.disabled = !hasSubjects;
-            }
-            if (subjectHint) {
-                subjectHint.textContent = hasSubjects
-                    ? subjects.length + ' subject' + (subjects.length === 1 ? '' : 's') + ' available for this class.'
-                    : 'No subjects set up for this class. Ask the principal to assign subjects.';
-            }
+        if (caVal > 60 || examVal > 40) {
+            totalBadge.textContent = 'Invalid';
+            totalBadge.classList.add('invalid');
+            return;
         }
-
-        classSelect.addEventListener('change', function() {
-            refreshSubjectOptions(classSelect.value);
-        });
-
-        if (classSelect.value) {
-            refreshSubjectOptions(classSelect.value);
+        const total = caVal + examVal;
+        totalBadge.textContent = total.toFixed(1);
+        const hasBoth = caInput.value !== '' && examInput.value !== '';
+        if (hasBoth) {
+            totalBadge.classList.add(total >= PASS_THRESHOLD ? 'pass' : 'fail');
+        } else {
+            totalBadge.classList.add('partial');
         }
-    })();
+    }
 
-    document.querySelectorAll('.btn-scan[data-submission-id]').forEach(function(btn) {
-        const submissionId = parseInt(btn.dataset.submissionId, 10);
-        btn.addEventListener('click', function() {
-            runAIScan(submissionId);
+    function initAllTotals() {
+        document.querySelectorAll('.ca-input, .exam-input').forEach(function(input) {
+            if (input.dataset.student) {
+                updateTotalBadge(input.dataset.student);
+            }
         });
+    }
+
+    document.addEventListener('input', function(e) {
+        if (!e.target.classList.contains('ca-input') && !e.target.classList.contains('exam-input')) {
+            return;
+        }
+        updateTotalBadge(e.target.dataset.student);
     });
 
-    function triggerDashboardPulse(submissionId) {
-        const targetRow = document.getElementById(`row-submission-${submissionId}`);
-        if (!targetRow) return;
-        const card = targetRow.closest('.card');
-        if (!card) return;
-        card.classList.add('dashboard-pulse');
-        setTimeout(() => card.classList.remove('dashboard-pulse'), 3000);
+    document.addEventListener('keydown', function(e) {
+        if (e.key !== 'Enter') return;
+        const target = e.target;
+        if (!target.classList.contains('ca-input') && !target.classList.contains('exam-input')) return;
+        e.preventDefault();
+        const rowIndex = parseInt(target.dataset.rowIndex, 10);
+        const isCa = target.classList.contains('ca-input');
+        if (isCa) {
+            const examInRow = document.querySelector(
+                'input.exam-input[data-row-index="' + rowIndex + '"]'
+            );
+            if (examInRow) {
+                examInRow.focus();
+                examInRow.select();
+                return;
+            }
+        }
+        const nextCa = document.querySelector(
+            'input.ca-input[data-row-index="' + (rowIndex + 1) + '"]'
+        );
+        if (nextCa) {
+            nextCa.focus();
+            nextCa.select();
+        }
+    });
+
+    function showGradeLoading() {
+        const spinner = document.getElementById('gradeLoadingSpinner');
+        const sticky = document.getElementById('gradeEntrySticky');
+        const tableWrap = document.getElementById('gradeSheetTableWrap');
+        if (spinner) spinner.classList.add('show');
+        if (sticky) sticky.classList.add('grade-sheet-loading');
+        if (tableWrap) tableWrap.classList.add('grade-sheet-loading');
     }
 
-    function runAIScan(submissionId) {
-        const btn = document.getElementById(`btn-${submissionId}`);
-        btn.disabled = true;
-        btn.innerHTML = `<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> ENGINE SCANNING...`;
-        btn.style.borderColor = "#fbbf24";
-        btn.style.color = "#fbbf24";
+    document.querySelectorAll('.grade-nav-link[data-loading]').forEach(function(link) {
+        link.addEventListener('click', showGradeLoading);
+    });
 
-        triggerDashboardPulse(submissionId);
+    const filterForm = document.getElementById('gradeFilterForm');
+    if (filterForm) {
+        filterForm.querySelectorAll('.grade-filter-select').forEach(function(sel) {
+            sel.addEventListener('change', function() {
+                showGradeLoading();
+                filterForm.submit();
+            });
+        });
+        filterForm.addEventListener('submit', showGradeLoading);
+    }
 
-        const csrfInput = document.querySelector('input[name="csrf_token"]');
-        const csrfToken = csrfInput ? csrfInput.value : '';
-        fetch(`/teacher/scan-submission/${submissionId}`, {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': csrfToken
+    const gradesForm = document.getElementById('periodGradesForm');
+    const publishBtn = document.getElementById('publishGradesBtn');
+    if (gradesForm && publishBtn) {
+        publishBtn.addEventListener('click', function(e) {
+            const periodLabel = publishBtn.dataset.periodLabel || 'this period';
+            const msg = 'Send grades for ' + periodLabel + ' to student report cards?\n\nPublished grades are visible on report cards. You can still edit later if not finalized.';
+            if (!window.confirm(msg)) {
+                e.preventDefault();
             }
-        })
-        .then(response => response.json().then(data => ({ ok: response.ok, data })))
-        .then(({ ok, data }) => {
-            if (ok && data.status === "Success") {
-                document.getElementById(`suggested-${submissionId}`).innerText = data.suggested_grade;
-                btn.innerHTML = `<i class="bi bi-check2-all"></i> GRADED`;
-                btn.style.borderColor = "#4ade80";
-                btn.style.color = "#4ade80";
-                if (data.detected_text_snippet) {
-                    console.log("AI Context Extracted Chunk: " + data.detected_text_snippet);
-                }
-            } else {
-                alert("OCR Parse Error: " + (data.message || "Scan failed."));
-                resetScanButton(btn);
+        });
+        gradesForm.addEventListener('submit', function(e) {
+            const submitter = e.submitter;
+            if (submitter && submitter.id === 'publishGradesBtn') {
+                return;
             }
-        })
-        .catch(error => {
-            console.error("Transmission Error Execution Plan:", error);
-            alert("Inference execution rejected by network gateway.");
-            resetScanButton(btn);
+            showGradeLoading();
         });
     }
 
-    function resetScanButton(btn) {
-        btn.disabled = false;
-        btn.innerHTML = `<i class="bi bi-exclamation-triangle me-1"></i> RETRY PIPELINE`;
-        btn.style.borderColor = "#f87171";
-        btn.style.color = "#f87171";
+    function focusFirstEmptyScore() {
+        const inputs = document.querySelectorAll('#periodGradesForm .ca-input, #periodGradesForm .exam-input');
+        for (let i = 0; i < inputs.length; i++) {
+            if (inputs[i].value === '') {
+                inputs[i].focus();
+                inputs[i].select();
+                return;
+            }
+        }
+        const firstCa = document.querySelector('#periodGradesForm .ca-input');
+        if (firstCa) {
+            firstCa.focus();
+        }
     }
+
+    initAllTotals();
+    if (document.getElementById('periodGradesForm')) {
+        setTimeout(focusFirstEmptyScore, 100);
+    }
+})();
 </script>
 {% endblock %}

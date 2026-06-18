@@ -202,11 +202,9 @@ class RolloverWizardForm(FlaskForm):
     new_year_end = DateField("New Year End", validators=[Optional()])
     apply_promotions = BooleanField("Promote students to next grade level", default=True)
     reset_tuition_cleared = BooleanField("Reset tuition clearance for re-enrolled students", default=True)
-    charge_registration_fee = BooleanField("Record registration fee for each re-enrolled student", default=False)
-    registration_fee_amount = CurrencyField(
-        "Registration Fee Amount",
-        validators=[Optional(), validate_currency],
-        default="0.00",
+    charge_registration_fee = BooleanField(
+        "Post registration fees to business income during rollover",
+        default=False,
     )
     exclude_graduated = BooleanField("Skip students already marked Graduated", default=True)
     exclude_withdrawn = BooleanField("Skip students marked Withdrawn", default=True)
@@ -342,5 +340,29 @@ class CreateUserForm(FlaskForm):
     telephone_number = StringField('Telephone Number', validators=[Optional()])
     photo = FileField('Profile Photo', validators=[FileAllowed(['jpg', 'jpeg', 'png', 'gif'], 'Images only!')])
     submit = SubmitField('Create User')
+
+
+class EditUserForm(FlaskForm):
+    email = StringField('Email', validators=[DataRequired(), Email()])
+    username = StringField('Username', validators=[Optional()])
+    full_name = StringField('Full Name', validators=[DataRequired()])
+    password = PasswordField('New Password (leave blank to keep current)', validators=[Optional()])
+    role = SelectField('Role', choices=[
+        ('admin', 'Admin'),
+        ('teacher', 'Teacher'),
+        ('student', 'Student'),
+        ('parent', 'Parent'),
+        ('business', 'Business Manager'),
+        ('registrar', 'Registrar'),
+        ('principal', 'Principal'),
+        ('vpi', 'VPI'),
+        ('vpa', 'VPA'),
+        ('dean', 'Dean'),
+        ('sponsor', 'Sponsor'),
+    ], validators=[DataRequired()])
+    home_address = StringField('Home Address', validators=[Optional()])
+    telephone_number = StringField('Telephone Number', validators=[Optional()])
+    photo = FileField('Profile Photo', validators=[FileAllowed(['jpg', 'jpeg', 'png', 'gif'], 'Images only!')])
+    submit = SubmitField('Save Changes')
 
 TransactionForm = BusinessTransactionForm
