@@ -91,6 +91,7 @@
                                                 <option value="present" {% if row.attendance_status == 'present' %}selected{% endif %}>Present</option>
                                                 <option value="late" {% if row.attendance_status == 'late' %}selected{% endif %}>Late</option>
                                                 <option value="absent" {% if row.attendance_status == 'absent' %}selected{% endif %}>Absent</option>
+                                                <option value="excused" {% if row.attendance_status == 'excused' %}selected{% endif %}>Excused</option>
                                             </select>
                                         </td>
                                         <td class="text-blue">

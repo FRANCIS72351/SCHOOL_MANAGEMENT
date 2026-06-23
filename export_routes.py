@@ -12,6 +12,21 @@ def _export_role_allowed(*roles):
     return (current_user.role or '').strip().lower() in {r.lower() for r in roles}
 
 
+def _resolve_export_academic_year():
+    """Resolve academic year from query params; default to active year."""
+    year_id = request.args.get('academic_year_id', type=int)
+    year_name = (request.args.get('year') or '').strip()
+    if year_id:
+        year = AcademicYear.query.get(year_id)
+        if year:
+            return year
+    if year_name:
+        year = AcademicYear.query.filter_by(name=year_name).first()
+        if year:
+            return year
+    return AcademicYear.query.filter_by(is_active=True).first()
+
+
 def init_export_routes(app):
     @app.route('/export/students')
     @login_required
@@ -22,13 +37,13 @@ def init_export_routes(app):
             return redirect(url_for('dashboard'))
 
         from sqlalchemy.orm import joinedload
-        year = request.args.get('year')
+        display_year = _resolve_export_academic_year()
         query = Student.query.options(
             joinedload(Student.assigned_class),
             joinedload(Student.academic_year),
         )
-        if year:
-            query = query.join(AcademicYear).filter(AcademicYear.name == year)
+        if display_year:
+            query = query.filter(Student.academic_year_id == display_year.id)
         students = query.order_by(Student.last_name, Student.first_name).all()
 
         # Stream CSV to avoid large memory usage
@@ -68,8 +83,11 @@ def init_export_routes(app):
             return redirect(url_for('dashboard'))
 
         grades_query = Grade.query
-        year = request.args.get('year')
-        if year:
+        display_year = _resolve_export_academic_year()
+        if display_year:
+            grades_query = grades_query.filter_by(academic_year_id=display_year.id)
+        elif request.args.get('year'):
+            year = request.args.get('year')
             grades_query = grades_query.join(Student).join(AcademicYear).filter(AcademicYear.name == year)
         if _export_role_allowed(ROLE_TEACHER) and not _export_role_allowed(ROLE_ADMIN):
             teacher = Teacher.query.filter_by(user_id=current_user.id).first()
@@ -106,13 +124,26 @@ def init_export_routes(app):
     @app.route('/export/attendance')
     @login_required
     def export_attendance():
-        if not _export_role_allowed(ROLE_ADMIN, ROLE_TEACHER):
+        if not _export_role_allowed(ROLE_ADMIN, ROLE_TEACHER, 'principal', ROLE_REGISTRAR):
             flash('Access denied.', 'danger')
             return redirect(url_for('dashboard'))
 
         attendance_query = Attendance.query
-        year = request.args.get('year')
-        if year:
+        display_year = _resolve_export_academic_year()
+        if display_year:
+            year_student_ids = [
+                s.id for s in Student.query.filter(
+                    Student.academic_year_id == display_year.id
+                ).all()
+            ]
+            if year_student_ids:
+                attendance_query = attendance_query.filter(
+                    Attendance.student_id.in_(year_student_ids)
+                )
+            else:
+                attendance_query = attendance_query.filter(Attendance.id == -1)
+        elif request.args.get('year'):
+            year = request.args.get('year')
             attendance_query = (
                 attendance_query.join(Student)
                 .join(AcademicYear)
@@ -127,9 +158,12 @@ def init_export_routes(app):
                 for alloc in ClassSubjectTeacher.query.filter_by(teacher_id=teacher.id).all():
                     class_ids.add(alloc.class_id)
             if class_ids:
-                student_ids = [
-                    s.id for s in Student.query.filter(Student.klass_id.in_(class_ids)).all()
-                ]
+                student_ids_query = Student.query.filter(Student.klass_id.in_(class_ids))
+                if display_year:
+                    student_ids_query = student_ids_query.filter(
+                        Student.academic_year_id == display_year.id
+                    )
+                student_ids = [s.id for s in student_ids_query.all()]
                 if student_ids:
                     attendance_query = attendance_query.filter(Attendance.student_id.in_(student_ids))
                 else:
@@ -163,9 +197,12 @@ def init_export_routes(app):
             flash('Access denied.', 'danger')
             return redirect(url_for('dashboard'))
 
-        year = request.args.get('year')
+        display_year = _resolve_export_academic_year()
         payments_query = StudentPayment.query
-        if year:
+        if display_year:
+            payments_query = payments_query.filter_by(academic_year_id=display_year.id)
+        elif request.args.get('year'):
+            year = request.args.get('year')
             payments_query = payments_query.join(AcademicYear).filter(AcademicYear.name == year)
         payments = payments_query.all()
         def generate():
@@ -317,16 +354,17 @@ def init_export_routes(app):
             return redirect(url_for('dashboard'))
 
         from sqlalchemy.orm import joinedload
-        year = request.args.get('year')
+        display_year = _resolve_export_academic_year()
         query = Student.query.options(joinedload(Student.academic_year))
-        if year:
-            query = query.join(AcademicYear).filter(AcademicYear.name == year)
+        if display_year:
+            query = query.filter(Student.academic_year_id == display_year.id)
         students = query.order_by(Student.last_name, Student.first_name).all()
+        year_label = display_year.name if display_year else ''
 
         buffer = BytesIO()
         p = canvas.Canvas(buffer)
         p.setFont('Helvetica-Bold', 14)
-        p.drawString(50, 800, f"Students List{(' - ' + year) if year else ''}")
+        p.drawString(50, 800, f"Students List{(' - ' + year_label) if year_label else ''}")
         y = 780
         p.setFont('Helvetica', 11)
         for s in students:
@@ -341,7 +379,73 @@ def init_export_routes(app):
         p.save()
         buffer.seek(0)
         return Response(buffer, mimetype='application/pdf', headers={
-            'Content-Disposition': f'attachment; filename=students_{year or "all"}.pdf'
+            'Content-Disposition': f'attachment; filename=students_{year_label or "all"}.pdf'
         })
+
+    @app.route('/report/payment/<int:student_id>/pdf')
+    @login_required
+    def payment_report_pdf(student_id):
+        """Download a student's payment history as PDF."""
+        from app import build_student_financials, get_active_academic_year, normalize_role
+
+        student = Student.query.get_or_404(student_id)
+        role = normalize_role(current_user)
+        if role == 'student':
+            linked = Student.query.filter_by(user_id=current_user.id).first()
+            if not linked or linked.id != student.id:
+                flash('Access denied.', 'danger')
+                return redirect(url_for('dashboard'))
+        elif not _export_role_allowed(
+            ROLE_ADMIN, ROLE_REGISTRAR, ROLE_BUSINESS, 'principal', 'vpi'
+        ):
+            flash('Access denied.', 'danger')
+            return redirect(url_for('dashboard'))
+
+        display_year = _resolve_export_academic_year() or get_active_academic_year()
+        financials = build_student_financials(student, display_year)
+        payments = StudentPayment.query.filter_by(student_id=student.id)
+        if display_year:
+            payments = payments.filter_by(academic_year_id=display_year.id)
+        payments = payments.order_by(StudentPayment.paid_on.asc()).all()
+
+        buffer = BytesIO()
+        pdf = canvas.Canvas(buffer)
+        pdf.setFont('Helvetica-Bold', 14)
+        pdf.drawString(50, 800, f"Payment Report — {student.full_name}")
+        pdf.setFont('Helvetica', 11)
+        y = 780
+        pdf.drawString(50, y, f"Student ID: {student.student_id or student.id}")
+        y -= 16
+        if display_year:
+            pdf.drawString(50, y, f"Academic Year: {display_year.name}")
+            y -= 16
+        pdf.drawString(50, y, f"Total Fee: ${financials.get('yearly_fee', 0)}")
+        y -= 16
+        pdf.drawString(50, y, f"Total Paid: ${financials.get('total_paid', 0)}")
+        y -= 16
+        pdf.drawString(50, y, f"Balance: ${financials.get('tuition_balance', 0)}")
+        y -= 24
+        for payment in payments:
+            if y < 60:
+                pdf.showPage()
+                y = 800
+                pdf.setFont('Helvetica', 11)
+            paid_on = payment.paid_on.strftime('%Y-%m-%d') if payment.paid_on else '—'
+            pdf.drawString(
+                50,
+                y,
+                f"Term {payment.term or '—'} | ${payment.amount_paid:.2f} | {paid_on} | {payment.description or ''}",
+            )
+            y -= 16
+
+        pdf.showPage()
+        pdf.save()
+        buffer.seek(0)
+        filename = f"payments_{student.student_id or student.id}.pdf"
+        return Response(
+            buffer,
+            mimetype='application/pdf',
+            headers={'Content-Disposition': f'attachment; filename={filename}'},
+        )
 
     return app

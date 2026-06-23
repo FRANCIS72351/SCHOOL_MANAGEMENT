@@ -8,12 +8,22 @@
         <a href="{{ url_for('teacher_class_folder', class_id=klass.id) }}" class="small text-decoration-none text-muted d-inline-block mb-2">
             <i class="bi bi-arrow-left me-1"></i>Back to {{ klass.name }}
         </a>
+        {% if active_year %}
+        <div class="alert bg-dark border border-cyan border-opacity-25 text-white mb-3 py-2 px-3 rounded-3 d-flex align-items-center" role="status">
+            <i class="bi bi-calendar-check text-cyan me-2"></i>
+            <span>Academic Year: <strong class="text-cyan">{{ active_year.name }}</strong></span>
+            <span class="badge bg-cyan bg-opacity-10 text-cyan border border-cyan border-opacity-25 ms-2 small">Current</span>
+            {% if active_year.start_date %}
+            <span class="text-muted small ms-2">({{ active_year.start_date }}{% if active_year.end_date %} — {{ active_year.end_date }}{% endif %})</span>
+            {% endif %}
+        </div>
+        {% endif %}
         <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
             <div>
                 <h1 class="h4 fw-bold mb-1"><i class="bi bi-mortarboard text-primary me-2"></i>Class Grading Hub</h1>
                 <p class="text-muted small mb-0">
                     {{ klass.name }} · Grade {{ klass.grade_level }}{% if klass.stream %} · {{ klass.stream }}{% endif %}
-                    · {{ active_year.name if active_year else 'No year' }}
+                    {% if active_year %} · <span class="text-cyan">{{ active_year.name }}</span>{% else %} · <span class="text-warning">No active year</span>{% endif %}
                 </p>
             </div>
             <div class="d-flex flex-wrap gap-2">
@@ -31,32 +41,33 @@
 
     <div class="card border-0 shadow-sm mb-4">
         <div class="card-body">
+            {% if subjects %}
             <form method="GET" action="{{ url_for('class_grading_hub', class_id=klass.id) }}" class="row g-3 align-items-end">
                 <input type="hidden" name="hub_tab" value="{{ hub_tab }}">
                 <div class="col-md-5">
-                    <label class="form-label small fw-semibold text-muted">Subject</label>
-                    <select name="subject" class="form-select" {% if not subjects %}disabled{% endif %} onchange="this.form.submit()">
-                        {% if not subjects %}
-                        <option>No subjects assigned</option>
-                        {% else %}
+                    <label for="hub_subject" class="form-label small fw-semibold">Subject</label>
+                    <select id="hub_subject" name="subject" class="form-select form-select-sm" onchange="this.form.submit()">
                         {% for subject in subjects %}
                         <option value="{{ subject }}" {% if subject == selected_subject %}selected{% endif %}>{{ subject }}</option>
                         {% endfor %}
-                        {% endif %}
                     </select>
                 </div>
                 <div class="col-md-5">
-                    <label class="form-label small fw-semibold text-muted">Marking Period</label>
-                    <select name="period" class="form-select" onchange="this.form.submit()">
+                    <label for="hub_period" class="form-label small fw-semibold">Marking Period</label>
+                    <select id="hub_period" name="period" class="form-select form-select-sm" onchange="this.form.submit()">
                         {% for period_num, period_name in grading_periods %}
                         <option value="{{ period_num }}" {% if period_num == selected_period %}selected{% endif %}>{{ period_name }}</option>
                         {% endfor %}
                     </select>
                 </div>
                 <div class="col-md-2">
-                    <button type="submit" class="btn btn-primary w-100">Apply</button>
+                    <a href="{{ url_for('manual_activity_grades', class_id=klass.id, subject=selected_subject, period=selected_period) }}"
+                       class="btn btn-primary btn-sm w-100">
+                        <i class="bi bi-pencil-square me-1"></i>Enter Period Grades
+                    </a>
                 </div>
             </form>
+            {% endif %}
         </div>
     </div>
 
@@ -66,25 +77,40 @@
 
     <ul class="nav grading-hub-tabs mb-4" role="tablist">
         <li class="nav-item">
+            <a class="nav-link {% if hub_tab == 'moe' %}active{% endif %}"
+               href="{{ url_for('class_grading_hub', class_id=klass.id, subject=selected_subject, period=selected_period, hub_tab='moe') }}">
+                <i class="bi bi-grid-3x3-gap me-1"></i>Period Grades (MoE)
+            </a>
+        </li>
+        <li class="nav-item">
             <a class="nav-link {% if hub_tab == 'activities' %}active{% endif %}"
                href="{{ url_for('class_grading_hub', class_id=klass.id, subject=selected_subject, period=selected_period, hub_tab='activities') }}">
                 <i class="bi bi-list-task me-1"></i>Activities
                 {% if activity_cards %}<span class="tab-badge bg-primary">{{ activity_cards|length }}</span>{% endif %}
             </a>
         </li>
-        <li class="nav-item">
-            <a class="nav-link {% if hub_tab == 'moe' %}active{% endif %}"
-               href="{{ url_for('class_grading_hub', class_id=klass.id, subject=selected_subject, period=selected_period, hub_tab='moe') }}">
-                <i class="bi bi-grid-3x3-gap me-1"></i>Period Grades (MoE)
-            </a>
-        </li>
     </ul>
 
     {% if hub_tab == 'activities' %}
+    <div class="record-classroom-cta d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
+        <div>
+            <div class="cta-title"><i class="bi bi-pencil-square me-2 text-cyan"></i>Enter period scores</div>
+            <p class="cta-hint mb-0">Grade CA + exam directly — no activity record required.</p>
+        </div>
+        <a href="{{ url_for('manual_activity_grades', class_id=klass.id, subject=selected_subject, period=selected_period) }}"
+           class="btn btn-primary btn-sm flex-shrink-0">
+            <i class="bi bi-pencil-square me-1"></i>Enter Scores
+        </a>
+    </div>
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
         <p class="text-muted small mb-0">
-            Activities for <strong>{{ selected_subject }}</strong> · {{ period_label }} — grade submissions, then publish period totals on the MoE tab.
+            <strong>Optional:</strong> named activities for <strong>{{ selected_subject }}</strong> · {{ period_label }}
+            {% if publish_stats %}<span class="ms-1 badge {% if publish_stats.published %}bg-success{% else %}bg-warning text-dark{% endif %}">{{ publish_stats.published }} published · {{ publish_stats.draft }} draft</span>{% endif %}
         </p>
+        <a href="{{ url_for('record_classroom_activity', class_id=klass.id, subject=selected_subject, period=selected_period, return_to='grading_hub') }}"
+           class="btn btn-sm btn-outline-primary">
+            <i class="bi bi-journal-plus me-1"></i>Create Activity <span class="opacity-75">(optional)</span>
+        </a>
         <a href="{{ url_for('teacher_dashboard', tab='grades', grade_class_id=klass.id, grade_subject=selected_subject, grade_period=selected_period) }}" class="btn btn-sm btn-outline-primary">
             <i class="bi bi-pencil-square me-1"></i>Period Grade Sheet
         </a>
@@ -99,17 +125,33 @@
                 <div class="card-body d-flex flex-column">
                     <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
                         <h3 class="h6 fw-bold mb-0">{{ act.title }}</h3>
-                        <span class="badge bg-light text-dark border">{{ act.activity_type or 'Assignment' }}</span>
+                        <span class="badge activity-delivery-badge {% if act.is_classroom_activity %}classroom{% else %}digital{% endif %}">{{ act.delivery_badge }}</span>
                     </div>
-                    <p class="small text-muted mb-3 flex-grow-1">{{ act.description[:100] if act.description else 'No instructions' }}{% if act.description and act.description|length > 100 %}…{% endif %}</p>
+                    <p class="small text-muted mb-2 flex-grow-1">
+                        {% if act.classroom_notes %}
+                        {{ act.classroom_notes[:100] }}{% if act.classroom_notes|length > 100 %}…{% endif %}
+                        {% elif act.description %}
+                        {{ act.description[:100] }}{% if act.description|length > 100 %}…{% endif %}
+                        {% else %}
+                        No instructions
+                        {% endif %}
+                    </p>
+                    {% if act.external_url %}
+                    <a href="{{ act.external_url }}" target="_blank" rel="noopener" class="classroom-link-chip mb-2 d-inline-flex">
+                        <i class="bi bi-google"></i> Shared link
+                    </a>
+                    {% endif %}
                     <div class="d-flex flex-wrap gap-2 small mb-3">
                         <span class="badge bg-secondary">{{ card.graded_count }}/{{ card.roster_size }} graded</span>
                         {% if card.pending_count %}
                         <span class="badge bg-warning text-dark">{{ card.pending_count }} pending</span>
                         {% endif %}
                     </div>
-                    <a href="{{ url_for('activity_detail', assessment_id=act.id) }}" class="btn btn-primary btn-sm w-100">
-                        <i class="bi bi-pencil-square me-1"></i>Grade Activity
+                    <a href="{{ url_for('activity_detail', assessment_id=act.id) }}" class="btn btn-primary btn-sm w-100 mb-2">
+                        <i class="bi bi-inbox me-1"></i>Review Submissions
+                    </a>
+                    <a href="{{ url_for('manual_activity_grades', class_id=klass.id, subject=selected_subject, period=selected_period, assessment_id=act.id) }}" class="btn btn-outline-primary btn-sm w-100">
+                        <i class="bi bi-pencil-square me-1"></i>Manual Entry
                     </a>
                 </div>
             </div>
@@ -118,9 +160,15 @@
     </div>
     {% else %}
     <div class="text-center py-5 bg-white rounded shadow-sm">
-        <i class="bi bi-journal-x fs-1 text-muted mb-2 d-block"></i>
-        <p class="text-muted mb-2">No activities for {{ selected_subject }} in {{ period_label }} yet.</p>
-        <a href="{{ url_for('teacher_dashboard', tab='grades', grade_class_id=klass.id, grade_subject=selected_subject, grade_period=selected_period) }}" class="btn btn-primary btn-sm">Enter Period Grades</a>
+        <i class="bi bi-pencil-square fs-1 text-primary mb-2 d-block"></i>
+        <p class="text-muted mb-2">No named activities for {{ selected_subject }} in {{ period_label }}.</p>
+        <a href="{{ url_for('manual_activity_grades', class_id=klass.id, subject=selected_subject, period=selected_period) }}" class="btn btn-primary btn-sm me-2">
+            <i class="bi bi-pencil-square me-1"></i>Enter Period Scores
+        </a>
+        <a href="{{ url_for('record_classroom_activity', class_id=klass.id, subject=selected_subject, period=selected_period, return_to='grading_hub') }}" class="btn btn-outline-primary btn-sm me-2">
+            <i class="bi bi-journal-plus me-1"></i>Create Activity <span class="opacity-75">(optional)</span>
+        </a>
+        <a href="{{ url_for('teacher_dashboard', tab='activities', activity_class_id=klass.id) }}" class="btn btn-outline-primary btn-sm">Upload Digital Activity</a>
     </div>
     {% endif %}
 
@@ -128,9 +176,9 @@
     <div class="grading-workflow-banner mb-4" style="background: linear-gradient(135deg, #002d62, #1e40af);">
         <strong class="text-white d-block mb-2">{{ selected_subject }} · {{ period_label }}</strong>
         <ol class="workflow-steps">
-            <li><span class="step-num">1</span> Activity scores build draft standing automatically</li>
-            <li><span class="step-num">2</span> Adjust CA + Exam below if needed</li>
-            <li><span class="step-num">3</span> Publish when ready for report cards</li>
+            <li><span class="step-num">1</span> Enter CA + Exam scores directly below</li>
+            <li><span class="step-num">2</span> Save draft or publish to report cards</li>
+            <li><span class="step-num">3</span> <em>Optional:</em> named activities roll up into draft CA automatically</li>
         </ol>
     </div>
 
@@ -215,7 +263,19 @@
 
         <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mt-4">
             <p class="small text-muted mb-0">MoE: CA max 60 + Exam max 40 = 100</p>
-            <div class="d-flex flex-wrap gap-2">
+            <div class="d-flex flex-wrap gap-2 align-items-center">
+                {% if publish_stats.draft > 0 %}
+                <form method="POST" action="{{ url_for('publish_period_grades', class_id=klass.id) }}" class="d-inline"
+                      onsubmit="return confirm('Publish {{ publish_stats.draft }} draft grade(s) for {{ selected_subject }} · {{ period_label }}? Students will see them on their grade sheet.');">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="subject" value="{{ selected_subject }}">
+                    <input type="hidden" name="period" value="{{ selected_period }}">
+                    <input type="hidden" name="return_to" value="grading_hub">
+                    <button type="submit" class="btn btn-success btn-sm px-3">
+                        <i class="bi bi-megaphone me-1"></i>Publish {{ publish_stats.draft }} Draft{{ 's' if publish_stats.draft != 1 else '' }}
+                    </button>
+                </form>
+                {% endif %}
                 <button type="submit" name="publish_action" value="draft" class="btn btn-outline-secondary px-4">
                     <i class="bi bi-save me-1"></i>Save Draft
                 </button>

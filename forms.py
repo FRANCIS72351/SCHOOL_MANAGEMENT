@@ -6,6 +6,7 @@ from wtforms import (
 )
 from wtforms.validators import DataRequired, Email, Optional, ValidationError
 from flask_wtf.file import FileAllowed
+from constants import GRADING_PERIODS
 from utils import parse_currency_amount
 
 
@@ -66,6 +67,29 @@ class EnrollmentForm(FlaskForm):
     submit = SubmitField("Enroll Student")
 
 
+class SelfRegistrationForm(FlaskForm):
+    """Public self-service enrollment with email lookup for returning students."""
+    email = StringField("Student Email", validators=[DataRequired(), Email()])
+    first_name = StringField("First Name", validators=[DataRequired()])
+    last_name = StringField("Last Name", validators=[DataRequired()])
+    dob = DateField("Date of Birth", validators=[DataRequired()])
+    gender = SelectField(
+        "Gender",
+        choices=[("Male", "Male"), ("Female", "Female"), ("Other", "Other")],
+        validators=[DataRequired()],
+    )
+    level = SelectField(
+        "Academic Level",
+        choices=[("Senior High", "Senior High"), ("Junior High", "Junior High"), ("Elementary", "Elementary")],
+        validators=[DataRequired()],
+    )
+    parent_email = StringField("Parent/Guardian Email", validators=[Optional(), Email()])
+    klass = SelectField("Class", coerce=optional_int_coerce, validators=[Optional()])
+    password = PasswordField("Portal Password (Optional)", validators=[Optional()])
+    is_returning = BooleanField("Returning Student", default=False)
+    submit = SubmitField("Submit Registration")
+
+
 class RegisterStudentForm(FlaskForm):
     first_name = StringField("First Name", validators=[DataRequired()])
     last_name = StringField("Last Name", validators=[DataRequired()])
@@ -82,7 +106,11 @@ class RegisterStudentForm(FlaskForm):
         choices=[("Senior High", "Senior High"), ("Junior High", "Junior High"), ("Elementary", "Elementary")],
         validators=[DataRequired()]
     )
-    student_id = StringField("Student ID", validators=[DataRequired()])
+    student_id = StringField(
+        "Student ID",
+        validators=[Optional()],
+        description="Leave blank to auto-generate for new students.",
+    )
     parent_email = StringField("Parent Email", validators=[Optional(), Email()])
     photo = FileField("Photo", validators=[FileAllowed(["jpg", "png", "jpeg"], "Images only!")])
     klass = SelectField("Assign Class", coerce=optional_int_coerce, validators=[Optional()])
@@ -92,6 +120,7 @@ class RegisterStudentForm(FlaskForm):
         validators=[Optional(), validate_currency],
         default="0.00",
     )
+    is_returning = BooleanField("Returning Student", default=False)
     submit = SubmitField("Register")
 
 
@@ -312,11 +341,81 @@ class AttendanceForm(FlaskForm):
     date = DateField("Date", validators=[DataRequired()])
     status = SelectField(
         "Status",
-        choices=[("present", "Present"), ("absent", "Absent"), ("late", "Late")],
+        choices=[
+            ("present", "Present"),
+            ("absent", "Absent"),
+            ("late", "Late"),
+            ("excused", "Excused"),
+        ],
         validators=[DataRequired()]
     )
     notes = TextAreaField("Notes", validators=[Optional()])
     submit = SubmitField("Record")
+
+
+class RecordClassroomActivityForm(FlaskForm):
+    """Log an in-class activity (blackboard work, verbal instructions, shared Drive link)."""
+    title = StringField(
+        "Activity Title",
+        validators=[DataRequired()],
+        render_kw={"placeholder": "e.g. Blackboard drill — Fractions", "maxlength": 120},
+    )
+    subject_name = SelectField("Subject", validators=[DataRequired()])
+    marking_period = SelectField(
+        "Marking Period",
+        coerce=int,
+        validators=[DataRequired()],
+        choices=GRADING_PERIODS,
+    )
+    evaluation_type = SelectField(
+        "Activity Type",
+        choices=[
+            ("Class Work", "Class Work"),
+            ("Assignment", "Assignment"),
+            ("Quiz", "Quiz"),
+            ("Test", "Test"),
+            ("Exam", "Exam"),
+        ],
+        validators=[DataRequired()],
+    )
+    max_score = FloatField(
+        "Maximum Score",
+        default=100.0,
+        validators=[DataRequired()],
+        render_kw={"min": 1, "max": 1000, "step": 0.5},
+    )
+    due_date = DateField("Due Date (optional)", validators=[Optional()])
+    external_url = StringField(
+        "Google Drive / Shared Link",
+        validators=[Optional()],
+        render_kw={"placeholder": "https://drive.google.com/..."},
+    )
+    classroom_notes = TextAreaField(
+        "Classroom Notes",
+        validators=[Optional()],
+        render_kw={
+            "placeholder": "What you wrote on the board, verbal instructions, or class procedure…",
+            "rows": 5,
+        },
+    )
+    submit = SubmitField("Create Activity & Enter Scores")
+
+    def validate_title(self, field):
+        if not (field.data or "").strip():
+            raise ValidationError("Activity title is required.")
+
+    def validate_external_url(self, field):
+        raw = (field.data or "").strip()
+        if not raw:
+            return
+        if not raw.startswith(("http://", "https://")):
+            raise ValidationError("Enter a full URL starting with http:// or https://")
+
+    def validate_max_score(self, field):
+        if field.data is None:
+            return
+        if field.data <= 0 or field.data > 1000:
+            raise ValidationError("Maximum score must be between 1 and 1000.")
 
 
 class CreateUserForm(FlaskForm):

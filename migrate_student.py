@@ -12,21 +12,30 @@ def migrate():
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
 
-    print("Adding registration_type and created_at to student table...")
+    print("Adding registration columns to students table...")
     
     try:
-        cursor.execute("ALTER TABLE student ADD COLUMN registration_type VARCHAR(20) DEFAULT 'New'")
+        cursor.execute("ALTER TABLE students ADD COLUMN registration_type VARCHAR(20) DEFAULT 'New'")
         print("Column registration_type added.")
     except sqlite3.OperationalError as e:
-        print(f"Error adding registration_type: {e}")
+        if "duplicate column name" not in str(e).lower():
+            print(f"Error adding registration_type: {e}")
 
     try:
-        cursor.execute("ALTER TABLE student ADD COLUMN created_at DATETIME")
+        cursor.execute("ALTER TABLE students ADD COLUMN created_at DATETIME")
         print("Column created_at added.")
-        # Set default value for existing records
-        cursor.execute("UPDATE student SET created_at = datetime('now') WHERE created_at IS NULL")
+        cursor.execute("UPDATE students SET created_at = datetime('now') WHERE created_at IS NULL")
     except sqlite3.OperationalError as e:
-        print(f"Error adding created_at: {e}")
+        if "duplicate column name" not in str(e).lower():
+            print(f"Error adding created_at: {e}")
+
+    for col, default in (("is_promoted", 0), ("is_registered", 1)):
+        try:
+            cursor.execute(f"ALTER TABLE students ADD COLUMN {col} BOOLEAN NOT NULL DEFAULT {default}")
+            print(f"Column {col} added.")
+        except sqlite3.OperationalError as e:
+            if "duplicate column name" not in str(e).lower():
+                print(f"Error adding {col}: {e}")
 
     conn.commit()
     conn.close()

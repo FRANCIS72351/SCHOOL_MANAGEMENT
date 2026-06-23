@@ -65,6 +65,152 @@
     .class-fee-row.hidden-by-filter { display: none; }
     .class-fee-row.hidden-by-page { display: none; }
 
+    /* Step 3: Classes & Registration Fees — scoped table/section polish */
+    .fees-step .fees-section-header {
+        border-bottom: 1px solid rgba(16, 185, 129, 0.25);
+        padding-bottom: 1rem;
+        margin-bottom: 1.25rem;
+    }
+    .fees-step .fees-section-header h5 {
+        font-size: 1.15rem;
+        letter-spacing: 0.02em;
+        margin-bottom: 0.35rem !important;
+    }
+    .fees-step .fees-section-desc {
+        color: rgba(226, 232, 240, 0.88) !important;
+        font-size: 0.875rem;
+        line-height: 1.55;
+        max-width: 52rem;
+        margin-bottom: 0 !important;
+    }
+    .fees-step .fee-toolbar {
+        background: rgba(15, 23, 42, 0.65);
+        border: 1px solid rgba(55, 65, 81, 0.85);
+    }
+    .fees-step .fee-summary-bar {
+        font-size: 0.8125rem;
+        color: #e2e8f0;
+    }
+    .fees-step .fee-summary-bar strong { color: #10b981; }
+    .fees-step .class-fee-table-wrap {
+        border: 1px solid #374151 !important;
+        border-radius: 0.75rem;
+        overflow: hidden;
+        box-shadow: 0 4px 18px rgba(0, 0, 0, 0.25);
+    }
+    .fees-step .class-fee-table {
+        color: #e2e8f0 !important;
+        font-size: 0.9rem;
+        margin-bottom: 0;
+    }
+    .fees-step .class-fee-table thead {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+    }
+    .fees-step .class-fee-table thead th {
+        background-color: #1f2937 !important;
+        color: #10b981 !important;
+        border-color: #374151 !important;
+        font-weight: 700;
+        font-size: 0.72rem;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        padding: 0.85rem 0.75rem;
+        white-space: nowrap;
+        vertical-align: middle;
+    }
+    .fees-step .class-fee-table thead th.fee-col-header {
+        color: #fbbf24 !important;
+    }
+    .fees-step .class-fee-table tbody td {
+        background-color: transparent !important;
+        border-color: #1f2937 !important;
+        padding: 0.8rem 0.75rem;
+        color: #f1f5f9 !important;
+        vertical-align: middle;
+    }
+    .fees-step .class-fee-table tbody tr {
+        transition: background-color 0.18s ease;
+    }
+    .fees-step .class-fee-table tbody tr:nth-child(even) {
+        background-color: rgba(255, 255, 255, 0.02);
+    }
+    .fees-step .class-fee-table tbody tr:hover {
+        background-color: rgba(16, 185, 129, 0.06) !important;
+    }
+    .fees-step .class-fee-table .class-name-cell {
+        color: #ffffff !important;
+        font-weight: 600;
+        font-size: 0.92rem;
+    }
+    .fees-step .class-fee-table .grade-cell {
+        color: #38bdf8 !important;
+        font-weight: 500;
+        font-size: 0.85rem;
+    }
+    .fees-step .class-fee-table .stream-cell {
+        color: #94a3b8 !important;
+        font-size: 0.85rem;
+    }
+    .fees-step .class-fee-table .students-cell {
+        font-variant-numeric: tabular-nums;
+    }
+    .fees-step .class-fee-table .student-count-badge {
+        display: inline-block;
+        min-width: 2rem;
+        padding: 0.2rem 0.55rem;
+        background: rgba(0, 242, 255, 0.08);
+        border: 1px solid rgba(0, 242, 255, 0.22);
+        border-radius: 0.375rem;
+        color: #00f2ff;
+        font-size: 0.8rem;
+        font-weight: 600;
+        text-align: center;
+    }
+    .fees-step .class-fee-table .reg-fee-input {
+        background-color: #070a12 !important;
+        border: 1px solid rgba(16, 185, 129, 0.45) !important;
+        color: #fbbf24 !important;
+        font-family: ui-monospace, 'Cascadia Code', 'Consolas', monospace;
+        font-size: 0.9rem;
+        font-weight: 600;
+        min-width: 7.5rem;
+        padding: 0.45rem 0.65rem;
+        text-align: right;
+        border-radius: 0.5rem !important;
+        box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.35);
+    }
+    .fees-step .class-fee-table .reg-fee-input::placeholder {
+        color: rgba(251, 191, 36, 0.45) !important;
+    }
+    .fees-step .class-fee-table .reg-fee-input:focus {
+        border-color: #10b981 !important;
+        box-shadow: 0 0 0 0.2rem rgba(16, 185, 129, 0.2), inset 0 1px 2px rgba(0, 0, 0, 0.35) !important;
+        color: #fde68a !important;
+    }
+    .fees-step .class-fee-table .form-check-input {
+        width: 1.1rem;
+        height: 1.1rem;
+        border-color: rgba(16, 185, 129, 0.5);
+        cursor: pointer;
+    }
+    .fees-step .class-fee-table .form-check-input:checked {
+        background-color: #10b981;
+        border-color: #10b981;
+    }
+    .fees-step .class-fee-table .fee-input-wrap {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+    }
+    .fees-step .class-fee-table .fee-currency {
+        color: #10b981;
+        font-weight: 700;
+        font-size: 0.85rem;
+        flex-shrink: 0;
+    }
+
     .btn-wizard { border-radius: 0.5rem; font-weight: 600; padding: 0.55rem 1.25rem; }
     .target-panel { display: none; }
     .target-panel.show { display: block; }
@@ -239,13 +385,15 @@
         </div>
 
         {# Step 3: Classes & registration fees #}
-        <div class="wizard-pane" data-pane="3">
+        <div class="wizard-pane fees-step" data-pane="3">
             <div class="sec-card mb-3">
-                <h5 class="text-white fw-bold mb-1"><i class="fas fa-receipt text-emerald me-2"></i>Classes &amp; Registration Fees</h5>
-                <p class="text-muted small mb-3">
-                    Select which classes apply for the new academic year and set the registration fee for each class.
-                    Fees are saved to the year schedule and can be posted to the business income ledger during rollover.
-                </p>
+                <div class="fees-section-header">
+                    <h5 class="text-white fw-bold mb-1"><i class="fas fa-receipt text-emerald me-2"></i>Classes &amp; Registration Fees</h5>
+                    <p class="fees-section-desc mb-0">
+                        Select which classes apply for the new academic year and set the registration fee for each class.
+                        Fees are saved to the year schedule and can be posted to the business income ledger during rollover.
+                    </p>
+                </div>
 
                 <div class="fee-toolbar d-flex flex-column flex-lg-row gap-2 align-items-lg-center mb-3">
                     <div class="flex-grow-1">
@@ -266,18 +414,18 @@
                     <span>Showing <strong id="summaryShowing">0</strong> of {{ classes|length }}</span>
                 </div>
 
-                <div class="table-responsive rounded-3 border border-secondary border-opacity-25">
-                    <table class="table table-cyber align-middle mb-0" id="classFeeTable">
+                <div class="table-responsive class-fee-table-wrap" style="max-height: 480px; overflow-y: auto;">
+                    <table class="table table-cyber class-fee-table align-middle mb-0" id="classFeeTable">
                         <thead>
                             <tr>
-                                <th style="width:48px;">
-                                    <input type="checkbox" class="form-check-input" id="toggleAllVisible" title="Toggle visible rows">
+                                <th style="width:48px;" scope="col">
+                                    <input type="checkbox" class="form-check-input" id="toggleAllVisible" title="Toggle visible rows" aria-label="Toggle all visible classes">
                                 </th>
-                                <th>Class</th>
-                                <th>Grade</th>
-                                <th>Stream</th>
-                                <th>Students</th>
-                                <th style="min-width:140px;">Registration Fee ($)</th>
+                                <th scope="col">Class</th>
+                                <th scope="col">Grade</th>
+                                <th scope="col">Stream</th>
+                                <th scope="col" class="text-center">Students</th>
+                                <th scope="col" class="fee-col-header text-end" style="min-width:160px;">Registration Fee</th>
                             </tr>
                         </thead>
                         <tbody id="classFeeBody">
@@ -286,15 +434,21 @@
                             <tr class="class-fee-row" data-class-id="{{ klass.id }}"
                                 data-search="{{ klass.name|lower }} grade {{ klass.grade_level }} {{ (klass.stream or '')|lower }}">
                                 <td>
-                                    <input type="checkbox" class="form-check-input class-include" name="include_class_{{ klass.id }}" value="1" checked>
+                                    <input type="checkbox" class="form-check-input class-include" name="include_class_{{ klass.id }}" value="1" checked aria-label="Include {{ klass.name }}">
                                 </td>
-                                <td class="fw-semibold">{{ klass.name }}</td>
-                                <td>Grade {{ klass.grade_level }}</td>
-                                <td>{{ klass.stream or '—' }}</td>
-                                <td>{{ klass.student_count }}</td>
+                                <td class="class-name-cell">{{ klass.name }}</td>
+                                <td class="grade-cell">Grade {{ klass.grade_level }}</td>
+                                <td class="stream-cell">{{ klass.stream or '—' }}</td>
+                                <td class="students-cell text-center">
+                                    <span class="student-count-badge">{{ klass.student_count }}</span>
+                                </td>
                                 <td>
-                                    <input type="text" name="reg_fee_{{ klass.id }}" class="form-control form-cyber form-control-sm reg-fee-input"
-                                           value="{{ '%.2f'|format(default_fee) if default_fee else '' }}" placeholder="0.00" inputmode="decimal">
+                                    <div class="fee-input-wrap justify-content-end">
+                                        <span class="fee-currency" aria-hidden="true">$</span>
+                                        <input type="text" name="reg_fee_{{ klass.id }}" class="form-control form-cyber reg-fee-input"
+                                               value="{{ '%.2f'|format(default_fee) if default_fee else '' }}" placeholder="0.00" inputmode="decimal"
+                                               aria-label="Registration fee for {{ klass.name }}">
+                                    </div>
                                 </td>
                             </tr>
                             {% else %}
@@ -484,7 +638,7 @@
         rows.forEach(row => {
             const cb = row.querySelector('.class-include');
             const fee = parseFee(row.querySelector('.reg-fee-input')?.value);
-            const name = row.querySelector('td.fw-semibold')?.textContent?.trim() || 'Class';
+            const name = row.querySelector('.class-name-cell')?.textContent?.trim() || 'Class';
             if (cb?.checked) {
                 selected++;
                 if (fee > 0) {

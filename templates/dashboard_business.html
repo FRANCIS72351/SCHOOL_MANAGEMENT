@@ -69,32 +69,61 @@
         background: #fff;
         border: 1px solid #e2e8f0;
     }
+    .reg-pill {
+        font-size: 0.68rem;
+        font-weight: 700;
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
+        padding: 0.25rem 0.55rem;
+        border-radius: 999px;
+    }
+    .reg-pill.registered { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+    .reg-pill.pending { background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
+    .reg-pill.promoted { background: #dbeafe; color: #1e40af; border: 1px solid #93c5fd; }
 </style>
 
 <div class="container-fluid biz-shell py-4 px-md-4">
+    {% set year_param = {'academic_year_id': display_year.id} if display_year else {} %}
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
         <div>
             <h1 class="h4 fw-bold mb-1">Business Office</h1>
             <p class="text-muted small mb-0">
-                {% if active_year %}Session: <strong>{{ active_year.name }}</strong>{% else %}No active academic year{% endif %}
+                {% if display_year or active_year %}Session: <strong>{{ (display_year or active_year).name }}</strong>{% if viewing_archived %} <span class="badge bg-warning text-dark">Archived</span>{% endif %}{% else %}No active academic year{% endif %}
+                · Today ({{ daily_collections_date.strftime('%b %d, %Y') if daily_collections_date else 'today' }}):
+                <strong class="text-success">${{ "{:,.2f}".format(daily_collections_total|default(0)) }}</strong>
+                from {{ daily_collections_count|default(0) }} payment(s)
             </p>
         </div>
-        <div class="d-flex flex-wrap gap-2">
+        <div class="d-flex flex-wrap gap-2 align-items-center">
+            {% if years or all_years %}
+            <form method="get" class="d-flex align-items-center gap-2">
+                <input type="hidden" name="tab" value="{{ active_tab }}">
+                {% if selected_class_id %}<input type="hidden" name="class_id" value="{{ selected_class_id }}">{% endif %}
+                {% if selected_student_id %}<input type="hidden" name="student_id" value="{{ selected_student_id }}">{% endif %}
+                <label for="academic_year_id" class="small text-muted mb-0">Year</label>
+                <select name="academic_year_id" id="academic_year_id" class="form-select form-select-sm" style="min-width: 180px;" onchange="this.form.submit()">
+                    {% for y in (years or all_years or []) %}
+                    <option value="{{ y.id }}" {% if display_year and y.id == display_year.id %}selected{% endif %}>{{ y.name }}{% if y.is_active %} (Active){% endif %}</option>
+                    {% endfor %}
+                </select>
+            </form>
+            {% endif %}
             <a href="{{ url_for('business_management') }}" class="btn btn-sm btn-outline-secondary">Advanced Ledger</a>
+            <a href="{{ url_for('attendance_overview', academic_year_id=display_year.id if display_year else None) }}" class="btn btn-sm btn-outline-info">Attendance Summary</a>
             <a href="{{ url_for('export_business', year=selected_year) }}" class="btn btn-sm btn-outline-primary">Export CSV</a>
         </div>
     </div>
 
     <div class="biz-card mb-4">
         <div class="d-flex flex-wrap border-bottom">
-            <a href="{{ url_for('dashboard', tab='tuition', class_id=selected_class_id or '', student_id=selected_student_id or '') }}"
+            <a href="{{ url_for('dashboard', tab='tuition', class_id=selected_class_id or '', student_id=selected_student_id or '', **year_param) }}"
                class="biz-tab-btn {% if active_tab == 'tuition' %}active{% endif %}">
                 <i class="fas fa-hand-holding-dollar me-1"></i> Collect Tuition
             </a>
-            <a href="{{ url_for('dashboard', tab='summary') }}" class="biz-tab-btn {% if active_tab == 'summary' %}active{% endif %}">
+            <a href="{{ url_for('dashboard', tab='summary', **year_param) }}" class="biz-tab-btn {% if active_tab == 'summary' %}active{% endif %}">
                 <i class="fas fa-chart-pie me-1"></i> Summary
             </a>
-            <a href="{{ url_for('dashboard', tab='ledger') }}" class="biz-tab-btn {% if active_tab == 'ledger' %}active{% endif %}">
+            <a href="{{ url_for('dashboard', tab='ledger', **year_param) }}" class="biz-tab-btn {% if active_tab == 'ledger' %}active{% endif %}">
                 <i class="fas fa-list me-1"></i> Recent Activity
             </a>
         </div>
@@ -123,6 +152,7 @@
                     <h2 class="h6 fw-bold mb-3">Step 1 — Class</h2>
                     <form method="get" class="mb-3">
                         <input type="hidden" name="tab" value="tuition">
+                        {% if display_year %}<input type="hidden" name="academic_year_id" value="{{ display_year.id }}">{% endif %}
                         <div class="input-group input-group-sm">
                             <input type="text" name="search_class" class="form-control" placeholder="Search class..." value="{{ search_class or '' }}">
                             <button class="btn btn-primary" type="submit">Search</button>
@@ -130,7 +160,7 @@
                     </form>
                     <div class="d-flex flex-column gap-2" style="max-height: 420px; overflow-y: auto;">
                         {% for klass in classes %}
-                        <a href="{{ url_for('dashboard', tab='tuition', class_id=klass.id) }}"
+                        <a href="{{ url_for('dashboard', tab='tuition', class_id=klass.id, **year_param) }}"
                            class="class-pick {% if selected_class_id == klass.id %}selected{% endif %}">
                             <div class="fw-bold">{{ klass.name }}</div>
                             <div class="small text-muted">{{ klass.student_count }} students · Fee ${{ "{:,.2f}".format(klass.yearly_fees) }}</div>
@@ -152,24 +182,42 @@
                     {% else %}
                     <div class="d-flex flex-column gap-2" style="max-height: 480px; overflow-y: auto;">
                         {% for s in class_roster %}
-                        <a href="{{ url_for('dashboard', tab='tuition', class_id=selected_class_id, student_id=s.id) }}"
+                        <a href="{{ url_for('dashboard', tab='tuition', class_id=selected_class_id, student_id=s.id, **year_param) }}"
                            class="student-row {% if selected_student_id == s.id %}selected{% endif %}">
-                            <div class="d-flex justify-content-between align-items-start">
+                            <div class="d-flex justify-content-between align-items-start gap-2">
                                 <div>
                                     <div class="fw-semibold">{{ s.full_name }}</div>
                                     <div class="small text-muted">ID {{ s.student_id }}</div>
                                 </div>
-                                {% if s.tuition_cleared %}
-                                <span class="badge bg-success">Cleared</span>
-                                {% elif s.balance > 0 %}
-                                <span class="badge bg-warning text-dark">Owes ${{ "{:,.2f}".format(s.balance) }}</span>
-                                {% else %}
-                                <span class="badge bg-secondary">Paid up</span>
-                                {% endif %}
+                                <div class="d-flex flex-column align-items-end gap-1">
+                                    {% if s.is_registered %}
+                                    <span class="reg-pill registered">Registered</span>
+                                    {% else %}
+                                    <span class="reg-pill pending">Pending</span>
+                                    {% endif %}
+                                    {% if s.is_promoted %}
+                                    <span class="reg-pill promoted">Promoted</span>
+                                    {% endif %}
+                                    {% if s.tuition_cleared %}
+                                    <span class="badge bg-success">Cleared</span>
+                                    {% elif s.balance > 0 %}
+                                    <span class="badge bg-warning text-dark">Owes ${{ "{:,.2f}".format(s.balance) }}</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">Paid up</span>
+                                    {% endif %}
+                                </div>
                             </div>
                             <div class="small mt-2 text-muted">
                                 Yearly ${{ "{:,.2f}".format(s.yearly_fee) }} · Paid ${{ "{:,.2f}".format(s.total_paid) }}
                             </div>
+                            {% if not s.is_registered %}
+                            <div class="mt-2 pt-2 border-top" onclick="event.preventDefault(); event.stopPropagation();">
+                                <button type="button" class="btn btn-sm btn-primary w-100"
+                                        data-bs-toggle="modal" data-bs-target="#activateModal{{ s.id }}">
+                                    <i class="fas fa-unlock me-1"></i> Activate Registration
+                                </button>
+                            </div>
+                            {% endif %}
                         </a>
                         {% else %}
                         <p class="text-muted small">No students in this class for the active year.</p>
@@ -187,12 +235,33 @@
                     <div class="alert alert-light border small mb-3">
                         <strong>{{ selected_student_summary.full_name }}</strong><br>
                         Balance due: <span class="text-danger fw-bold">${{ "{:,.2f}".format(selected_student_summary.balance) }}</span>
+                        <div class="d-flex flex-wrap gap-1 mt-2">
+                            {% if selected_student_summary.is_registered %}
+                            <span class="reg-pill registered">Registered</span>
+                            {% else %}
+                            <span class="reg-pill pending">Pending</span>
+                            {% endif %}
+                            {% if selected_student_summary.is_promoted %}
+                            <span class="reg-pill promoted">Promoted</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% if selected_student_summary and not selected_student_summary.is_registered %}
+                    <div class="alert alert-warning border small mb-3">
+                        <i class="fas fa-lock me-1"></i>
+                        Portal locked until registration is activated.
+                        <button type="button" class="btn btn-sm btn-primary mt-2 w-100"
+                                data-bs-toggle="modal" data-bs-target="#activateModal{{ selected_student_summary.id }}">
+                            <i class="fas fa-unlock me-1"></i> Activate Registration
+                        </button>
                     </div>
                     {% endif %}
-                    <form method="post" action="{{ url_for('dashboard', tab='tuition', class_id=selected_class_id, student_id=selected_student_id) }}">
+                    {% endif %}
+                    <form method="post" action="{{ url_for('dashboard', tab='tuition', class_id=selected_class_id, student_id=selected_student_id, **year_param) }}">
                         {{ payment_form.hidden_tag() }}
                         <input type="hidden" name="class_id" value="{{ selected_class_id }}">
                         <input type="hidden" name="student_id" value="{{ selected_student_id }}">
+                        {% if display_year %}<input type="hidden" name="academic_year_id" value="{{ display_year.id }}">{% endif %}
 
                         <div class="mb-3">
                             <label class="form-label small text-muted">Student</label>
@@ -229,6 +298,13 @@
         {% elif active_tab == 'summary' %}
         <div class="p-4">
             <div class="row g-3 mb-4">
+                <div class="col-md-3">
+                    <div class="metric-mini border-success border-opacity-25">
+                        <div class="small text-muted">Today's Collections</div>
+                        <div class="h4 fw-bold text-success mb-0">${{ "{:,.2f}".format(daily_collections_total|default(0)) }}</div>
+                        <div class="small text-muted">{{ daily_collections_count|default(0) }} payment(s)</div>
+                    </div>
+                </div>
                 <div class="col-md-3">
                     <div class="metric-mini">
                         <div class="small text-muted">Tuition Collected</div>
@@ -270,7 +346,7 @@
                         {% for klass in classes %}
                         <tr>
                             <td>
-                                <a href="{{ url_for('dashboard', tab='tuition', class_id=klass.id) }}" class="fw-semibold text-decoration-none">
+                                <a href="{{ url_for('dashboard', tab='tuition', class_id=klass.id, **year_param) }}" class="fw-semibold text-decoration-none">
                                     {{ klass.name }}
                                 </a>
                             </td>
@@ -343,4 +419,37 @@
         {% endif %}
     </div>
 </div>
+
+{% if selected_class_id and class_roster %}
+{% for s in class_roster %}
+{% if not s.is_registered %}
+<div class="modal fade" id="activateModal{{ s.id }}" tabindex="-1" aria-labelledby="activateLabel{{ s.id }}" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold" id="activateLabel{{ s.id }}">
+                    <i class="fas fa-unlock text-primary me-2"></i>Activate Registration
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-2">Confirm that <strong>{{ s.full_name }}</strong> (ID {{ s.student_id }}) has paid the registration fee for the current academic year.</p>
+                <p class="small text-muted mb-0">This unlocks the student portal immediately. You can also activate automatically by recording a registration fee payment.</p>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                <form method="post" action="{{ url_for('finance_activate_student', student_id=s.id) }}" class="d-inline">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="next" value="{{ url_for('dashboard', tab='tuition', class_id=selected_class_id, student_id=s.id, **year_param) }}">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-check me-1"></i> Confirm Activation
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endfor %}
+{% endif %}
 {% endblock %}

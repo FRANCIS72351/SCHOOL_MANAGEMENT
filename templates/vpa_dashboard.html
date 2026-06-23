@@ -350,7 +350,7 @@
                 <h6 class="fw-bold mb-3"><i class="fas fa-info-circle text-violet me-2"></i>MoE Grading Periods ({{ selected_year_name }})</h6>
                 <div class="d-flex flex-wrap gap-2">
                     {% for period_id, period_label in grading_periods %}
-                    <span class="stat-pill">P{{ period_id }}: {{ period_label }}</span>
+                    <span class="stat-pill">{{ period_label }}</span>
                     {% endfor %}
                 </div>
                 <p class="text-muted small mb-0 mt-3">

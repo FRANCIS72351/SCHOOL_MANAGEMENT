@@ -73,7 +73,20 @@
                             {% if student %}
                             <h2 class="h5 fw-bold mb-1">{{ student.full_name }}</h2>
                             <div class="badge bg-light text-dark border mb-2">ID: {{ student.student_id }}</div>
-                            {% if klass %}
+                            {% if display_grade_level or klass or class_display_name %}
+                            <div class="student-class-banner d-flex flex-wrap justify-content-center gap-2 mt-2 mb-1">
+                                {% if display_grade_level %}
+                                <span class="badge student-grade-badge">Grade {{ display_grade_level }}</span>
+                                {% endif %}
+                                {% if klass %}
+                                <span class="badge student-class-badge">{{ klass.name }}{% if klass.stream %} · {{ klass.stream }}{% endif %}</span>
+                                {% elif class_display_name and class_is_pending %}
+                                <span class="badge student-class-badge student-class-pending">{{ class_display_name }}</span>
+                                {% elif class_display_name %}
+                                <span class="badge student-class-badge">{{ class_display_name }}</span>
+                                {% endif %}
+                            </div>
+                            {% elif klass %}
                             <p class="text-muted small mb-0">{{ klass.name }}{% if klass.grade_level %} · Grade {{ klass.grade_level }}{% endif %}</p>
                             {% endif %}
                             {% else %}
@@ -88,7 +101,10 @@
                         </div>
                         {% if student %}
                         <div class="d-grid gap-2 pt-2 border-top">
-                            <a class="btn btn-student-primary" href="{{ url_for('report_card', student_id=student.id) }}?academic_year_id={{ display_year.id if display_year else '' }}">
+                            <a class="btn btn-student-primary" href="{{ url_for('student_grade_sheet') }}?academic_year_id={{ display_year.id if display_year else '' }}">
+                                <i class="fas fa-table me-2"></i>Official Grade Sheet
+                            </a>
+                            <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('report_card', student_id=student.id) }}?academic_year_id={{ display_year.id if display_year else '' }}">
                                 <i class="fas fa-file-invoice me-2"></i>Report Card
                             </a>
                             <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('transcript', student_id=student.id) }}">
@@ -111,6 +127,12 @@
                         </a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link {% if active_tab == 'activities' %}active{% endif %}"
+                           href="{{ url_for('student_dashboard', tab='activities', academic_year_id=display_year.id if display_year else None, subject=selected_subject, period=selected_period) }}">
+                            <i class="fas fa-clipboard-list me-1"></i>Activities Record
+                        </a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link {% if active_tab == 'tasks' %}active{% endif %}"
                            href="{{ url_for('student_dashboard', tab='tasks', academic_year_id=display_year.id if display_year else None) }}">
                             <i class="fas fa-tasks me-1"></i>My Tasks
@@ -123,9 +145,26 @@
                             <i class="fas fa-wallet me-1"></i>Account
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if active_tab == 'attendance' %}active{% endif %}"
+                           href="{{ url_for('student_dashboard', tab='attendance', academic_year_id=display_year.id if display_year else None) }}">
+                            <i class="fas fa-calendar-check me-1"></i>My Attendance
+                        </a>
+                    </li>
                 </ul>
 
                 {% if active_tab == 'grades' %}
+                <div class="card border-0 shadow-sm mb-3">
+                    <div class="card-body py-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
+                        <div>
+                            <span class="badge bg-success me-1">Published</span>
+                            <span class="small text-muted">Official grade sheet &amp; report card</span>
+                        </div>
+                        <a href="{{ url_for('student_grade_sheet') }}?academic_year_id={{ display_year.id if display_year else '' }}" class="btn btn-sm btn-primary fw-semibold">
+                            <i class="fas fa-table me-1"></i>View Grade Sheet
+                        </a>
+                    </div>
+                </div>
                 <div class="card border-0 shadow-sm mb-4">
                     <div class="card-header bg-white border-bottom py-3">
                         <h3 class="h6 fw-bold mb-2"><i class="fas fa-chart-line text-primary me-2"></i>Academic Standing</h3>
@@ -153,7 +192,7 @@
                                     </div>
                                     <div>
                                         <div class="standing-label">Draft Standing</div>
-                                        <div class="standing-sub">{{ selected_subject or 'Subject' }} · Period {{ selected_period }}</div>
+                                        <div class="standing-sub">{{ selected_subject or 'Subject' }} · {{ selected_period | marking_period_label }}</div>
                                         {% if draft_standing %}
                                         <div class="standing-score">{{ '%.1f'|format(draft_standing.total or 0) }}<span>/100</span></div>
                                         <div class="small text-muted">CA {{ draft_standing.ca_score or 0 }} + Exam {{ draft_standing.exam_score or 0 }}</div>
@@ -182,7 +221,7 @@
                             </div>
                         </div>
 
-                        <h4 class="h6 fw-bold mb-3">Activity Scores</h4>
+                        <h4 class="h6 fw-bold mb-3">Activity Scores <span class="text-muted fw-normal small">— this subject &amp; period</span></h4>
                         <div class="table-responsive">
                             <table class="table table-sm table-hover align-middle mb-0">
                                 <thead class="table-light">
@@ -222,6 +261,107 @@
                                 </tbody>
                             </table>
                         </div>
+
+                        {% if published_grade_summary %}
+                        <h4 class="h6 fw-bold mb-3 mt-4">Published Period Grades <span class="badge bg-success ms-1">Official</span></h4>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Subject</th>
+                                        <th>Period</th>
+                                        <th class="text-center">CA</th>
+                                        <th class="text-center">Exam</th>
+                                        <th class="text-center">Total</th>
+                                        <th class="text-center">Grade</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for row in published_grade_summary %}
+                                    <tr>
+                                        <td class="fw-semibold">{{ row.subject }}</td>
+                                        <td class="small">{{ row.period_label }}</td>
+                                        <td class="text-center font-monospace">{{ row.ca_score if row.ca_score is not none else '—' }}</td>
+                                        <td class="text-center font-monospace">{{ row.exam_score if row.exam_score is not none else '—' }}</td>
+                                        <td class="text-center font-monospace fw-bold">{{ row.total if row.total is not none else '—' }}</td>
+                                        <td class="text-center"><span class="badge bg-success">{{ row.grade_letter or '—' }}</span></td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if active_tab == 'activities' %}
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-header bg-white border-bottom py-3">
+                        <h3 class="h6 fw-bold mb-2"><i class="fas fa-clipboard-list text-primary me-2"></i>Activities Record</h3>
+                        <p class="text-muted small mb-2">All assignments, classroom activities, and scores for {{ display_year.name if display_year else 'this year' }}</p>
+                        {% if subjects %}
+                        <div class="student-subject-pills d-flex flex-wrap gap-2 mb-2">
+                            <a href="{{ url_for('student_dashboard', tab='activities', academic_year_id=display_year.id if display_year else None, period=selected_period) }}"
+                               class="subject-pill {% if not selected_subject %}active{% endif %}">All Subjects</a>
+                            {% for subject in subjects %}
+                            <a href="{{ url_for('student_dashboard', tab='activities', academic_year_id=display_year.id if display_year else None, subject=subject.name, period=selected_period) }}"
+                               class="subject-pill {% if selected_subject == subject.name %}active{% endif %}">{{ subject.name }}</a>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        <div class="student-period-pills">
+                            <a href="{{ url_for('student_dashboard', tab='activities', academic_year_id=display_year.id if display_year else None, subject=selected_subject) }}"
+                               class="period-pill {% if not selected_period %}active{% endif %}">All Periods</a>
+                            {% for period_num, period_name in grading_periods %}
+                            <a href="{{ url_for('student_dashboard', tab='activities', academic_year_id=display_year.id if display_year else None, subject=selected_subject, period=period_num) }}"
+                               class="period-pill {% if selected_period == period_num %}active{% endif %}">{{ period_name }}</a>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Activity</th>
+                                        <th>Subject</th>
+                                        <th>Period</th>
+                                        <th>Type</th>
+                                        <th class="text-center">Score</th>
+                                        <th class="text-center">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in full_activity_record %}
+                                    <tr>
+                                        <td>
+                                            <div class="fw-semibold">{{ item.assessment.title }}</div>
+                                            {% if item.submitted_at %}
+                                            <div class="small text-muted">Submitted {{ item.submitted_at.strftime('%b %d, %Y') }}</div>
+                                            {% endif %}
+                                            {% if item.feedback %}
+                                            <div class="small text-info mt-1"><i class="fas fa-comment-dots me-1"></i>{{ item.feedback[:80] }}{% if item.feedback|length > 80 %}…{% endif %}</div>
+                                            {% endif %}
+                                        </td>
+                                        <td class="small">{{ item.assessment.subject_name }}</td>
+                                        <td class="small">{{ item.period_label }}</td>
+                                        <td class="small">{{ item.type_label }}</td>
+                                        <td class="text-center font-monospace fw-bold">
+                                            {% if item.score is not none %}{{ item.score }}/{{ item.max_score }}{% else %}—{% endif %}
+                                        </td>
+                                        <td class="text-center">
+                                            {% if item.status == 'Graded' %}<span class="badge bg-success">Graded</span>
+                                            {% elif item.status == 'Submitted' %}<span class="badge bg-info text-dark">Submitted</span>
+                                            {% else %}<span class="badge bg-secondary">Open</span>{% endif %}
+                                        </td>
+                                    </tr>
+                                    {% else %}
+                                    <tr><td colspan="6" class="text-center text-muted py-4">No activities match your filters.</td></tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
                 {% endif %}
@@ -241,11 +381,17 @@
                                 <div class="task-card h-100 p-3 border rounded-3 {% if task.needs_submit %}border-warning shadow-sm{% endif %}">
                                     <div class="d-flex justify-content-between align-items-start mb-2 gap-2">
                                         <h4 class="h6 fw-bold mb-0">{{ activity.title }}</h4>
-                                        <span class="badge {% if task.needs_submit %}bg-warning text-dark{% else %}bg-info text-dark{% endif %} flex-shrink-0">
-                                            {% if task.needs_submit %}Submit{% else %}Awaiting grade{% endif %}
+                                        <span class="badge {% if task.needs_submit and activity.is_overdue %}bg-danger{% elif task.needs_submit %}bg-warning text-dark{% else %}bg-info text-dark{% endif %} flex-shrink-0">
+                                            {% if task.needs_submit and activity.is_overdue %}Overdue{% elif task.needs_submit %}Submit{% else %}Awaiting grade{% endif %}
                                         </span>
                                     </div>
-                                    <p class="small text-muted mb-2">{{ activity.subject_name }} · Period {{ activity.marking_period or 1 }} · {{ activity.activity_type or 'Assignment' }}</p>
+                                    <p class="small text-muted mb-2">
+                                        {{ activity.subject_name }} · {{ (activity.marking_period or 1) | marking_period_label }} · {{ activity.activity_type or 'Assignment' }}
+                                        {% if activity.due_date %}
+                                        · Due {{ activity.due_date }}
+                                        {% if activity.is_overdue %}<span class="text-danger fw-semibold">(Overdue)</span>{% endif %}
+                                        {% endif %}
+                                    </p>
                                     {% if activity.description %}<p class="small mb-2 text-secondary">{{ activity.description[:150] }}{% if activity.description|length > 150 %}…{% endif %}</p>{% endif %}
                                     <div class="task-actions">
                                         {% if activity.file_name %}
@@ -342,6 +488,71 @@
                 {% endif %}
                 {% endif %}
 
+                {% if active_tab == 'attendance' %}
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-header bg-white border-bottom py-3">
+                        <h3 class="h6 fw-bold mb-0"><i class="fas fa-calendar-check text-primary me-2"></i>My Attendance</h3>
+                        <p class="text-muted small mb-0 mt-1">{{ display_year.name if display_year else 'Current year' }} — your presence record</p>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3 mb-4">
+                            <div class="col-6 col-md-3">
+                                <div class="fin-box text-center">
+                                    <span>Present Rate</span>
+                                    <strong class="text-success">{% if attendance_self.present_pct is not none %}{{ attendance_self.present_pct }}%{% else %}—{% endif %}</strong>
+                                </div>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <div class="fin-box text-center">
+                                    <span>Present</span>
+                                    <strong>{{ attendance_self.counts.present }}</strong>
+                                </div>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <div class="fin-box text-center">
+                                    <span>Absent</span>
+                                    <strong class="text-danger">{{ attendance_self.counts.absent }}</strong>
+                                </div>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <div class="fin-box text-center">
+                                    <span>Late</span>
+                                    <strong class="text-warning">{{ attendance_self.counts.late }}</strong>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Status</th>
+                                        <th>Note</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for row in attendance_self.records %}
+                                    <tr>
+                                        <td class="fw-semibold">{{ row.label }}</td>
+                                        <td>
+                                            {% if row.status == 'present' %}<span class="badge bg-success">Present</span>
+                                            {% elif row.status == 'late' %}<span class="badge bg-warning text-dark">Late</span>
+                                            {% elif row.status == 'absent' %}<span class="badge bg-danger">Absent</span>
+                                            {% elif row.status == 'excused' %}<span class="badge bg-info text-dark">Excused</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="small text-muted">{{ row.notes or '—' }}</td>
+                                    </tr>
+                                    {% else %}
+                                    <tr><td colspan="3" class="text-center text-muted py-4">No attendance records for this academic year yet.</td></tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
                 {% else %}
                 <div class="alert alert-info">No student profile is linked to your account. Contact the registrar.</div>
                 {% endif %}
@@ -354,6 +565,30 @@
     .student-dashboard { background: #f1f5f9; min-height: calc(100vh - 80px); }
     .student-layout { max-width: 1200px; margin: 0 auto; }
     .student-avatar { width: 96px; height: 96px; overflow: hidden; border: 3px solid #e2e8f0; }
+    .student-class-banner { margin-top: 0.25rem; }
+    .student-grade-badge {
+        background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+        color: #fff;
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0.03em;
+        padding: 0.45rem 0.75rem;
+        border-radius: 999px;
+    }
+    .student-class-badge {
+        background: #f0f9ff;
+        color: #0c4a6e;
+        border: 1px solid #bae6fd;
+        font-size: 0.78rem;
+        font-weight: 600;
+        padding: 0.45rem 0.75rem;
+        border-radius: 999px;
+    }
+    .student-class-badge.student-class-pending {
+        background: #fffbeb;
+        color: #92400e;
+        border-color: #fcd34d;
+    }
     .btn-student-primary { background: #1e40af; color: #fff; font-weight: 600; border: none; border-radius: 8px; }
     .btn-student-primary:hover { background: #1e3a8a; color: #fff; }
     .standing-box { border-radius: 12px; padding: 1rem; border: 1px solid #e2e8f0; background: #fff; }

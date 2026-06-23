@@ -6,14 +6,25 @@ ROLE_BUSINESS = 'business'
 ROLE_SPONSOR = 'sponsor'
 ROLE_STUDENT = 'student'
 
-# Liberia MoE 6-period grading system (+ semester exams)
+# MoE marking periods: 1, 2, 3, EXAM, 4, 5, 6, FINAL EXAM (IDs 7 and 8 = semester exams)
 GRADING_PERIODS = [
-    (1, 'Period 1'),
-    (2, 'Period 2'),
-    (3, 'Period 3'),
-    (4, 'Period 4'),
-    (5, 'Period 5'),
-    (6, 'Period 6'),
-    (7, 'Semester 1 Exam'),
-    (8, 'Semester 2 Exam'),
+    (1, '1'),
+    (2, '2'),
+    (3, '3'),
+    (7, 'EXAM'),
+    (4, '4'),
+    (5, '5'),
+    (6, '6'),
+    (8, 'FINAL EXAM'),
 ]
+
+_GRADING_PERIOD_LABELS = dict(GRADING_PERIODS)
+
+
+def grading_period_label(period_num):
+    """Human-readable label for a marking period number."""
+    try:
+        period_num = int(period_num)
+    except (TypeError, ValueError):
+        return str(period_num) if period_num else '1'
+    return _GRADING_PERIOD_LABELS.get(period_num, str(period_num))

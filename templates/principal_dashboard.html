@@ -272,27 +272,63 @@
 </style>
 
 <div class="container-fluid py-4 px-md-4 principal-terminal">
-    
+    {% set year_param = {'academic_year_id': display_year.id} if display_year else {} %}
+
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4 pb-3 border-bottom border-secondary border-opacity-10 fade-glide-in">
         <div>
             <h2 class="glow-title mb-0"><i class="fas fa-shield-halved text-cyan me-2"></i>Principal Oversight Terminal</h2>
             <p class="text-white small mb-0">System Authority Level: Complete Command & Control Matrix</p>
         </div>
-        <span class="badge bg-dark border border-secondary border-opacity-20 text-white px-3 py-2 mt-2 mt-md-0 rounded-3">
-            <i class="fas fa-server text-emerald me-2"></i>System Status: Secure Ledger Live
-        </span>
+        <form method="get" class="d-flex gap-2 mt-2 mt-md-0 flex-wrap align-items-center">
+            {% if class_id %}<input type="hidden" name="class_id" value="{{ class_id }}">{% endif %}
+            {% if selected_folder %}<input type="hidden" name="folder" value="{{ selected_folder }}">{% endif %}
+            {% if search_class %}<input type="hidden" name="search_class" value="{{ search_class }}">{% endif %}
+            {% if request.args.get('search') %}<input type="hidden" name="search" value="{{ request.args.get('search') }}">{% endif %}
+            {% if request.args.get('status') %}<input type="hidden" name="status" value="{{ request.args.get('status') }}">{% endif %}
+            <label for="academic_year_id" class="text-white small mb-0">Academic Year</label>
+            <select name="academic_year_id" id="academic_year_id" class="form-select form-cyber form-select-sm" onchange="this.form.submit()">
+                {% for y in years %}
+                <option value="{{ y.id }}" {% if display_year and y.id == display_year.id %}selected{% endif %}>
+                    {{ y.name }}{% if y.is_active %} (Active){% endif %}
+                </option>
+                {% endfor %}
+            </select>
+        </form>
     </div>
 
+    {% if viewing_archived %}
+    <div class="alert bg-dark border border-warning border-opacity-40 text-white mb-4 shadow-sm rounded-3 fade-glide-in delay-1 d-flex flex-wrap align-items-center justify-content-between gap-2">
+        <div class="d-flex align-items-center">
+            <div class="p-2 bg-warning bg-opacity-10 rounded-3 me-3 text-amber border border-warning border-opacity-10">
+                <i class="fas fa-archive fa-fw fa-lg"></i>
+            </div>
+            <div>
+                <span class="text-white small d-block uppercase tracking-wider" style="font-size:0.7rem;">Historical Record View</span>
+                <strong class="text-amber">Viewing: {{ display_year.name }} (Archived)</strong>
+                <span class="text-white small ms-2" style="opacity:0.75;">Read-only past-year enrollment, grades, and financials</span>
+            </div>
+        </div>
+        {% if active_year %}
+        <a href="{{ url_for('principal_dashboard', academic_year_id=active_year.id) }}" class="btn btn-sm btn-outline-success">
+            <i class="fas fa-arrow-left me-1"></i> Active Year ({{ active_year.name }})
+        </a>
+        {% endif %}
+    </div>
+    {% elif display_year %}
     <div class="alert bg-dark border border-cyan border-opacity-25 text-white mb-4 shadow-sm rounded-3 fade-glide-in delay-1 d-flex align-items-center">
         <div class="p-2 bg-cyan bg-opacity-10 rounded-3 me-3 text-cyan border border-cyan border-opacity-10">
             <i class="fas fa-calendar-check fa-fw fa-lg"></i>
         </div>
         <div>
             <span class="text-white small d-block uppercase tracking-wider" style="font-size:0.7rem;">Active System Academic Term Session</span>
-            <strong class="text-cyan">{{ active_year.name }}</strong> 
-            <span class="text-white ms-2">({{ active_year.start_date }} to {{ active_year.end_date }})</span>
+            <strong class="text-cyan">{{ display_year.name }}</strong>
+            <span class="badge bg-success bg-opacity-10 text-emerald border border-success border-opacity-25 ms-2">Active</span>
+            {% if display_year.start_date %}
+            <span class="text-white ms-2">({{ display_year.start_date }}{% if display_year.end_date %} to {{ display_year.end_date }}{% endif %})</span>
+            {% endif %}
         </div>
     </div>
+    {% endif %}
 
     <div class="row g-4">
         
@@ -408,7 +444,7 @@
                         </div>
                     </a>
 
-                    <a href="{{ url_for('academic_year_rollover') }}" class="btn-command cmd-rose text-decoration-none">
+                    <a href="{{ url_for('academic_year_rollover', **year_param) }}" class="btn-command cmd-rose text-decoration-none{% if viewing_archived %} opacity-50 pe-none{% endif %}" {% if viewing_archived %}title="Switch to active year to run rollover"{% endif %}>
                         <div class="d-flex align-items-center w-100">
                             <div class="cmd-icon-box text-rose me-3"><i class="fas fa-arrows-rotate fa-lg"></i></div>
                             <div>
@@ -420,10 +456,20 @@
 
                     <a href="{{ url_for('academic_years') }}" class="btn-command cmd-rose text-decoration-none">
                         <div class="d-flex align-items-center w-100">
-                            <div class="cmd-icon-box text-rose me-3"><i class="fas fa-folder-plus fa-lg"></i></div>
+                            <div class="cmd-icon-box text-rose me-3"><i class="fas fa-calendar-alt fa-lg"></i></div>
                             <div>
-                                <div class="fw-bold text-white small">Initialize Academic Term</div>
-                                <div class="text-white small" style="font-size:0.75rem;">Create new calendars and control active sessions</div>
+                                <div class="fw-bold text-white small">Academic Years</div>
+                                <div class="cmd-desc text-blue small" style="font-size:0.75rem;">Manage terms, rollover, and year archives</div>
+                            </div>
+                        </div>
+                    </a>
+
+                    <a href="{{ url_for('principal_attendance', academic_year_id=display_year.id if display_year else None) }}" class="btn-command cmd-emerald text-decoration-none">
+                        <div class="d-flex align-items-center w-100">
+                            <div class="cmd-icon-box text-emerald me-3"><i class="fas fa-calendar-check fa-lg"></i></div>
+                            <div>
+                                <div class="fw-bold text-white small">Attendance Overview</div>
+                                <div class="cmd-desc text-blue small" style="font-size:0.75rem;">School-wide presence, absences, and class drill-down</div>
                             </div>
                         </div>
                     </a>
@@ -485,10 +531,11 @@
 
                 {% if not selected_class and not selected_folder %}
                 <form method="get" class="d-flex flex-column flex-sm-row gap-2 mb-4">
+                    {% if display_year %}<input type="hidden" name="academic_year_id" value="{{ display_year.id }}">{% endif %}
                     <input type="text" name="search_class" class="form-control form-cyber py-2" placeholder="Filter classes by name, stream, or grade..." value="{{ search_class or '' }}">
                     <button type="submit" class="btn btn-primary px-4 py-2 font-weight-bold"><i class="fas fa-filter me-1.5"></i>Filter Classes</button>
                     {% if search_class %}
-                    <a href="{{ url_for('principal_dashboard') }}" class="btn btn-outline-secondary py-2 px-3"><i class="fas fa-times"></i></a>
+                    <a href="{{ url_for('principal_dashboard', **year_param) }}" class="btn btn-outline-secondary py-2 px-3"><i class="fas fa-times"></i></a>
                     {% endif %}
                 </form>
 
@@ -496,7 +543,7 @@
                     {% if unallocated_portfolio %}
                     {% set ring_class = 'alert' if unallocated_portfolio.health_pct < 50 else ('warn' if unallocated_portfolio.health_pct < 70 else '') %}
                     <div class="col-md-6 col-xl-4">
-                        <a href="{{ url_for('principal_dashboard', folder='unallocated') }}" class="condition-vault-card unallocated-vault">
+                        <a href="{{ url_for('principal_dashboard', folder='unallocated', **year_param) }}" class="condition-vault-card unallocated-vault">
                             <div class="d-flex align-items-start justify-content-between gap-3 mb-3">
                                 <div>
                                     <div class="text-amber small fw-semibold text-uppercase" style="font-size:0.68rem; letter-spacing:0.04em;">Pending Allocation</div>
@@ -521,7 +568,7 @@
                     {% for portfolio in class_portfolios %}
                     {% set ring_class = 'alert' if portfolio.health_pct < 50 else ('warn' if portfolio.health_pct < 70 else '') %}
                     <div class="col-md-6 col-xl-4">
-                        <a href="{{ url_for('principal_dashboard', class_id=portfolio.klass.id) }}" class="condition-vault-card">
+                        <a href="{{ url_for('principal_dashboard', class_id=portfolio.klass.id, **year_param) }}" class="condition-vault-card">
                             <div class="d-flex align-items-start justify-content-between gap-3 mb-3">
                                 <div>
                                     <div class="text-cyan small fw-semibold text-uppercase" style="font-size:0.68rem; letter-spacing:0.04em;">Grade {{ portfolio.klass.grade_level }}</div>
@@ -556,7 +603,7 @@
                 <div class="class-drill-header mb-3{% if selected_folder == 'unallocated' %} unallocated-header{% endif %}">
                     <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2">
                         <div>
-                            <a href="{{ url_for('principal_dashboard') }}" class="small text-decoration-none text-cyan d-inline-block mb-2">
+                            <a href="{{ url_for('principal_dashboard', **year_param) }}" class="small text-decoration-none text-cyan d-inline-block mb-2">
                                 <i class="fas fa-arrow-left me-1"></i>Back to all class folders
                             </a>
                             {% if selected_folder == 'unallocated' %}
@@ -585,6 +632,7 @@
                 </div>
 
                 <form method="get" class="row g-2 mb-3">
+                    {% if display_year %}<input type="hidden" name="academic_year_id" value="{{ display_year.id }}">{% endif %}
                     {% if selected_folder == 'unallocated' %}
                     <input type="hidden" name="folder" value="unallocated">
                     {% else %}
@@ -637,7 +685,7 @@
                                     {% endif %}
                                 </td>
                                 <td class="text-end">
-                                    <a href="{{ url_for('report_card', student_id=student.id) }}" class="btn btn-sm btn-outline-secondary text-white rounded-3 px-2.5 py-1" style="font-size:0.75rem;"><i class="fas fa-chart-line me-1"></i>Analysis</a>
+                                    <a href="{{ url_for('report_card', student_id=student.id) }}?academic_year_id={{ display_year.id if display_year else '' }}" class="btn btn-sm btn-outline-secondary text-white rounded-3 px-2.5 py-1" style="font-size:0.75rem;"><i class="fas fa-chart-line me-1"></i>Analysis</a>
                                 </td>
                             </tr>
                             {% else %}

@@ -195,12 +195,8 @@
                     
                     <div class="mb-3">
                         <label for="grade_level" class="form-label text-blue small font-weight-bold">Grade Level Tracking</label>
-                        <select class="form-select form-cyber" id="grade_level" name="grade_level" required>
-                            <option value="" disabled selected>Select Grade Level</option>
-                            {% for i in range(1, 13) %}
-                                <option value="{{ i }}">Grade {{ i }}</option>
-                            {% endfor %}
-                        </select>
+                        <input type="text" class="form-control form-cyber" id="grade_level" name="grade_level"
+                               placeholder="e.g., Grade 7, 10th Grade, JSS 1" maxlength="50" required>
                     </div>
 
                     <div class="mb-3">

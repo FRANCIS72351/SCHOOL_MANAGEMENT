@@ -160,11 +160,16 @@
                             <div class="text-muted" style="font-size: 0.75rem;">{{ student.email }}</div>
                         </td>
                         <td>
-                            {% if student.total_paid > 0 %}
-                                <span class="badge bg-emerald bg-opacity-10 text-emerald border border-emerald border-opacity-10 px-2 py-1" style="font-size: 0.65rem;">ACTIVE PAYER</span>
-                            {% else %}
-                                <span class="badge bg-rose bg-opacity-10 text-rose border border-rose border-opacity-10 px-2 py-1" style="font-size: 0.65rem;">ZERO BALANCE</span>
-                            {% endif %}
+                            <div class="d-flex flex-wrap gap-1">
+                                {% if student.is_registered %}
+                                <span class="badge bg-emerald bg-opacity-10 text-emerald border border-emerald border-opacity-10 px-2 py-1" style="font-size: 0.65rem;">REGISTERED</span>
+                                {% else %}
+                                <span class="badge bg-amber bg-opacity-10 text-amber border border-amber border-opacity-10 px-2 py-1" style="font-size: 0.65rem;">PENDING</span>
+                                {% endif %}
+                                {% if student.is_promoted %}
+                                <span class="badge bg-cyan bg-opacity-10 text-cyan border border-cyan border-opacity-10 px-2 py-1" style="font-size: 0.65rem;">PROMOTED</span>
+                                {% endif %}
+                            </div>
                         </td>
                         <td class="font-monospace fw-semibold text-emerald">
                             ${{ "{:,.2f}".format(student.total_paid|float) }}
@@ -175,9 +180,17 @@
                             </span>
                         </td>
                         <td class="text-end">
-                            <a href="{{ url_for('business_management', student_id=student.id, year_id=student.academic_year_id) }}" class="btn btn-sm btn-pay rounded-3 px-3 py-1.5 fw-bold" title="Ingest Payment">
-                                <i class="fas fa-hand-holding-dollar me-1.5"></i>Record Payment
-                            </a>
+                            <div class="d-flex flex-wrap gap-1 justify-content-end">
+                                {% if not student.is_registered %}
+                                <button type="button" class="btn btn-sm btn-outline-info rounded-3 px-2 py-1 fw-bold"
+                                        data-bs-toggle="modal" data-bs-target="#activateModal{{ student.id }}">
+                                    <i class="fas fa-unlock me-1"></i>Activate
+                                </button>
+                                {% endif %}
+                                <a href="{{ url_for('business_management', student_id=student.id, year_id=student.academic_year_id) }}" class="btn btn-sm btn-pay rounded-3 px-3 py-1.5 fw-bold" title="Ingest Payment">
+                                    <i class="fas fa-hand-holding-dollar me-1.5"></i>Record Payment
+                                </a>
+                            </div>
                         </td>
                     </tr>
                     {% else %}
@@ -194,5 +207,31 @@
     </div>
 
 </div>
+
+{% for student in students %}
+{% if not student.is_registered %}
+<div class="modal fade" id="activateModal{{ student.id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark border border-secondary text-light">
+            <div class="modal-header border-secondary border-opacity-25">
+                <h5 class="modal-title"><i class="fas fa-unlock text-cyan me-2"></i>Activate Registration</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Confirm registration fee clearance for <strong>{{ student.full_name }}</strong> ({{ student.student_id }}).</p>
+            </div>
+            <div class="modal-footer border-secondary border-opacity-25">
+                <button type="button" class="btn btn-cyber-outline" data-bs-dismiss="modal">Cancel</button>
+                <form method="post" action="{{ url_for('finance_activate_student', student_id=student.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="next" value="{{ url_for('business_class_students', class_id=klass.id) }}">
+                    <button type="submit" class="btn btn-pay">Confirm Activation</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endfor %}
 
 {% endblock %}

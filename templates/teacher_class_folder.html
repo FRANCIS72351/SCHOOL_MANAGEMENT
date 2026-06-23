@@ -25,6 +25,9 @@
             <a href="{{ url_for('class_grading_hub', class_id=klass.id) }}" class="btn btn-primary">
                 <i class="bi bi-mortarboard me-1"></i>Grading Hub
             </a>
+            <a href="{{ url_for('teacher_class_attendance', class_id=klass.id) }}" class="btn btn-cyber-sm">
+                <i class="bi bi-calendar-check me-1"></i>Attendance
+            </a>
             <a href="{{ url_for('grade_entry_class', class_id=klass.id) }}" class="btn btn-outline-light">
                 <i class="bi bi-printer me-1"></i>MoE Sheet
             </a>

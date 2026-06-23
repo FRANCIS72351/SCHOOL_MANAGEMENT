@@ -26,6 +26,8 @@ SCHEMA_UPDATES = (
     {"table": "students", "description": "Add tuition_cleared column", "sql": "ALTER TABLE students ADD COLUMN tuition_cleared BOOLEAN DEFAULT 0;"},
     {"table": "students", "description": "Add registrar column", "sql": "ALTER TABLE students ADD COLUMN registrar VARCHAR(100);"},
     {"table": "students", "description": "Add registration_fees column", "sql": "ALTER TABLE students ADD COLUMN registration_fees NUMERIC(10,2) DEFAULT 0.0;"},
+    {"table": "students", "description": "Add is_promoted column", "sql": "ALTER TABLE students ADD COLUMN is_promoted BOOLEAN DEFAULT 0;"},
+    {"table": "students", "description": "Add is_registered column", "sql": "ALTER TABLE students ADD COLUMN is_registered BOOLEAN DEFAULT 1;"},
 
     {"table": "business_transactions", "description": "Add academic_year column", "sql": "ALTER TABLE business_transactions ADD COLUMN academic_year VARCHAR(32);"},
     {"table": "business_transactions", "description": "Add is_deleted column", "sql": "ALTER TABLE business_transactions ADD COLUMN is_deleted BOOLEAN DEFAULT 0;"},

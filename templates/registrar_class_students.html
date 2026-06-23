@@ -99,7 +99,11 @@
         <div>
             <div class="d-flex align-items-center gap-2 mb-1">
                 <span class="badge bg-cyan bg-opacity-10 text-cyan border border-cyan border-opacity-10 uppercase tracking-wider px-2 py-1" style="font-size: 0.65rem;">Class Registry Block</span>
-                {% if active_year %}
+                {% if viewing_archived and display_year %}
+                    <span class="text-warning small">| Viewing: {{ display_year.name }} (Archived)</span>
+                {% elif display_year %}
+                    <span class="text-muted small">| Session: {{ display_year.name }}</span>
+                {% elif active_year %}
                     <span class="text-muted small">| Active Session: {{ active_year.name }}</span>
                 {% endif %}
             </div>
@@ -107,7 +111,7 @@
             <p class="text-muted small mb-0">{{ klass.description or 'No explicit descriptive layout signature mapped to this module.' }}</p>
         </div>
         <div class="mt-3 mt-md-0">
-            <a href="{{ url_for('dashboard') }}" class="btn btn-sm btn-cyber-outline rounded-3 px-3 py-2 fw-semibold fs-7">
+            <a href="{{ url_for('dashboard', academic_year_id=display_year.id if display_year else None) }}" class="btn btn-sm btn-cyber-outline rounded-3 px-3 py-2 fw-semibold fs-7">
                 <i class="fas fa-arrow-left-long me-2"></i>Return to Terminal Dashboard
             </a>
         </div>

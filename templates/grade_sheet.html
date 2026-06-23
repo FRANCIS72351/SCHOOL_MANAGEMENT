@@ -3,11 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Student Report Card - {{ data.student_name }}</title>
-    
+    <title>Grade Sheet — {{ data.student_name }}</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    
     <style>
         :root {
             --moe-blue: #002d62;
@@ -16,399 +14,296 @@
             --text-main: #1a202c;
             --text-muted: #4a5568;
             --border-color: #cbd5e1;
+            --published: #059669;
         }
-
         body {
-            font-family: 'Inter', system-ui, -apple-system, sans-serif;
-            background-color: #f1f5f9;
+            font-family: 'Inter', system-ui, sans-serif;
+            background: #f1f5f9;
             color: var(--text-main);
             margin: 0;
-            padding: 40px 20px;
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
+            padding: 24px 16px 48px;
         }
-
-        /* Interactive Controls Area */
+        .top-bar {
+            max-width: 980px;
+            margin: 0 auto 16px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+        }
+        .top-bar a.back-link {
+            color: #1e40af;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+        .year-form {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 0;
+        }
+        .year-form label { font-size: 0.85rem; color: var(--text-muted); }
+        .year-form select {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 6px 10px;
+            font-size: 0.9rem;
+        }
+        .status-banner {
+            max-width: 980px;
+            margin: 0 auto 16px;
+            padding: 12px 16px;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .status-banner.published {
+            background: #ecfdf5;
+            border: 1px solid #a7f3d0;
+            color: #065f46;
+        }
+        .status-banner.empty {
+            background: #fffbeb;
+            border: 1px solid #fde68a;
+            color: #92400e;
+        }
         .action-bar {
-            max-width: 950px;
-            margin: 0 auto 20px auto;
+            max-width: 980px;
+            margin: 0 auto 16px;
             display: flex;
             justify-content: flex-end;
+            gap: 10px;
+            flex-wrap: wrap;
         }
-
-        .btn-print {
-            background-color: var(--moe-blue);
-            color: #ffffff;
+        .btn-action {
+            background: var(--moe-blue);
+            color: #fff;
             border: none;
-            padding: 10px 24px;
-            font-size: 0.9rem;
+            padding: 9px 20px;
+            font-size: 0.88rem;
             font-weight: 600;
             border-radius: 8px;
             cursor: pointer;
+            text-decoration: none;
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            box-shadow: 0 4px 6px -1px rgba(0, 2d, 62, 0.15);
-            transition: all 0.2s ease;
         }
-
-        .btn-print:hover {
-            background-color: #001f45;
-            transform: translateY(-1px);
-            box-shadow: 0 6px 12px -1px rgba(0, 2d, 62, 0.25);
+        .btn-action.outline {
+            background: #fff;
+            color: var(--moe-blue);
+            border: 1px solid var(--border-color);
         }
-
-        /* Elegant Academic Transcript Container Card */
-        .report-card {
-            background: #ffffff;
-            padding: 50px;
-            max-width: 950px;
+        .grade-sheet-card {
+            background: #fff;
+            padding: 44px;
+            max-width: 980px;
             margin: auto;
             border-radius: 16px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.04);
             border: 1px solid #e2e8f0;
-            position: relative;
-            box-sizing: border-box;
-            
-            /* Professional Web Entrance Fade-In Animation */
-            animation: cardEntrance 0.6s cubic-bezier(0.16, 1, 0.3, 1) ease;
         }
-
-        @keyframes cardEntrance {
-            from { opacity: 0; transform: translateY(15px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        /* Ministry Institutional Header Layout */
         .moe-header {
             text-align: center;
-            margin-bottom: 35px;
+            margin-bottom: 28px;
             border-bottom: 2px solid var(--moe-blue);
-            padding-bottom: 25px;
+            padding-bottom: 20px;
         }
-
-        .moe-header img {
-            margin-bottom: 12px;
-        }
-
-        .moe-header h2 {
-            font-size: 1.5rem;
-            font-weight: 800;
-            margin: 4px 0;
-            color: var(--moe-blue);
-            letter-spacing: 0.5px;
-        }
-
-        .moe-header h3 {
-            font-size: 1.1rem;
-            font-weight: 600;
-            margin: 4px 0;
-            color: var(--moe-accent);
-            letter-spacing: 1px;
-        }
-
-        .report-title-badge {
+        .moe-header h2 { font-size: 1.45rem; font-weight: 800; color: var(--moe-blue); margin: 4px 0; }
+        .moe-header h3 { font-size: 1rem; font-weight: 600; color: var(--moe-accent); margin: 4px 0; }
+        .title-badge {
             display: inline-block;
-            background-color: var(--moe-blue-light);
+            background: var(--moe-blue-light);
             color: var(--moe-blue);
             font-weight: 700;
-            font-size: 0.85rem;
-            padding: 6px 16px;
+            font-size: 0.82rem;
+            padding: 6px 14px;
             border-radius: 20px;
-            margin-top: 15px;
-            letter-spacing: 0.5px;
+            margin-top: 12px;
         }
-
-        /* Identity Profile Meta Matrix Blocks */
+        .title-badge .pub-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--published);
+            margin-right: 6px;
+        }
         .meta-grid {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 15px;
-            margin-top: 25px;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-top: 20px;
             background: #f8fafc;
-            padding: 15px 20px;
+            padding: 14px 18px;
             border-radius: 10px;
             border: 1px solid #edf2f7;
             text-align: left;
         }
-
-        .meta-item {
-            font-size: 0.88rem;
-            color: var(--text-muted);
-        }
-
-        .meta-item strong {
-            color: var(--text-main);
-            font-weight: 600;
-        }
-
-        /* High-Definition Analytical Ledger Table Styling */
+        .meta-item { font-size: 0.86rem; color: var(--text-muted); }
+        .meta-item strong { color: var(--text-main); }
         .transcript-table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 30px;
+            margin-top: 24px;
+            border: 1px solid var(--border-color);
             border-radius: 8px;
             overflow: hidden;
-            border: 1px solid var(--border-color);
         }
-
         .transcript-table th {
-            background-color: var(--moe-blue);
-            color: #ffffff;
-            font-size: 0.8rem;
+            background: var(--moe-blue);
+            color: #fff;
+            font-size: 0.78rem;
             font-weight: 600;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
-            padding: 12px 8px;
-            border: 1px solid rgba(255, 255, 255, 0.15);
+            padding: 10px 6px;
+            border: 1px solid rgba(255,255,255,0.12);
         }
-
         .transcript-table td {
             border: 1px solid var(--border-color);
-            font-size: 0.9rem;
-            height: 38px;
+            font-size: 0.88rem;
             text-align: center;
-            padding: 6px;
-            color: var(--text-main);
+            padding: 8px 6px;
         }
-
-        .transcript-table tbody tr {
-            transition: background-color 0.15s ease;
-        }
-
-        .transcript-table tbody tr:hover {
-            background-color: #f8fafc;
-        }
-
         .subject-name {
             text-align: left;
-            padding-left: 15px !important;
+            padding-left: 14px !important;
             font-weight: 600;
-            color: #2d3748;
-            background-color: #fafafa;
-            width: 25%;
+            background: #fafafa;
         }
-
-        /* Monospace alignment for Grades columns */
-        .grade-cell {
-            font-family: 'Courier New', Courier, monospace;
-            font-weight: 600;
-            width: 9%;
-        }
-
+        .grade-cell { font-family: 'Courier New', monospace; font-weight: 600; }
         .final-avg-cell {
-            font-family: 'Courier New', Courier, monospace;
+            font-family: 'Courier New', monospace;
             font-weight: 700;
             color: var(--moe-blue);
-            background-color: var(--moe-blue-light);
-            width: 11%;
+            background: var(--moe-blue-light);
         }
-
-        /* Clean Signature Validation Sections */
+        .empty-state {
+            text-align: center;
+            padding: 48px 24px;
+            color: var(--text-muted);
+        }
         .footer-signatures {
-            margin-top: 60px;
+            margin-top: 48px;
             display: flex;
             justify-content: space-between;
-            padding: 0 30px;
+            padding: 0 24px;
         }
-
-        .signature-block {
-            text-align: center;
-            width: 220px;
-        }
-
-        .signature-line {
-            border-top: 1.5px solid var(--text-main);
-            margin-bottom: 8px;
-        }
-
-        .signature-title {
-            font-size: 0.85rem;
-            font-weight: 600;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        /* Absolute Seamless Print Matrix Overrides */
+        .signature-block { text-align: center; width: 200px; }
+        .signature-line { border-top: 1.5px solid var(--text-main); margin-bottom: 8px; }
+        .signature-title { font-size: 0.82rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; }
         @media print {
-            body {
-                background: none !important;
-                padding: 0 !important;
-                color: #000000;
-            }
-            .action-bar {
-                display: none !important;
-            }
-            .report-card {
-                border: none !important;
-                padding: 0 !important;
-                width: 100% !important;
-                box-shadow: none !important;
-                margin: 0 !important;
-                transform: none !important;
-                animation: none !important;
-            }
-            .meta-grid {
-                background: none !important;
-                border: 1px solid #000000 !important;
-                padding: 10px !important;
-            }
-            .transcript-table {
-                border: 1px solid #000000 !important;
-            }
-            .transcript-table th {
-                background-color: #f0f0f0 !important;
-                color: #000000 !important;
-                border: 1px solid #000000 !important;
-                font-weight: 700;
-            }
-            .transcript-table td {
-                border: 1px solid #000000 !important;
-                color: #000000 !important;
-            }
-            .subject-name {
-                background: none !important;
-            }
-            .final-avg-cell {
-                background: none !important;
-                color: #000000 !important;
-            }
-            .signature-line {
-                border-top-color: #000000 !important;
-            }
+            body { background: none; padding: 0; }
+            .top-bar, .status-banner, .action-bar .outline { display: none !important; }
+            .grade-sheet-card { box-shadow: none; border: none; padding: 0; }
         }
     </style>
 </head>
 <body>
 
-    <div class="action-bar">
-        <button class="btn-print" onclick="window.print()">
-            <i class="fas fa-print"></i> Print Report Card
-        </button>
+    <div class="top-bar">
+        <a href="{{ url_for('student_dashboard', tab='grades', academic_year_id=display_year.id if display_year else none) }}" class="back-link">
+            <i class="fas fa-arrow-left me-1"></i> Back to Dashboard
+        </a>
+        <form method="GET" action="{{ url_for('student_grade_sheet') }}" class="year-form">
+            <label for="academic_year_id">Academic Year</label>
+            <select name="academic_year_id" id="academic_year_id" onchange="this.form.submit()">
+                {% for year in past_years %}
+                <option value="{{ year.id }}" {% if display_year and year.id == display_year.id %}selected{% endif %}>{{ year.name }}</option>
+                {% endfor %}
+            </select>
+        </form>
     </div>
 
-    <div class="report-card">
-        
+    {% if has_published %}
+    <div class="status-banner published">
+        <i class="fas fa-check-circle"></i>
+        <span><strong>Published Grade Sheet</strong> — {{ published_count }} official grade record{{ 's' if published_count != 1 else '' }} for {{ data.academic_year or 'this year' }}.</span>
+    </div>
+    {% else %}
+    <div class="status-banner empty">
+        <i class="fas fa-hourglass-half"></i>
+        <span>No published grades yet for {{ data.academic_year or 'this academic year' }}. Your teacher will publish period grades when ready. Check <strong>My Grades</strong> for draft standing.</span>
+    </div>
+    {% endif %}
+
+    <div class="action-bar">
+        <a class="btn-action outline" href="{{ url_for('student_dashboard', tab='activities', academic_year_id=display_year.id if display_year else none) }}">
+            <i class="fas fa-list"></i> Activities Record
+        </a>
+        {% if has_published %}
+        <a class="btn-action" href="{{ url_for('report_card', student_id=student.id) }}?academic_year_id={{ display_year.id if display_year else '' }}">
+            <i class="fas fa-file-invoice"></i> Full Report Card
+        </a>
+        <button class="btn-action" type="button" onclick="window.print()">
+            <i class="fas fa-print"></i> Print
+        </button>
+        {% endif %}
+    </div>
+
+    <div class="grade-sheet-card">
         <div class="moe-header">
-            <img src="{{ url_for('static', filename='images/LOGO.png') }}" alt="Republic of Liberia" width="75">
+            <img src="{{ url_for('static', filename='images/LOGO.png') }}" alt="School" width="70">
             <h2>STANDARD SCHOOL MANAGEMENT</h2>
             <h3>MINISTRY OF EDUCATION</h3>
-            <div class="report-title-badge">STUDENT PROGRESS REPORT</div>
-            
+            <div class="title-badge">
+                {% if has_published %}<span class="pub-dot"></span>{% endif %}
+                OFFICIAL GRADE SHEET
+            </div>
             <div class="meta-grid">
                 <div class="meta-item">STUDENT: <strong>{{ data.student_name }}</strong></div>
-                <div class="meta-item">ID NUMBER: <strong>{{ data.student_id }}</strong></div>
-                <div class="meta-item">SCHOOL LEVEL: <strong>{{ data.level }}</strong></div>
+                <div class="meta-item">ID: <strong>{{ data.student_id }}</strong></div>
+                {% if data.academic_year %}
+                <div class="meta-item">ACADEMIC YEAR: <strong>{{ data.academic_year }}</strong></div>
+                {% endif %}
+                <div class="meta-item">CLASS: <strong>{{ data.class_name or '—' }}</strong></div>
             </div>
         </div>
 
+        {% if data.subjects %}
         <table class="transcript-table">
             <thead>
                 <tr>
-                    <th rowspan="2">Subject Course</th>
-                    <th colspan="3">1st Semester</th>
-                    <th colspan="3">2nd Semester</th>
+                    <th rowspan="2">Subject</th>
+                    <th colspan="4">1st Semester</th>
+                    <th rowspan="2">Sem Avg</th>
+                    <th colspan="4">2nd Semester</th>
                     <th rowspan="2">Final Avg</th>
                 </tr>
                 <tr>
-                    <th>P1</th><th>P2</th><th>P3</th>
-                    <th>P4</th><th>P5</th><th>P6</th>
+                    <th>P1</th><th>P2</th><th>P3</th><th>Exam</th>
+                    <th>P4</th><th>P5</th><th>P6</th><th>F. Exam</th>
                 </tr>
             </thead>
             <tbody>
+                {% for subject in data.subjects %}
                 <tr>
-                    <td class="subject-name">Physics</td>
-                    <td class="grade-cell"></td><td class="grade-cell"></td><td class="grade-cell"></td>
-                    <td class="grade-cell"></td><td class="grade-cell"></td><td class="grade-cell"></td>
-                    <td class="final-avg-cell"></td>
+                    <td class="subject-name">{{ subject.name }}</td>
+                    <td class="grade-cell">{{ subject.p1 or '—' }}</td>
+                    <td class="grade-cell">{{ subject.p2 or '—' }}</td>
+                    <td class="grade-cell">{{ subject.p3 or '—' }}</td>
+                    <td class="grade-cell">{{ subject.exam or '—' }}</td>
+                    <td class="grade-cell fw-bold">{{ subject.avg or '—' }}</td>
+                    <td class="grade-cell">{{ subject.p4 or '—' }}</td>
+                    <td class="grade-cell">{{ subject.p5 or '—' }}</td>
+                    <td class="grade-cell">{{ subject.p6 or '—' }}</td>
+                    <td class="grade-cell">{{ subject.final_exam or '—' }}</td>
+                    <td class="final-avg-cell">{{ subject.final_avg or '—' }}</td>
                 </tr>
-                <tr>
-                    <td class="subject-name">English</td>
-                    <td class="grade-cell"></td><td class="grade-cell"></td><td class="grade-cell"></td>
-                    <td class="grade-cell"></td><td class="grade-cell"></td><td class="grade-cell"></td>
-                    <td class="final-avg-cell"></td>
-                </tr>
-                <tr>
-                    <td class="subject-name">Chemistry</td>
-                    <td class="grade-cell"></td><td class="grade-cell"></td><td class="grade-cell"></td>
-                    <td class="grade-cell"></td><td class="grade-cell"></td><td class="grade-cell"></td>
-                    <td class="final-avg-cell"></td>
-                </tr>
-                <tr>
-                    <td class="subject-name">Religious Education</td>
-                    <td class="grade-cell"></td><td class="grade-cell"></td><td class="grade-cell"></td>
-                    <td class="grade-cell"></td><td class="grade-cell"></td><td class="grade-cell"></td>
-                    <td class="final-avg-cell"></td>
-                </tr>
-                <tr>
-                    <td class="subject-name">Economics</td>
-                    <td class="grade-cell"></td><td class="grade-cell"></td><td class="grade-cell"></td>
-                    <td class="grade-cell"></td><td class="grade-cell"></td><td class="grade-cell"></td>
-                    <td class="final-avg-cell"></td>
-                </tr>
-                <tr>
-                    <td class="subject-name">Vocabulary</td>
-                    <td class="grade-cell"></td><td class="grade-cell"></td><td class="grade-cell"></td>
-                    <td class="grade-cell"></td><td class="grade-cell"></td><td class="grade-cell"></td>
-                    <td class="final-avg-cell"></td>
-                </tr>
-                <tr>
-                    <td class="subject-name">Geography</td>
-                    <td class="grade-cell"></td><td class="grade-cell"></td><td class="grade-cell"></td>
-                    <td class="grade-cell"></td><td class="grade-cell"></td><td class="grade-cell"></td>
-                    <td class="final-avg-cell"></td>
-                </tr>
-                <tr>
-                    <td class="subject-name">Mathematics</td>
-                    <td class="grade-cell"></td><td class="grade-cell"></td><td class="grade-cell"></td>
-                    <td class="grade-cell"></td><td class="grade-cell"></td><td class="grade-cell"></td>
-                    <td class="final-avg-cell"></td>
-                </tr>
-                <tr>
-                    <td class="subject-name">Accounting</td>
-                    <td class="grade-cell"></td><td class="grade-cell"></td><td class="grade-cell"></td>
-                    <td class="grade-cell"></td><td class="grade-cell"></td><td class="grade-cell"></td>
-                    <td class="final-avg-cell"></td>
-                </tr>
-                <tr>
-                    <td class="subject-name">Civics</td>
-                    <td class="grade-cell"></td><td class="grade-cell"></td><td class="grade-cell"></td>
-                    <td class="grade-cell"></td><td class="grade-cell"></td><td class="grade-cell"></td>
-                    <td class="final-avg-cell"></td>
-                </tr>
-                <tr>
-                    <td class="subject-name">History</td>
-                    <td class="grade-cell"></td><td class="grade-cell"></td><td class="grade-cell"></td>
-                    <td class="grade-cell"></td><td class="grade-cell"></td><td class="grade-cell"></td>
-                    <td class="final-avg-cell"></td>
-                </tr>
-                <tr>
-                    <td class="subject-name">Biology</td>
-                    <td class="grade-cell"></td><td class="grade-cell"></td><td class="grade-cell"></td>
-                    <td class="grade-cell"></td><td class="grade-cell"></td><td class="grade-cell"></td>
-                    <td class="final-avg-cell"></td>
-                </tr>
-                <tr>
-                    <td class="subject-name">French</td>
-                    <td class="grade-cell"></td><td class="grade-cell"></td><td class="grade-cell"></td>
-                    <td class="grade-cell"></td><td class="grade-cell"></td><td class="grade-cell"></td>
-                    <td class="final-avg-cell"></td>
-                </tr>
-                <tr>
-                    <td class="subject-name">Physical Education</td>
-                    <td class="grade-cell"></td><td class="grade-cell"></td><td class="grade-cell"></td>
-                    <td class="grade-cell"></td><td class="grade-cell"></td><td class="grade-cell"></td>
-                    <td class="final-avg-cell"></td>
-                </tr>
-                <tr>
-                    <td class="subject-name">Home Art</td>
-                    <td class="grade-cell"></td><td class="grade-cell"></td><td class="grade-cell"></td>
-                    <td class="grade-cell"></td><td class="grade-cell"></td><td class="grade-cell"></td>
-                    <td class="final-avg-cell"></td>
-                </tr>
+                {% endfor %}
             </tbody>
         </table>
+        {% else %}
+        <div class="empty-state">
+            <i class="fas fa-clipboard-list fa-3x mb-3 d-block opacity-50"></i>
+            <p class="mb-0 fw-semibold">Grade sheet not available yet</p>
+            <p class="small">Published grades will appear here after your teacher publishes period scores.</p>
+        </div>
+        {% endif %}
 
         <div class="footer-signatures">
             <div class="signature-block">

@@ -55,7 +55,7 @@
                 <i class="fas fa-arrow-left me-1"></i>Back to Class Roster
             </a>
             {% else %}
-            <a href="{{ url_for('register_student') }}" class="btn btn-sm btn-outline-secondary text-white-50">
+            <a href="{{ url_for('dashboard', _anchor='student-enrollment') }}" class="btn btn-sm btn-outline-secondary text-white-50">
                 <i class="fas fa-arrow-left me-1"></i>Back to Registrar Dashboard
             </a>
             {% endif %}
@@ -173,7 +173,7 @@
                 {% if return_to == 'class_roster' and student.klass_id %}
                 <a href="{{ url_for('registrar_class_students', class_id=student.klass_id) }}" class="btn btn-outline-secondary">Cancel</a>
                 {% else %}
-                <a href="{{ url_for('register_student') }}" class="btn btn-outline-secondary">Cancel</a>
+                <a href="{{ url_for('dashboard', _anchor='student-enrollment') }}" class="btn btn-outline-secondary">Cancel</a>
                 {% endif %}
             </div>
         </form>

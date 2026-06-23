@@ -2,6 +2,29 @@
 {% block content %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/grading_hub.css') }}">
 <div class="container my-5 teacher-terminal">
+
+    {% if not display_year %}
+    <div class="alert alert-warning bg-warning bg-opacity-10 border-warning border-opacity-50 text-white mb-4 py-3 px-4 rounded-3 teacher-year-banner" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+        <strong>No active academic year configured.</strong>
+        <span class="text-white-50 ms-1">Grades and activities are unavailable until an administrator activates an academic year.</span>
+    </div>
+    {% else %}
+    
+    <div class="alert bg-dark border border-cyan border-opacity-25 text-white mb-4 shadow-sm rounded-3 teacher-year-banner teacher-year-banner-prominent d-flex align-items-center" role="status">
+        <div class="p-2 bg-cyan bg-opacity-10 rounded-3 me-3 text-cyan border border-cyan border-opacity-10">
+            <i class="bi bi-calendar-check fa-fw fs-5"></i>
+        </div>
+        <div>
+            <span class="text-white-50 small d-block text-uppercase" style="font-size:0.7rem;letter-spacing:0.05em;">Academic Year</span>
+            <strong class="text-cyan">{{ display_year.name }}</strong>
+            <span class="badge teacher-year-badge-current ms-2">Current</span>
+            {% if display_year.start_date %}
+            <span class="text-muted ms-2 small">({{ display_year.start_date }}{% if display_year.end_date %} — {{ display_year.end_date }}{% endif %})</span>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
     
     <div class="card dashboard-card profile-card mb-4">
         <div class="card-body p-4">
@@ -29,12 +52,14 @@
                                 {% endif %}
                             </p>
                         </div>
-                        <div class="mt-3 mt-lg-0">
-                            <div class="academic-badge">
-                                <small class="text-uppercase tracking-wider block text-muted text-xs d-block">Active Academic Term</small>
-                                <span class="text-cyber fw-bold">{{ active_year.name }}</span>
-                                <div class="text-xs text-muted mt-1">({{ active_year.start_date }} — {{ active_year.end_date }})</div>
-                            </div>
+                        <div class="mt-3 mt-lg-0 text-end">
+                            {% if pending_grading_count|default(0) %}
+                            <a href="{{ url_for('teacher_dashboard', tab='activities') }}" class="btn btn-cyber-sm btn-sm">
+                                <i class="bi bi-inbox me-1"></i>{{ pending_grading_count }} to grade
+                            </a>
+                            {% elif class_cards %}
+                            <span class="text-blue small"><i class="bi bi-check-circle me-1"></i>All caught up</span>
+                            {% endif %}
                         </div>
                     </div>
                 </div>
@@ -42,18 +67,66 @@
         </div>
     </div>
 
-    <div class="grading-workflow-banner">
-        <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
-            <strong class="text-white"><i class="bi bi-diagram-3 me-2"></i>Period Grade Entry</strong>
-            <span class="small opacity-75">Class → Subject &amp; Period → Enter scores → Save or publish</span>
+    {% set qa_class = activity_class_id or grade_class_id or (class_cards[0].id if class_cards else none) %}
+    <section class="teacher-quick-actions" aria-label="Quick actions">
+        <div class="qa-heading"><i class="bi bi-lightning-charge-fill me-2 text-cyan"></i>Quick Actions</div>
+        <p class="qa-subtitle mb-0">Enter period scores directly, or optionally create named activities{% if display_year %} for <strong class="text-cyan">{{ display_year.name }}</strong>{% endif %}.</p>
+        <div class="teacher-quick-actions-grid mt-3">
+            {% if qa_class %}
+            <a href="{{ url_for('teacher_class_attendance', class_id=qa_class) }}" class="teacher-qa-card qa-primary">
+                <span class="qa-icon"><i class="bi bi-calendar-check"></i></span>
+                <span class="qa-label">Take Attendance</span>
+                <span class="qa-hint">Daily roll — present, late, absent</span>
+            </a>
+            <a href="{{ url_for('manual_activity_grades', class_id=qa_class) }}" class="teacher-qa-card qa-secondary">
+                <span class="qa-icon"><i class="bi bi-pencil-square"></i></span>
+                <span class="qa-label">Enter Period Grades</span>
+                <span class="qa-hint">CA + exam — no activity required</span>
+            </a>
+            <a href="{{ url_for('record_classroom_activity', class_id=qa_class) }}" class="teacher-qa-card qa-secondary">
+                <span class="qa-icon"><i class="bi bi-journal-plus"></i></span>
+                <span class="qa-label">Create Classroom Activity</span>
+                <span class="qa-hint">Optional — log blackboard or Drive work</span>
+            </a>
+            <a href="{{ url_for('teacher_dashboard', tab='grades', grade_class_id=qa_class) }}" class="teacher-qa-card qa-secondary">
+                <span class="qa-icon"><i class="bi bi-table"></i></span>
+                <span class="qa-label">Period Grade Sheet</span>
+                <span class="qa-hint">CA &amp; exam totals by period</span>
+            </a>
+            {% else %}
+            <a href="{{ url_for('teacher_attendance_picker') }}" class="teacher-qa-card qa-primary">
+                <span class="qa-icon"><i class="bi bi-calendar-check"></i></span>
+                <span class="qa-label">Take Attendance</span>
+                <span class="qa-hint">Pick a class first</span>
+            </a>
+            <a href="{{ url_for('teacher_dashboard', tab='grades') }}" class="teacher-qa-card qa-primary">
+                <span class="qa-icon"><i class="bi bi-pencil-square"></i></span>
+                <span class="qa-label">Enter Period Grades</span>
+                <span class="qa-hint">Pick a class first</span>
+            </a>
+            <a href="{{ url_for('teacher_dashboard', tab='activities') }}" class="teacher-qa-card qa-secondary">
+                <span class="qa-icon"><i class="bi bi-journal-plus"></i></span>
+                <span class="qa-label">Create Classroom Activity</span>
+                <span class="qa-hint">Optional — pick a class first</span>
+            </a>
+            <a href="{{ url_for('teacher_dashboard', tab='grades') }}" class="teacher-qa-card qa-secondary">
+                <span class="qa-icon"><i class="bi bi-table"></i></span>
+                <span class="qa-label">Period Grade Sheet</span>
+                <span class="qa-hint">CA &amp; exam totals by period</span>
+            </a>
+            {% endif %}
+            <a href="{{ url_for('teacher_dashboard', tab='classes') }}" class="teacher-qa-card qa-secondary">
+                <span class="qa-icon"><i class="bi bi-folder2-open"></i></span>
+                <span class="qa-label">View Classes</span>
+                <span class="qa-hint">Roster, subjects &amp; report cards</span>
+            </a>
+            <a href="{{ url_for('teacher_dashboard', tab='grades', grade_class_id=qa_class, ledger_class_id=qa_class) if qa_class else url_for('teacher_dashboard', tab='grades') }}#gradeRecordsLedger" class="teacher-qa-card qa-secondary">
+                <span class="qa-icon"><i class="bi bi-journal-text"></i></span>
+                <span class="qa-label">Grade Ledger</span>
+                <span class="qa-hint">Browse entered grades</span>
+            </a>
         </div>
-        <ol class="workflow-steps">
-            <li><span class="step-num">1</span> Select your class</li>
-            <li><span class="step-num">2</span> Choose subject &amp; marking period</li>
-            <li><span class="step-num">3</span> Enter CA (max 60) &amp; exam (max 40) scores</li>
-            <li><span class="step-num">4</span> Save draft or publish to report cards</li>
-        </ol>
-    </div>
+    </section>
 
     <div class="grading-stat-row">
         <div class="grading-stat-card">
@@ -72,22 +145,47 @@
             <div class="stat-value">{{ grades|length }}</div>
             <div class="stat-label">Grade Records</div>
         </div>
+        <div class="grading-stat-card">
+            <div class="stat-value">{{ total_activity_count|default(0) }}</div>
+            <div class="stat-label">Activities</div>
+        </div>
+        <div class="grading-stat-card {% if pending_grading_count|default(0) %}stat-alert{% endif %}">
+            <div class="stat-value {% if pending_grading_count|default(0) %}text-warning{% endif %}">{{ pending_grading_count|default(0) }}</div>
+            <div class="stat-label">To Grade</div>
+        </div>
     </div>
 
     <ul class="nav grading-hub-tabs" role="tablist">
         <li class="nav-item">
             <a class="nav-link {% if active_tab == 'classes' %}active{% endif %}"
                href="{{ url_for('teacher_dashboard', tab='classes', grade_class_id=grade_class_id) }}">
-                <i class="bi bi-folder2-open me-1"></i>My Classes
+                <i class="bi bi-folder2-open me-1"></i>Classes
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if active_tab == 'activities' %}active{% endif %}"
+               href="{{ url_for('teacher_dashboard', tab='activities') }}">
+                <i class="bi bi-cloud-upload me-1"></i>Activities
+                {% if total_activity_count %}<span class="tab-badge bg-primary">{{ total_activity_count }}</span>{% endif %}
+                {% if pending_grading_count|default(0) %}<span class="tab-badge bg-warning text-dark">{{ pending_grading_count }}</span>{% endif %}
             </a>
         </li>
         <li class="nav-item">
             <a class="nav-link {% if active_tab == 'grades' %}active{% endif %}"
                href="{{ url_for('teacher_dashboard', tab='grades', grade_class_id=grade_class_id, grade_subject=grade_subject, grade_period=grade_period) }}">
-                <i class="bi bi-pencil-square me-1"></i>Grade Entry
+                <i class="bi bi-pencil-square me-1"></i>Enter Grades
             </a>
         </li>
     </ul>
+    <p class="teacher-tab-hint" role="note">
+        {% if active_tab == 'classes' %}
+        <strong>Classes</strong> — See your assigned classes, open rosters, and view student report cards.
+        {% elif active_tab == 'activities' %}
+        <strong>Activities</strong> — Optionally upload files or record in-class work. Enter period grades directly from Quick Actions or the Enter Grades tab.
+        {% else %}
+        <strong>Enter Grades</strong> — Enter period scores (CA + exam), save drafts, and publish to report cards.
+        {% endif %}
+    </p>
 
     <div class="tab-content">
 
@@ -96,8 +194,11 @@
         <div class="col-lg-12">
             <div class="card dashboard-card mb-4 h-100">
                 <div class="card-header d-flex align-items-center justify-content-between">
-                    <h5 class="mb-0 text-white"><i class="bi bi-journal-bookmark me-2 text-cyber"></i>Assigned Classes</h5>
-                    <span class="badge bg-secondary rounded-pill">{{ class_cards|length if class_cards else teaching_classes|length }}</span>
+                    <div>
+                        <h5 class="mb-0 text-white"><i class="bi bi-journal-bookmark me-2 text-cyber"></i>Assigned Classes</h5>
+                        <p class="teacher-section-lead">Your classes and subjects for this year. Use primary actions to grade or open a roster.</p>
+                    </div>
+                    <span class="badge bg-secondary rounded-pill align-self-start">{{ class_cards|length if class_cards else teaching_classes|length }}</span>
                 </div>
                 <div class="card-body px-3 py-3">
                     {% if class_cards %}
@@ -129,27 +230,39 @@
                                 </div>
                             </div>
                             {% endif %}
-                            <div class="d-flex flex-wrap gap-2 mt-2">
-                                {% if 'Sponsor' in card.role_labels or 'Homeroom' in card.role_labels %}
-                                <a href="{{ url_for('sponsor_class_hub', class_id=card.id) }}" class="btn btn-warning btn-sm text-dark fw-semibold">
-                                    <i class="bi bi-shield-check me-1"></i>Sponsor Hub
-                                </a>
-                                {% endif %}
-                                <a href="{{ url_for('teacher_class_folder', class_id=card.id) }}" class="btn btn-cyber-sm btn-sm">
-                                    <i class="bi bi-people me-1"></i>Open Class
-                                </a>
-                                <a href="{{ url_for('class_grading_hub', class_id=card.id) }}" class="btn btn-cyber-primary btn-sm">
-                                    <i class="bi bi-mortarboard me-1"></i>Grading Hub
-                                </a>
+                            <div class="class-card-actions">
+                                <div class="class-card-actions-primary">
+                                    <span class="class-card-actions-label">Common tasks</span>
+                                    <a href="{{ url_for('teacher_class_attendance', class_id=card.id) }}" class="btn btn-cyber-primary btn-sm">
+                                        <i class="bi bi-calendar-check me-1"></i>Take Attendance
+                                    </a>
+                                    <a href="{{ url_for('manual_activity_grades', class_id=card.id) }}" class="btn btn-cyber-sm btn-sm">
+                                        <i class="bi bi-pencil-square me-1"></i>Enter Period Grades
+                                    </a>
+                                    <a href="{{ url_for('teacher_class_folder', class_id=card.id) }}" class="btn btn-cyber-sm btn-sm">
+                                        <i class="bi bi-people me-1"></i>View Roster
+                                    </a>
+                                </div>
+                                <div class="class-card-actions-secondary">
+                                    <span class="class-card-actions-label">More options</span>
+                                    {% if 'Sponsor' in card.role_labels or 'Homeroom' in card.role_labels %}
+                                    <a href="{{ url_for('sponsor_class_hub', class_id=card.id) }}" class="btn btn-warning btn-sm text-dark fw-semibold">
+                                        <i class="bi bi-shield-check me-1"></i>Sponsor Hub
+                                    </a>
+                                    {% endif %}
+                                    <a href="{{ url_for('teacher_dashboard', tab='activities', activity_class_id=card.id) }}" class="btn btn-cyber-sm btn-sm">
+                                        <i class="bi bi-cloud-upload me-1"></i>Activities
+                                    </a>
+                                </div>
                             </div>
                         </div>
                         {% endfor %}
                     </div>
                     {% else %}
-                    <div class="text-center text-blue py-4 small">
-                        <i class="bi bi-inbox d-block fs-3 mb-2 opacity-50"></i>
-                        No class assignments yet.<br>
-                        Ask the principal to assign you to a class or subject in <strong>Provision Core Class</strong>.
+                    <div class="grade-empty-state">
+                        <i class="bi bi-inbox empty-icon"></i>
+                        <h6>No class assignments yet</h6>
+                        <p>You are not assigned to any classes this year. Ask the principal to assign you in <strong>Provision Core Class</strong>, then refresh this page.</p>
                     </div>
                     {% endif %}
                 </div>
@@ -172,7 +285,7 @@
                                 <span class="badge bg-warning text-blue px-2 py-1">Sponsor</span>
                             </div>
                             <a href="{{ url_for('sponsor_class_hub', class_id=c.id) }}" class="btn btn-warning btn-sm text-dark fw-semibold w-100">
-                                <i class="bi bi-shield-check me-1"></i>Open Sponsor Command Center
+                                <i class="bi bi-shield-check me-1"></i>Open Sponsor Hub
                             </a>
                         </li>
                         {% endfor %}
@@ -183,7 +296,8 @@
 
     <div class="card dashboard-card my-4">
         <div class="card-header">
-            <h5 class="mb-0 text-white"><i class="bi bi-file-earmark-person me-2 text-cyber"></i>Student Academic Dossiers</h5>
+            <h5 class="mb-0 text-white"><i class="bi bi-file-earmark-person me-2 text-cyber"></i>Student Report Cards</h5>
+            <p class="teacher-section-lead">Quick access to report cards for students in your classes.</p>
         </div>
         <div class="card-body p-4">
             <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-xl-4 g-3">
@@ -200,7 +314,13 @@
                     </div>
                 </div>
                 {% else %}
-                <div class="col-12 text-center text-blue py-3 small">No students in your classes yet.</div>
+                <div class="col-12">
+                    <div class="grade-empty-state py-3">
+                        <i class="bi bi-people empty-icon"></i>
+                        <h6>No students yet</h6>
+                        <p>Students will appear here once they are enrolled in your classes.</p>
+                    </div>
+                </div>
                 {% endfor %}
             </div>
         </div>
@@ -209,18 +329,557 @@
     </div>
     </div><!-- /tab-classes -->
 
+    <div class="tab-pane {% if active_tab == 'activities' %}show active{% endif %}" id="tab-activities">
+        <div class="drive-workflow-banner">
+            <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
+                <strong class="text-white"><i class="bi bi-cloud-upload me-2"></i>Class Activities</strong>
+                <span class="small opacity-75">
+                    {% if display_year %}<span class="badge teacher-year-badge-current me-1">{{ display_year.name }}</span>{% endif %}
+                    Pick a class folder → drop activity files → assign to students
+                </span>
+            </div>
+            <ol class="workflow-steps">
+                <li><span class="step-num">1</span> <strong>Enter period grades</strong> (CA + exam) — no activity required</li>
+                <li><span class="step-num">2</span> <em>Optional:</em> record in-class work or drop digital files</li>
+                <li><span class="step-num">3</span> Set subject, period &amp; details when uploading</li>
+                <li><span class="step-num">4</span> Grade submissions or per-activity scores if needed</li>
+            </ol>
+        </div>
+
+        {% if activity_grading_inbox %}
+        <div class="grading-inbox-banner mb-4">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+                <strong class="text-white"><i class="bi bi-inbox me-2"></i>Needs Grading</strong>
+                <span class="badge bg-warning text-dark">{{ pending_grading_count|default(0) }} submission{{ 's' if pending_grading_count|default(0) != 1 else '' }}</span>
+            </div>
+            <div class="grading-inbox-list">
+                {% for item in activity_grading_inbox[:6] %}
+                <a href="{{ url_for('activity_detail', assessment_id=item.activity.id) }}"
+                   class="grading-inbox-item">
+                    <span class="inbox-title">{{ item.activity.title }}</span>
+                    <span class="inbox-meta">{{ item.class_name }} · {{ item.activity.subject_name or '—' }}</span>
+                    <span class="inbox-badge">{{ item.stats.pending_grade_count }} to grade</span>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        {% if not class_cards %}
+        <div class="drive-empty-state">
+            <i class="bi bi-folder-x empty-icon"></i>
+            <h6>No classes assigned</h6>
+            <p>Once the principal assigns you to a class, you can upload and manage activities here.</p>
+            <a href="{{ url_for('teacher_dashboard', tab='classes') }}" class="btn btn-cyber-sm mt-2">
+                <i class="bi bi-folder2-open me-1"></i>View Classes
+            </a>
+        </div>
+
+        {% elif not selected_activity_class %}
+        <div class="card dashboard-card">
+            <div class="card-header d-flex align-items-center justify-content-between">
+                <div>
+                    <h5 class="mb-0 text-white"><i class="bi bi-folder2 me-2 text-cyber"></i>Choose a Class</h5>
+                    <p class="teacher-section-lead">Open a class folder to enter period grades or optionally upload assignment files.</p>
+                </div>
+                <span class="badge bg-secondary rounded-pill align-self-start">{{ class_cards|length }}</span>
+            </div>
+            <div class="card-body p-4">
+                <p class="text-blue small mb-3 d-none d-md-block">Each folder holds that class's activities — like Google Drive.</p>
+                <div class="drive-folder-grid">
+                    {% for card in class_cards %}
+                    <a href="{{ url_for('teacher_dashboard', tab='activities', activity_class_id=card.id) }}"
+                       class="drive-folder-tile">
+                        {% set act_count = activity_count_by_class.get(card.id, 0) %}
+                        {% set pending_count = activity_count_by_class.get('pending_' ~ card.id, 0) %}
+                        {% if act_count %}
+                        <span class="folder-badge">{{ act_count }} file{{ 's' if act_count != 1 else '' }}</span>
+                        {% endif %}
+                        {% if pending_count %}
+                        <span class="folder-badge folder-badge-warn">{{ pending_count }} to grade</span>
+                        {% endif %}
+                        <i class="bi bi-folder-fill folder-icon"></i>
+                        <div class="folder-name">{{ card.name }}</div>
+                        <div class="folder-meta">
+                            Grade {{ card.grade_level }}{% if card.stream %} · {{ card.stream }}{% endif %}<br>
+                            {{ card.student_count }} student{{ 's' if card.student_count != 1 else '' }}
+                        </div>
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        {% else %}
+        <nav class="drive-breadcrumb" aria-label="Activity folder path">
+            <a href="{{ url_for('teacher_dashboard', tab='activities') }}">
+                <i class="bi bi-house-door me-1"></i>All Classes
+            </a>
+            <span class="sep">/</span>
+            <span class="current"><i class="bi bi-folder-fill me-1 text-warning"></i>{{ selected_activity_class.name }}{% if display_year %} <span class="text-cyan small">· {{ display_year.name }}</span>{% endif %}</span>
+        </nav>
+
+        <div class="card dashboard-card mb-4">
+            <div class="card-header d-flex flex-wrap justify-content-between align-items-start gap-2">
+                <div>
+                    <h5 class="mb-0 text-white">
+                        <i class="bi bi-folder2-open me-2 text-warning"></i>{{ selected_activity_class.name }}
+                    </h5>
+                    <p class="teacher-section-lead">Record in-class work, upload files, or grade submissions for this class.</p>
+                </div>
+                <div class="class-card-actions border-0 pt-0 mt-0">
+                    <div class="class-card-actions-primary">
+                        <a href="{{ url_for('manual_activity_grades', class_id=activity_class_id) }}" class="btn btn-cyber-primary btn-sm">
+                            <i class="bi bi-pencil-square me-1"></i>Enter Period Grades
+                        </a>
+                        <a href="{{ url_for('record_classroom_activity', class_id=activity_class_id) }}" class="btn btn-cyber-sm btn-sm">
+                            <i class="bi bi-journal-plus me-1"></i>Create Activity <span class="opacity-75">(optional)</span>
+                        </a>
+                        <a href="{{ url_for('teacher_dashboard', tab='grades', grade_class_id=activity_class_id) }}" class="btn btn-cyber-sm btn-sm">
+                            <i class="bi bi-table me-1"></i>Period Grades
+                        </a>
+                    </div>
+                    <div class="class-card-actions-secondary">
+                        <a href="{{ url_for('class_grading_hub', class_id=activity_class_id) }}" class="btn btn-cyber-sm btn-sm">
+                            <i class="bi bi-mortarboard me-1"></i>Grading Hub
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body p-4">
+                <div class="small text-blue mb-3">
+                    Grade {{ selected_activity_class.grade_level }}
+                    {% if selected_activity_class.stream %} · {{ selected_activity_class.stream }}{% endif %}
+                    · {{ selected_activity_class.student_count }} students
+                    {% if activity_subjects %}
+                    · Subjects: {{ activity_subjects|join(', ') }}
+                    {% endif %}
+                </div>
+
+                {% if activity_subjects %}
+                <div class="record-classroom-cta d-flex flex-wrap justify-content-between align-items-center gap-3">
+                    <div>
+                        <div class="cta-title"><i class="bi bi-pencil-square me-2 text-cyan"></i>Enter period grades</div>
+                        <p class="cta-hint mb-0">Grade CA + exam directly — no activity record required.</p>
+                    </div>
+                    <a href="{{ url_for('manual_activity_grades', class_id=activity_class_id) }}" class="btn btn-cyber-primary btn-sm flex-shrink-0">
+                        <i class="bi bi-pencil-square me-1"></i>Enter Period Grades
+                    </a>
+                </div>
+                <p class="text-muted small mb-3">
+                    <strong>Optional:</strong>
+                    <a href="{{ url_for('record_classroom_activity', class_id=activity_class_id) }}" class="text-cyan text-decoration-none">create a classroom activity</a>
+                    to document blackboard work, or drop files below for digital submissions.
+                </p>
+
+                <div class="drive-dropzone" id="activityDropzone" role="button" tabindex="0"
+                     aria-label="Drop activity files here or tap to upload">
+                    <i class="bi bi-cloud-arrow-up drop-icon"></i>
+                    <div class="drop-title">Drop activity files here</div>
+                    <div class="drop-hint">Drag files from your computer, or tap to browse</div>
+                    <div class="drop-formats">PDF, Word, PowerPoint, Excel, images, text</div>
+                    <input type="file" id="activityFileInput" class="d-none"
+                           accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.png,.jpg,.jpeg,.gif,.webp"
+                           multiple>
+                </div>
+
+                <div class="drive-assign-panel" id="activityAssignPanel">
+                    <h6 class="text-white fw-bold mb-3"><i class="bi bi-plus-circle me-2 text-cyber"></i>Assign Activity</h6>
+                    <div class="staged-file" id="stagedFilePreview">
+                        <i class="bi bi-file-earmark staged-file-icon file-icon" id="stagedFileIcon"></i>
+                        <div>
+                            <div class="file-name" id="stagedFileName">—</div>
+                            <div class="small text-blue" id="stagedFileSize"></div>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-secondary ms-auto" id="clearStagedFile" title="Remove file">
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    </div>
+                    <form method="POST" action="{{ url_for('assign_activity') }}" enctype="multipart/form-data" id="activityAssignForm">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="klass_id" value="{{ activity_class_id }}">
+                        <input type="file" name="task_file" id="activityFormFile" class="d-none">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="activity_title" class="form-label">Activity Title</label>
+                                <input type="text" id="activity_title" name="title" class="form-control custom-input"
+                                       placeholder="e.g. Chapter 3 Worksheet" maxlength="120">
+                            </div>
+                            <div class="col-md-3">
+                                <label for="activity_subject" class="form-label">Subject</label>
+                                <select id="activity_subject" name="subject_name" class="form-select custom-select" required>
+                                    {% for subject in activity_subjects %}
+                                    <option value="{{ subject }}">{{ subject }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="activity_period" class="form-label">Period</label>
+                                <select id="activity_period" name="marking_period" class="form-select custom-select">
+                                    {% for period_num, period_name in grading_periods %}
+                                    <option value="{{ period_num }}">{{ period_name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="activity_type" class="form-label">Type</label>
+                                <select id="activity_type" name="evaluation_type" class="form-select custom-select">
+                                    {% for atype in moe_activity_types %}
+                                    <option value="{{ atype }}">{{ atype }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="submission_mode" class="form-label">Student Submits Via</label>
+                                <select id="submission_mode" name="submission_mode" class="form-select custom-select">
+                                    <option value="file_upload" selected>File upload</option>
+                                    <option value="text_entry">Text entry</option>
+                                    <option value="in_class">In class (no upload)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="activity_description" class="form-label">Instructions <span class="text-muted fw-normal">(optional)</span></label>
+                                <input type="text" id="activity_description" name="description" class="form-control custom-input"
+                                       placeholder="Brief instructions for students" maxlength="250">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="activity_due_date" class="form-label">Due Date <span class="text-muted fw-normal">(optional)</span></label>
+                                <input type="date" id="activity_due_date" name="due_date" class="form-control custom-input">
+                            </div>
+                            <div class="col-md-8">
+                                <label for="activity_scan_keywords" class="form-label">AI scan keywords <span class="text-muted fw-normal">(optional, comma-separated)</span></label>
+                                <input type="text" id="activity_scan_keywords" name="scan_keywords" class="form-control custom-input"
+                                       placeholder="e.g. photosynthesis, chlorophyll, oxygen">
+                            </div>
+                            <div class="col-md-4 d-flex align-items-end">
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" name="notify_students" value="1"
+                                           id="notifyStudentsCheck" checked>
+                                    <label class="form-check-label text-blue small" for="notifyStudentsCheck">
+                                        Notify class when assigned
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-12 d-flex flex-wrap gap-2 justify-content-end">
+                                <button type="button" class="btn btn-cyber-sm" id="cancelAssignBtn">Cancel</button>
+                                <button type="submit" class="btn btn-cyber-primary px-4" id="assignActivityBtn">
+                                    <i class="bi bi-cloud-upload me-2"></i>Assign to Class
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="drive-assign-panel" id="activityBulkPanel">
+                    <h6 class="text-white fw-bold mb-3"><i class="bi bi-files me-2 text-cyber"></i>Assign Multiple Files</h6>
+                    <p class="small text-blue mb-3">These files will each become a separate activity with the same subject, period, and due date.</p>
+                    <div id="bulkFileList" class="bulk-file-list mb-3"></div>
+                    <form method="POST" action="{{ url_for('assign_activities_bulk') }}" enctype="multipart/form-data" id="activityBulkForm">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="klass_id" value="{{ activity_class_id }}">
+                        <div id="bulkFileInputs"></div>
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label for="bulk_subject" class="form-label">Subject</label>
+                                <select id="bulk_subject" name="subject_name" class="form-select custom-select" required>
+                                    {% for subject in activity_subjects %}
+                                    <option value="{{ subject }}">{{ subject }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="bulk_period" class="form-label">Period</label>
+                                <select id="bulk_period" name="marking_period" class="form-select custom-select">
+                                    {% for period_num, period_name in grading_periods %}
+                                    <option value="{{ period_num }}">{{ period_name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="bulk_due_date" class="form-label">Due Date</label>
+                                <input type="date" id="bulk_due_date" name="due_date" class="form-control custom-input">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="bulk_type" class="form-label">Type</label>
+                                <select id="bulk_type" name="evaluation_type" class="form-select custom-select">
+                                    {% for atype in moe_activity_types %}
+                                    <option value="{{ atype }}">{{ atype }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-4 d-flex align-items-end">
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" name="notify_students" value="1" id="bulkNotifyCheck" checked>
+                                    <label class="form-check-label text-blue small" for="bulkNotifyCheck">Notify class</label>
+                                </div>
+                            </div>
+                            <div class="col-12 d-flex flex-wrap gap-2 justify-content-end">
+                                <button type="button" class="btn btn-cyber-sm" id="cancelBulkBtn">Cancel</button>
+                                <button type="submit" class="btn btn-cyber-primary px-4" id="assignBulkBtn">
+                                    <i class="bi bi-cloud-upload me-2"></i>Assign All
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center mb-3 mt-2">
+                    <h6 class="text-white fw-bold mb-0">
+                        <i class="bi bi-files me-2 text-cyber"></i>Activities in this folder
+                        <span class="badge bg-secondary ms-1">{{ class_activity_items|length }}</span>
+                    </h6>
+                    <button type="button" class="btn btn-cyber-sm btn-sm" id="newActivityBtn">
+                        <i class="bi bi-plus-lg me-1"></i>New without file
+                    </button>
+                </div>
+
+                {% if class_activity_items %}
+                <div class="drive-file-grid">
+                    {% for act in class_activity_items %}
+                    {% set stats = activity_stats.get(act.id, {}) %}
+                    <div class="drive-file-card">
+                        {% if act.file_name %}
+                        <i class="bi {{ act.file_name|activity_file_icon }} file-type-icon {% if act.file_name and '.pdf' in act.file_name %}type-pdf{% elif act.file_name and ('.doc' in act.file_name or '.docx' in act.file_name) %}type-doc{% elif act.file_name and ('.png' in act.file_name or '.jpg' in act.file_name or '.jpeg' in act.file_name) %}type-image{% endif %}"></i>
+                        {% else %}
+                        <i class="bi bi-journal-text file-type-icon"></i>
+                        {% endif %}
+                        <div class="file-info">
+                            <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+                                <div class="file-title mb-0" title="{{ act.title }}">{{ act.title }}</div>
+                                <span class="badge activity-delivery-badge {% if act.is_classroom_activity %}classroom{% else %}digital{% endif %}">
+                                    {{ act.delivery_badge }}
+                                </span>
+                            </div>
+                            <div class="file-meta">
+                                {{ act.subject_name or '—' }} · {{ (act.marking_period or 1) | marking_period_label }}<br>
+                                {{ act.activity_type or 'Assignment' }}
+                                {% if act.date %} · Posted {{ act.date }}{% endif %}
+                                {% if act.due_date %}
+                                · Due {{ act.due_date }}{% if act.is_overdue %} <span class="text-danger fw-semibold">(Overdue)</span>{% endif %}
+                                {% endif %}
+                            </div>
+                            {% if act.classroom_notes %}
+                            <p class="classroom-notes-preview mb-0">{{ act.classroom_notes[:120] }}{% if act.classroom_notes|length > 120 %}…{% endif %}</p>
+                            {% elif act.description and act.is_classroom_activity %}
+                            <p class="classroom-notes-preview mb-0">{{ act.description }}</p>
+                            {% endif %}
+                            {% if act.external_url %}
+                            <a href="{{ act.external_url }}" target="_blank" rel="noopener" class="classroom-link-chip">
+                                <i class="bi bi-google"></i> Shared link
+                            </a>
+                            {% endif %}
+                            <div class="activity-stat-badges">
+                                {% if stats.class_size %}
+                                <span class="activity-stat-badge submitted">
+                                    <i class="bi bi-check2-circle me-1"></i>{{ stats.submitted_count|default(0) }}/{{ stats.class_size }} submitted
+                                </span>
+                                {% endif %}
+                                {% if stats.pending_grade_count|default(0) %}
+                                <span class="activity-stat-badge pending">
+                                    <i class="bi bi-pencil me-1"></i>{{ stats.pending_grade_count }} to grade
+                                </span>
+                                {% endif %}
+                                {% if stats.missing_count|default(0) %}
+                                <span class="activity-stat-badge missing">
+                                    <i class="bi bi-exclamation-circle me-1"></i>{{ stats.missing_count }} missing
+                                </span>
+                                {% endif %}
+                            </div>
+                            <div class="file-actions">
+                                {% if act.file_name %}
+                                <a href="{{ url_for('static', filename='uploads/activities/' + act.file_name) }}"
+                                   class="file-action-btn" target="_blank" rel="noopener">
+                                    <i class="bi bi-eye me-1"></i>View file
+                                </a>
+                                {% endif %}
+                                <a href="{{ url_for('activity_detail', assessment_id=act.id) }}" class="file-action-btn">
+                                    <i class="bi bi-inbox me-1"></i>Submissions{% if act.scan_keywords %} <i class="bi bi-camera-fill text-info ms-1" title="AI scanner configured"></i>{% endif %}
+                                </a>
+                                <a href="{{ url_for('manual_activity_grades', class_id=activity_class_id, subject=act.subject_name, period=act.marking_period or 1, assessment_id=act.id) }}" class="file-action-btn">
+                                    <i class="bi bi-pencil-square me-1"></i>Enter Grades
+                                </a>
+                                <button type="button" class="file-action-btn btn-edit-activity"
+                                        data-id="{{ act.id }}"
+                                        data-title="{{ act.title|e }}"
+                                        data-description="{{ (act.description or '')|e }}"
+                                        data-subject="{{ act.subject_name|e }}"
+                                        data-period="{{ act.marking_period or 1 }}"
+                                        data-type="{{ act.activity_type or 'Assignment' }}"
+                                        data-mode="{{ act.submission_mode or 'file_upload' }}"
+                                        data-due="{{ act.due_date or '' }}"
+                                        data-keywords="{{ (act.scan_keywords or '')|e }}"
+                                        data-external="{{ (act.external_url or '')|e }}"
+                                        data-notes="{{ (act.classroom_notes or '')|e }}"
+                                        data-max="{{ act.max_score or 100 }}">
+                                    <i class="bi bi-pencil me-1"></i>Edit
+                                </button>
+                                <form action="{{ url_for('duplicate_activity', assessment_id=act.id) }}" method="POST" class="d-inline">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="file-action-btn border-0 bg-transparent">
+                                        <i class="bi bi-copy me-1"></i>Duplicate
+                                    </button>
+                                </form>
+                                <form action="{{ url_for('delete_activity', assessment_id=act.id) }}" method="POST" class="d-inline activity-delete-form">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="file-action-btn text-danger border-0 bg-transparent">
+                                        <i class="bi bi-trash me-1"></i>Delete
+                                    </button>
+                                </form>
+                                <a href="{{ url_for('class_grading_hub', class_id=activity_class_id, subject=act.subject_name, period=act.marking_period) }}"
+                                   class="file-action-btn">
+                                    <i class="bi bi-grid me-1"></i>Hub
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="drive-empty-state">
+                    <i class="bi bi-pencil-square empty-icon"></i>
+                    <h6>No uploaded activities yet</h6>
+                    <p>Enter period grades anytime — activities are optional for tracking worksheets or in-class work.</p>
+                    <a href="{{ url_for('manual_activity_grades', class_id=activity_class_id) }}" class="btn btn-cyber-primary btn-sm mt-2 me-2">
+                        <i class="bi bi-pencil-square me-1"></i>Enter Period Grades
+                    </a>
+                    <a href="{{ url_for('record_classroom_activity', class_id=activity_class_id) }}" class="btn btn-cyber-sm btn-sm mt-2">
+                        <i class="bi bi-journal-plus me-1"></i>Create Activity <span class="opacity-75">(optional)</span>
+                    </a>
+                </div>
+                {% endif %}
+
+                {% else %}
+                <div class="drive-empty-state">
+                    <i class="bi bi-book empty-icon"></i>
+                    <h6>No subjects assigned</h6>
+                    <p>You have no subject allocation for {{ selected_activity_class.name }}. Ask the principal to set up your subjects before assigning activities.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div><!-- /tab-activities -->
+
+    {% if activity_class_id and activity_subjects %}
+    <div class="modal fade" id="editActivityModal" tabindex="-1" aria-labelledby="editActivityModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content dashboard-card border-0">
+                <form method="POST" id="editActivityForm" action="">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="modal-header border-secondary">
+                        <h5 class="modal-title text-white" id="editActivityModalLabel">Edit Activity</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <div class="col-md-8">
+                                <label for="edit_activity_title" class="form-label">Title</label>
+                                <input type="text" id="edit_activity_title" name="title" class="form-control custom-input" required maxlength="120">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="edit_activity_due_date" class="form-label">Due Date</label>
+                                <input type="date" id="edit_activity_due_date" name="due_date" class="form-control custom-input">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="edit_activity_subject" class="form-label">Subject</label>
+                                <select id="edit_activity_subject" name="subject_name" class="form-select custom-select" required>
+                                    {% for subject in activity_subjects %}
+                                    <option value="{{ subject }}">{{ subject }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="edit_activity_period" class="form-label">Period</label>
+                                <select id="edit_activity_period" name="marking_period" class="form-select custom-select">
+                                    {% for period_num, period_name in grading_periods %}
+                                    <option value="{{ period_num }}">{{ period_name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="edit_activity_type" class="form-label">Type</label>
+                                <select id="edit_activity_type" name="evaluation_type" class="form-select custom-select">
+                                    {% for atype in moe_activity_types %}
+                                    <option value="{{ atype }}">{{ atype }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="edit_submission_mode" class="form-label">Student Submits Via</label>
+                                <select id="edit_submission_mode" name="submission_mode" class="form-select custom-select">
+                                    <option value="file_upload">File upload</option>
+                                    <option value="text_entry">Text entry</option>
+                                    <option value="in_class">In class (no upload)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="edit_activity_description" class="form-label">Instructions</label>
+                                <input type="text" id="edit_activity_description" name="description" class="form-control custom-input" maxlength="250">
+                            </div>
+                            <div class="col-md-3">
+                                <label for="edit_max_score" class="form-label">Max Score</label>
+                                <input type="number" id="edit_max_score" name="max_score" class="form-control custom-input" min="1" max="1000" step="0.5">
+                            </div>
+                            <div class="col-12">
+                                <label for="edit_classroom_notes" class="form-label">Classroom Notes</label>
+                                <textarea id="edit_classroom_notes" name="classroom_notes" class="form-control custom-input" rows="3"
+                                          placeholder="Blackboard content or in-class instructions"></textarea>
+                            </div>
+                            <div class="col-12">
+                                <label for="edit_external_url" class="form-label">Google Drive / Shared Link</label>
+                                <input type="url" id="edit_external_url" name="external_url" class="form-control custom-input"
+                                       placeholder="https://drive.google.com/...">
+                            </div>
+                            <div class="col-12">
+                                <label for="edit_scan_keywords" class="form-label">AI scan keywords</label>
+                                <input type="text" id="edit_scan_keywords" name="scan_keywords" class="form-control custom-input"
+                                       placeholder="Comma-separated answers for OCR grading">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-secondary">
+                        <button type="button" class="btn btn-cyber-sm" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-cyber-primary">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <div class="tab-pane {% if active_tab == 'grades' %}show active{% endif %}" id="tab-grades">
+        <div class="grading-workflow-banner mb-4">
+            <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
+                <strong class="text-white"><i class="bi bi-diagram-3 me-2"></i>How period grading works</strong>
+                <span class="small opacity-75">
+                    {% if display_year %}<span class="badge teacher-year-badge-current me-1">{{ display_year.name }}</span>{% endif %}
+                    4 simple steps
+                </span>
+            </div>
+            <ol class="workflow-steps">
+                <li><span class="step-num">1</span> Select your class</li>
+                <li><span class="step-num">2</span> Choose subject &amp; marking period</li>
+                <li><span class="step-num">3</span> Enter CA (max 60) &amp; exam (max 40) scores</li>
+                <li><span class="step-num">4</span> Save draft or publish to report cards</li>
+            </ol>
+        </div>
         <div class="row g-4">
         <div class="col-lg-12">
     <div class="card dashboard-card h-100" id="gradeEntryCard">
-        <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
-            <h5 class="mb-0 text-white"><i class="bi bi-table me-2 text-cyber"></i>Period Grade Sheet</h5>
+        <div class="card-header d-flex flex-wrap justify-content-between align-items-start gap-2">
+            <div>
+                <h5 class="mb-0 text-white"><i class="bi bi-table me-2 text-cyber"></i>Period Grade Sheet{% if display_year %} <small class="text-muted fs-6">· {{ display_year.name }}</small>{% endif %}</h5>
+                <p class="teacher-section-lead">Enter CA and exam scores, then save as draft or publish to student report cards.</p>
+            </div>
             <div class="d-flex align-items-center gap-2">
                 <span class="grade-loading-spinner" id="gradeLoadingSpinner" aria-live="polite">
                     <span class="spinner-border spinner-border-sm text-cyan" role="status" aria-hidden="true"></span>
                     Loading…
                 </span>
                 {% if grade_class_id %}
+                <a href="{{ url_for('manual_activity_grades', class_id=grade_class_id, subject=grade_subject, period=grade_period) }}" class="btn btn-cyber-sm btn-sm">
+                    <i class="bi bi-lightning-charge me-1"></i>Quick Period Entry
+                </a>
                 <a href="{{ url_for('class_grading_hub', class_id=grade_class_id, subject=grade_subject, period=grade_period) }}" class="btn btn-cyber-sm">
                     <i class="bi bi-mortarboard me-1"></i> Full Grading Hub
                 </a>
@@ -256,7 +915,7 @@
                         <div class="text-blue small mb-2 fw-semibold text-uppercase" style="letter-spacing:0.04em;">Step 1 — Class</div>
                         <div class="d-flex flex-wrap gap-2" id="gradeClassTabs">
                             {% for card in class_cards %}
-                            <a href="{{ url_for('teacher_dashboard', tab='grades', grade_class_id=card.id, grade_subject=grade_subject if grade_class_id == card.id else none, grade_period=grade_period) }}"
+                            <a href="{{ url_for('teacher_dashboard', tab='grades', grade_class_id=card.id, ledger_class_id=ledger_class_id, grade_subject=grade_subject if grade_class_id == card.id else none, grade_period=grade_period) }}"
                                class="grade-class-tab grade-nav-link {% if grade_class_id == card.id %}active{% endif %}"
                                data-loading="true">
                                 <i class="bi bi-folder2-open me-1"></i>{{ card.name }}
@@ -299,8 +958,11 @@
                             <i class="bi bi-mortarboard me-1 text-cyber"></i>
                             <strong class="text-cyber">{{ selected_grade_class.name }}</strong>
                             · {{ grade_subject }} · {{ period_label }}
+                            {% if display_year %}· <span class="text-cyan">{{ display_year.name }}</span>{% endif %}
                         </span>
-                        <span class="text-muted small">MoE: CA 60 + Exam 40 = 100 · Pass ≥ 70%</span>
+                        <span class="text-muted small">
+                            {% if is_semester_exam %}Exam score max 100{% else %}MoE: CA 60 + Exam 40 = 100 · Pass ≥ 70%{% endif %}
+                        </span>
                         {% if grade_student_count %}
                         <div class="grade-entry-progress-pills ms-md-auto">
                             <span class="grade-progress-pill">
@@ -339,9 +1001,14 @@
                                     <tr>
                                         <th class="ps-4 text-center" style="width:48px">#</th>
                                         <th>Student</th>
+                                        {% if is_semester_exam %}
+                                        <th class="text-center">Exam <small class="d-block fw-normal opacity-75">Max 100</small></th>
+                                        <th class="text-center">Grade</th>
+                                        {% else %}
                                         <th class="text-center">CA <small class="d-block fw-normal opacity-75">Max 60</small></th>
                                         <th class="text-center">Exam <small class="d-block fw-normal opacity-75">Max 40</small></th>
                                         <th class="text-center">Total</th>
+                                        {% endif %}
                                         <th class="pe-4 text-center">Status</th>
                                     </tr>
                                 </thead>
@@ -351,6 +1018,21 @@
                                     <tr data-student-row="{{ s.id }}">
                                         <td class="ps-4 text-center text-muted">{{ loop.index }}</td>
                                         <td class="fw-semibold text-yellow" data-label="Student">{{ s.full_name }}</td>
+                                        {% if is_semester_exam %}
+                                        <td class="text-center" data-label="Exam">
+                                            <input type="number" step="0.1" min="0" max="100"
+                                                   name="exam_{{ s.id }}"
+                                                   value="{{ existing.score if existing and existing.score is not none else '' }}"
+                                                   class="form-control custom-input exam-only-input score-input mx-auto text-center"
+                                                   style="width:88px" data-student="{{ s.id }}"
+                                                   data-row-index="{{ loop.index }}"
+                                                   placeholder="—"
+                                                   aria-label="Exam score for {{ s.full_name }}">
+                                        </td>
+                                        <td class="text-center fw-bold exam-grade-letter" data-label="Grade">
+                                            {% if existing and existing.score is not none %}{{ existing.score | grade_letter }}{% else %}—{% endif %}
+                                        </td>
+                                        {% else %}
                                         <td class="text-center" data-label="CA">
                                             <input type="number" step="0.1" min="0" max="60"
                                                    name="ca_{{ s.id }}"
@@ -376,6 +1058,7 @@
                                                 {% if existing and existing.score is not none %}{{ '%.1f'|format(existing.score) }}{% else %}—{% endif %}
                                             </span>
                                         </td>
+                                        {% endif %}
                                         <td class="pe-4 text-center" data-label="Status">
                                             {% if existing and existing.submitted %}
                                             <span class="status-indicator status-committed"><span class="dot"></span> Published</span>
@@ -441,48 +1124,197 @@
         </div>
     </div>
 
-    <div class="card dashboard-card mt-4">
-        <div class="card-header bg-transparent py-3">
-            <h5 class="mb-0 text-white"><i class="bi bi-collection me-2 text-cyber"></i>Grade Records Ledger <small class="text-muted text-sm fs-6">(Current Academic Cycle)</small></h5>
+    <div class="card dashboard-card mt-4" id="gradeRecordsLedger">
+        <div class="card-header bg-transparent py-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <div>
+                <h5 class="mb-0 text-white"><i class="bi bi-collection me-2 text-cyber"></i>Grade Records Ledger{% if display_year %} <small class="text-muted text-sm fs-6">· {{ display_year.name }}</small>{% endif %}</h5>
+                <p class="text-blue small mb-0 mt-1">Browse grades you have entered, organized by class, student, subject, and marking period.</p>
+            </div>
+            {% if selected_ledger_class and ledger_stats.total_entries %}
+            <a href="{{ url_for('teacher_dashboard', tab='grades', grade_class_id=ledger_class_id) }}"
+               class="btn btn-cyber-sm btn-sm">
+                <i class="bi bi-pencil-square me-1"></i>Edit Grades
+            </a>
+            {% endif %}
         </div>
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table cyber-table align-middle mb-0">
+        <div class="card-body">
+            {% if class_cards %}
+            <div class="grade-class-tabs mb-4">
+                <div class="text-blue small mb-2 fw-semibold text-uppercase" style="letter-spacing:0.04em;">Select Class</div>
+                <div class="d-flex flex-wrap gap-2">
+                    {% for card in class_cards %}
+                    {% set card_ledger = grade_ledger_by_class.get(card.id, {}) %}
+                    {% set card_stats = card_ledger.get('stats', {}) %}
+                    <a href="{{ url_for('teacher_dashboard', tab='grades', grade_class_id=grade_class_id, ledger_class_id=card.id, grade_subject=grade_subject, grade_period=grade_period, ledger_subject=ledger_subject if ledger_class_id == card.id else none) }}"
+                       class="grade-class-tab grade-nav-link {% if ledger_class_id == card.id %}active{% endif %}"
+                       data-loading="true">
+                        <i class="bi bi-journal-text me-1"></i>{{ card.name }}
+                        <span class="grade-class-tab-meta">
+                            G{{ card.grade_level }}{% if card.stream %} · {{ card.stream }}{% endif %}
+                            · {{ card_stats.get('total_entries', 0) }} record{{ 's' if card_stats.get('total_entries', 0) != 1 else '' }}
+                        </span>
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+
+            {% if selected_ledger_class %}
+            <div class="grade-entry-context ledger-context-bar mb-3">
+                <span>
+                    <i class="bi bi-mortarboard me-1 text-cyber"></i>
+                    <strong class="text-cyber">{{ selected_ledger_class.name }}</strong>
+                    · {{ display_year.name if display_year else 'No year configured' }}
+                </span>
+                {% if ledger_stats %}
+                <div class="grade-entry-progress-pills ms-md-auto">
+                    <span class="grade-progress-pill">
+                        <i class="bi bi-people"></i> Students
+                        <span class="pill-value">{{ ledger_stats.get('students_with_grades', 0) }}</span>
+                    </span>
+                    <span class="grade-progress-pill">
+                        <i class="bi bi-journal-check"></i> Records
+                        <span class="pill-value">{{ ledger_stats.get('total_entries', 0) }}</span>
+                    </span>
+                    <span class="grade-progress-pill pill-published">
+                        <i class="bi bi-send-check"></i> Published
+                        <span class="pill-value">{{ ledger_stats.get('published', 0) }}</span>
+                    </span>
+                    <span class="grade-progress-pill pill-pending">
+                        <i class="bi bi-pencil"></i> Draft
+                        <span class="pill-value">{{ ledger_stats.get('draft', 0) }}</span>
+                    </span>
+                </div>
+                {% endif %}
+            </div>
+
+            {% if ledger_subjects %}
+            <form method="GET" action="{{ url_for('teacher_dashboard') }}" class="row g-3 align-items-end mb-3" id="ledgerFilterForm">
+                <input type="hidden" name="tab" value="grades">
+                <input type="hidden" name="grade_class_id" value="{{ grade_class_id }}">
+                <input type="hidden" name="ledger_class_id" value="{{ ledger_class_id }}">
+                <input type="hidden" name="grade_subject" value="{{ grade_subject }}">
+                <input type="hidden" name="grade_period" value="{{ grade_period }}">
+                <div class="col-md-5">
+                    <label for="ledger_subject" class="form-label">Filter by Subject</label>
+                    <select id="ledger_subject" name="ledger_subject" class="form-select custom-select grade-filter-select" onchange="this.form.submit()">
+                        <option value="">All subjects</option>
+                        {% for subject in ledger_subjects %}
+                        <option value="{{ subject }}" {% if subject == ledger_subject %}selected{% endif %}>{{ subject }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-7 d-flex align-items-end">
+                    <p class="text-blue small mb-0">
+                        Showing {% if ledger_subject %}{{ ledger_subject }}{% else %}all subjects{% endif %}
+                        for <strong class="text-cyber">{{ selected_ledger_class.name }}</strong>.
+                    </p>
+                </div>
+            </form>
+            {% endif %}
+
+            {% set ns = namespace(has_rows=false) %}
+            {% for row in ledger_student_rows %}
+                {% for entry in row.entries %}
+                    {% if not ledger_subject or entry.subject == ledger_subject %}
+                        {% set ns.has_rows = true %}
+                    {% endif %}
+                {% endfor %}
+            {% endfor %}
+
+            {% if ns.has_rows %}
+            <div class="table-responsive rounded-3 border border-cyber-dim ledger-table-wrap">
+                <table class="table cyber-table align-middle mb-0 grade-ledger-table">
                     <thead>
                         <tr>
                             <th class="ps-4">Student</th>
+                            <th>Subject</th>
                             <th>Period</th>
-                            <th>Subject / Type</th>
-                            <th>Score</th>
+                            <th class="text-center">CA</th>
+                            <th class="text-center">Exam</th>
+                            <th class="text-center">Total</th>
                             <th class="pe-4 text-end">Status</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {% for g in grades %}
-                        <tr>
-                            <td class="ps-4 fw-semibold text-yellow">{{ g.student.full_name }}</td>
-                            <td><span class="badge bg-dark border border-secondary text-light font-mono px-2 py-1">P{{ g.marking_period or g.period }}</span></td>
-                            <td>{{ g.subject_name or g.subject or '—' }} · {{ g.activity_type or 'Assessment' }}</td>
-                            <td class="fw-bold text-cyber-light">{{ g.score or 0 }} / 100</td>
+                        {% for row in ledger_student_rows %}
+                        {% set filtered_entries = row.entries | selectattr('subject', 'equalto', ledger_subject) | list if ledger_subject else row.entries %}
+                        {% if filtered_entries %}
+                        {% for entry in filtered_entries %}
+                        <tr class="{% if loop.first %}ledger-student-group-start{% endif %}">
+                            {% if loop.first %}
+                            <td class="ps-4 fw-semibold text-yellow ledger-student-cell" rowspan="{{ filtered_entries|length }}">
+                                <span class="ledger-student-name">{{ row.student.full_name }}</span>
+                                <span class="ledger-student-meta d-block">{{ filtered_entries|length }} entr{{ 'y' if filtered_entries|length == 1 else 'ies' }}</span>
+                            </td>
+                            {% endif %}
+                            <td>{{ entry.subject }}</td>
+                            <td>
+                                <span class="badge bg-dark border border-secondary text-light font-mono px-2 py-1">{{ entry.period_label }}</span>
+                            </td>
+                            {% if entry.is_exam_period %}
+                            <td class="text-center text-muted">—</td>
+                            <td class="text-center text-muted">—</td>
+                            <td class="text-center fw-bold text-cyber-light">
+                                {% if entry.score is not none %}{{ '%.1f'|format(entry.score) }}{% else %}—{% endif %}
+                            </td>
+                            {% else %}
+                            <td class="text-center">
+                                {% if entry.ca_score is not none %}{{ '%.1f'|format(entry.ca_score) }}{% else %}—{% endif %}
+                            </td>
+                            <td class="text-center">
+                                {% if entry.exam_score is not none %}{{ '%.1f'|format(entry.exam_score) }}{% else %}—{% endif %}
+                            </td>
+                            <td class="text-center fw-bold text-cyber-light">
+                                {% if entry.score is not none %}{{ '%.1f'|format(entry.score) }}{% else %}—{% endif %}
+                            </td>
+                            {% endif %}
                             <td class="pe-4 text-end">
-                                {% if g.submitted %}
-                                    <span class="status-indicator status-committed"><span class="dot"></span> Published</span>
+                                {% if entry.submitted %}
+                                <span class="status-indicator status-committed"><span class="dot"></span> Published</span>
                                 {% else %}
-                                    <span class="status-indicator status-draft"><span class="dot"></span> Draft</span>
+                                <span class="status-indicator status-draft"><span class="dot"></span> Draft</span>
                                 {% endif %}
                             </td>
                         </tr>
-                        {% else %}
-                        <tr>
-                            <td colspan="5" class="text-center text-muted py-5">
-                                <i class="bi bi-inbox-fill d-block fs-2 mb-2 text-cyber-dim"></i>
-                                No grade records yet. Enter period grades above or use the Full Grading Hub.
-                            </td>
-                        </tr>
+                        {% endfor %}
+                        {% endif %}
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
+            {% else %}
+            <div class="grade-empty-state mt-2">
+                <i class="bi bi-inbox empty-icon"></i>
+                <h6>No grade records for this class yet</h6>
+                <p>
+                    {% if ledger_subject %}
+                    You have not entered any {{ ledger_subject }} grades for {{ selected_ledger_class.name }}.
+                    {% else %}
+                    You have not entered any grades for {{ selected_ledger_class.name }} in the current academic cycle.
+                    {% endif %}
+                    Use the grade entry section above or the Full Grading Hub to add scores.
+                </p>
+                <a href="{{ url_for('teacher_dashboard', tab='grades', grade_class_id=ledger_class_id) }}" class="btn btn-cyber-sm mt-2">
+                    <i class="bi bi-pencil-square me-1"></i>Enter Period Grades
+                </a>
+            </div>
+            {% endif %}
+
+            {% else %}
+            <div class="grade-empty-state mt-2">
+                <i class="bi bi-folder2-open empty-icon"></i>
+                <h6>Select a class to view records</h6>
+                <p>Choose one of your assigned classes above to browse entered grades.</p>
+            </div>
+            {% endif %}
+
+            {% else %}
+            <div class="grade-empty-state mt-2">
+                <i class="bi bi-inbox empty-icon"></i>
+                <h6>No class assignments yet</h6>
+                <p>Ask the principal to assign you to a class or subject in <strong>Provision Core Class</strong>.</p>
+            </div>
+            {% endif %}
         </div>
     </div>
         </div>
@@ -600,6 +1432,38 @@
     .grade-class-tab:hover .grade-class-tab-meta {
         color: #b8f8ff;
     }
+
+    .ledger-context-bar {
+        border: 1px solid rgba(0, 242, 255, 0.12);
+        border-radius: 10px;
+        background: rgba(0, 242, 255, 0.04);
+    }
+
+    .grade-ledger-table .ledger-student-group-start td {
+        border-top: 1px solid rgba(0, 242, 255, 0.18);
+    }
+
+    .grade-ledger-table tbody tr:first-child td {
+        border-top: none;
+    }
+
+    .ledger-student-cell {
+        vertical-align: middle !important;
+        background: rgba(0, 242, 255, 0.03);
+    }
+
+    .ledger-student-meta {
+        font-size: 0.68rem;
+        color: #7dd3fc;
+        font-weight: 500;
+        margin-top: 0.15rem;
+    }
+
+    .ledger-table-wrap {
+        max-height: 520px;
+        overflow-y: auto;
+    }
+
     .text-cyber-light { color: #80f9ff; }
     .text-cyber-dim { color: rgba(0, 242, 255, 0.5); }
     .border-cyber-dim { border-color: rgba(0, 242, 255, 0.1) !important; }
@@ -666,6 +1530,21 @@
         padding: 0.5rem 1rem;
         border-radius: 0 8px 8px 0;
     }
+    .teacher-year-banner {
+        backdrop-filter: blur(4px);
+    }
+    .teacher-year-badge-current {
+        background: rgba(0, 242, 255, 0.12);
+        border: 1px solid rgba(0, 242, 255, 0.35);
+        color: var(--cyber-cyan);
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        vertical-align: middle;
+    }
+    .teacher-terminal .teacher-section-lead { color: #94a3b8 !important; }
+    #gradeRecordsLedger { scroll-margin-top: 1.25rem; }
 
     /* FORM ELEMENTS overrides */
     .custom-input, .custom-select {
@@ -870,6 +1749,31 @@
 <script>
 (function() {
     const PASS_THRESHOLD = 70;
+    const isSemesterExam = {{ 'true' if is_semester_exam else 'false' }};
+
+    function gradeLetterFromScore(total) {
+        if (total >= 90) return 'A';
+        if (total >= 80) return 'B';
+        if (total >= 70) return 'C';
+        if (total >= 60) return 'D';
+        return 'F';
+    }
+
+    function updateExamOnlyGrade(input) {
+        const row = input.closest('tr');
+        const gradeCell = row ? row.querySelector('.exam-grade-letter') : null;
+        if (!gradeCell) return;
+        const val = parseFloat(input.value);
+        if (input.value === '' || isNaN(val)) {
+            gradeCell.textContent = '—';
+            return;
+        }
+        if (val < 0 || val > 100) {
+            gradeCell.textContent = '—';
+            return;
+        }
+        gradeCell.textContent = gradeLetterFromScore(val);
+    }
 
     function updateTotalBadge(studentId) {
         const caInput = document.querySelector('input[name="ca_' + studentId + '"]');
@@ -904,6 +1808,10 @@
     }
 
     function initAllTotals() {
+        if (isSemesterExam) {
+            document.querySelectorAll('.exam-only-input').forEach(updateExamOnlyGrade);
+            return;
+        }
         document.querySelectorAll('.ca-input, .exam-input').forEach(function(input) {
             if (input.dataset.student) {
                 updateTotalBadge(input.dataset.student);
@@ -912,6 +1820,10 @@
     }
 
     document.addEventListener('input', function(e) {
+        if (e.target.classList.contains('exam-only-input')) {
+            updateExamOnlyGrade(e.target);
+            return;
+        }
         if (!e.target.classList.contains('ca-input') && !e.target.classList.contains('exam-input')) {
             return;
         }
@@ -988,7 +1900,10 @@
     }
 
     function focusFirstEmptyScore() {
-        const inputs = document.querySelectorAll('#periodGradesForm .ca-input, #periodGradesForm .exam-input');
+        const selector = isSemesterExam
+            ? '#periodGradesForm .exam-only-input'
+            : '#periodGradesForm .ca-input, #periodGradesForm .exam-input';
+        const inputs = document.querySelectorAll(selector);
         for (let i = 0; i < inputs.length; i++) {
             if (inputs[i].value === '') {
                 inputs[i].focus();
@@ -996,9 +1911,9 @@
                 return;
             }
         }
-        const firstCa = document.querySelector('#periodGradesForm .ca-input');
-        if (firstCa) {
-            firstCa.focus();
+        const firstInput = document.querySelector(selector.split(',')[0]);
+        if (firstInput) {
+            firstInput.focus();
         }
     }
 
@@ -1006,6 +1921,231 @@
     if (document.getElementById('periodGradesForm')) {
         setTimeout(focusFirstEmptyScore, 100);
     }
+})();
+
+(function() {
+    const dropzone = document.getElementById('activityDropzone');
+    const fileInput = document.getElementById('activityFileInput');
+    const assignPanel = document.getElementById('activityAssignPanel');
+    const bulkPanel = document.getElementById('activityBulkPanel');
+    const formFile = document.getElementById('activityFormFile');
+    const titleInput = document.getElementById('activity_title');
+    const stagedName = document.getElementById('stagedFileName');
+    const stagedSize = document.getElementById('stagedFileSize');
+    const stagedIcon = document.getElementById('stagedFileIcon');
+    const clearBtn = document.getElementById('clearStagedFile');
+    const cancelBtn = document.getElementById('cancelAssignBtn');
+    const cancelBulkBtn = document.getElementById('cancelBulkBtn');
+    const newActivityBtn = document.getElementById('newActivityBtn');
+    const assignForm = document.getElementById('activityAssignForm');
+    const bulkForm = document.getElementById('activityBulkForm');
+    const bulkFileList = document.getElementById('bulkFileList');
+    const bulkFileInputs = document.getElementById('bulkFileInputs');
+    const editModalEl = document.getElementById('editActivityModal');
+    const editForm = document.getElementById('editActivityForm');
+
+    if (!dropzone || !assignPanel) return;
+
+    const iconMap = {
+        pdf: 'bi-file-earmark-pdf',
+        doc: 'bi-file-earmark-word',
+        docx: 'bi-file-earmark-word',
+        ppt: 'bi-file-earmark-ppt',
+        pptx: 'bi-file-earmark-ppt',
+        xls: 'bi-file-earmark-excel',
+        xlsx: 'bi-file-earmark-excel',
+        txt: 'bi-file-earmark-text',
+        png: 'bi-file-earmark-image',
+        jpg: 'bi-file-earmark-image',
+        jpeg: 'bi-file-earmark-image',
+        gif: 'bi-file-earmark-image',
+        webp: 'bi-file-earmark-image',
+    };
+
+    function formatSize(bytes) {
+        if (bytes < 1024) return bytes + ' B';
+        if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+        return (bytes / 1048576).toFixed(1) + ' MB';
+    }
+
+    function titleFromFilename(name) {
+        const base = name.replace(/\.[^/.]+$/, '');
+        return base.replace(/[_-]+/g, ' ').replace(/\b\w/g, function(c) { return c.toUpperCase(); });
+    }
+
+    function fileIconClass(name) {
+        const ext = (name.split('.').pop() || '').toLowerCase();
+        return iconMap[ext] || 'bi-file-earmark';
+    }
+
+    function hideAllPanels() {
+        assignPanel.classList.remove('show');
+        if (bulkPanel) bulkPanel.classList.remove('show');
+        formFile.value = '';
+        if (fileInput) fileInput.value = '';
+        if (titleInput) titleInput.value = '';
+        if (bulkFileInputs) bulkFileInputs.innerHTML = '';
+        if (bulkFileList) bulkFileList.innerHTML = '';
+    }
+
+    function showAssignPanel(file) {
+        if (bulkPanel) bulkPanel.classList.remove('show');
+        assignPanel.classList.add('show');
+        if (file) {
+            const dt = new DataTransfer();
+            dt.items.add(file);
+            formFile.files = dt.files;
+            stagedName.textContent = file.name;
+            stagedSize.textContent = formatSize(file.size);
+            stagedIcon.className = 'bi ' + fileIconClass(file.name) + ' file-icon';
+            if (!titleInput.value) {
+                titleInput.value = titleFromFilename(file.name);
+            }
+            document.getElementById('stagedFilePreview').style.display = 'flex';
+        } else {
+            formFile.value = '';
+            stagedName.textContent = 'No file attached';
+            stagedSize.textContent = 'Text or in-class activity';
+            stagedIcon.className = 'bi bi-journal-text file-icon';
+            document.getElementById('stagedFilePreview').style.display = 'flex';
+        }
+        titleInput.focus();
+    }
+
+    function showBulkPanel(files) {
+        if (!bulkPanel || !bulkFileList || !bulkFileInputs) {
+            showAssignPanel(files[0]);
+            return;
+        }
+        assignPanel.classList.remove('show');
+        bulkPanel.classList.add('show');
+        bulkFileList.innerHTML = '';
+        bulkFileInputs.innerHTML = '';
+        Array.from(files).forEach(function(file, index) {
+            const row = document.createElement('div');
+            row.className = 'bulk-file-row';
+            row.innerHTML =
+                '<i class="bi ' + fileIconClass(file.name) + ' me-2"></i>' +
+                '<span class="bulk-file-name">' + file.name + '</span>' +
+                '<span class="bulk-file-size">' + formatSize(file.size) + '</span>';
+            bulkFileList.appendChild(row);
+
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.name = 'task_files';
+            input.className = 'd-none';
+            input.id = 'bulk-hidden-file-' + index;
+            bulkFileInputs.appendChild(input);
+            const dt = new DataTransfer();
+            dt.items.add(file);
+            input.files = dt.files;
+        });
+    }
+
+    function handleFiles(files) {
+        if (!files || !files.length) return;
+        if (files.length > 1) {
+            showBulkPanel(files);
+            return;
+        }
+        showAssignPanel(files[0]);
+    }
+
+    dropzone.addEventListener('click', function() {
+        fileInput.click();
+    });
+    dropzone.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            fileInput.click();
+        }
+    });
+
+    fileInput.addEventListener('change', function() {
+        handleFiles(fileInput.files);
+    });
+
+    ['dragenter', 'dragover'].forEach(function(evt) {
+        dropzone.addEventListener(evt, function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            dropzone.classList.add('dragover');
+        });
+    });
+    ['dragleave', 'drop'].forEach(function(evt) {
+        dropzone.addEventListener(evt, function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            dropzone.classList.remove('dragover');
+        });
+    });
+    dropzone.addEventListener('drop', function(e) {
+        handleFiles(e.dataTransfer.files);
+    });
+
+    if (clearBtn) {
+        clearBtn.addEventListener('click', function() {
+            formFile.value = '';
+            if (fileInput) fileInput.value = '';
+            stagedName.textContent = '—';
+            stagedSize.textContent = '';
+        });
+    }
+    if (cancelBtn) cancelBtn.addEventListener('click', hideAllPanels);
+    if (cancelBulkBtn) cancelBulkBtn.addEventListener('click', hideAllPanels);
+    if (newActivityBtn) {
+        newActivityBtn.addEventListener('click', function() {
+            showAssignPanel(null);
+        });
+    }
+
+    if (assignForm) {
+        assignForm.addEventListener('submit', function(e) {
+            const hasFile = formFile.files && formFile.files.length;
+            const title = (titleInput.value || '').trim();
+            if (!hasFile && !title) {
+                e.preventDefault();
+                alert('Enter an activity title or attach a file.');
+                titleInput.focus();
+            }
+        });
+    }
+
+    document.querySelectorAll('.activity-delete-form').forEach(function(form) {
+        form.addEventListener('submit', function(e) {
+            if (!window.confirm('Delete this activity and all student submissions?')) {
+                e.preventDefault();
+            }
+        });
+    });
+
+    document.querySelectorAll('.btn-edit-activity').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            if (!editForm || !editModalEl) return;
+            const id = btn.dataset.id;
+            editForm.action = '/teacher/activity/' + id + '/edit';
+            document.getElementById('edit_activity_title').value = btn.dataset.title || '';
+            document.getElementById('edit_activity_description').value = btn.dataset.description || '';
+            document.getElementById('edit_activity_due_date').value = btn.dataset.due || '';
+            document.getElementById('edit_activity_subject').value = btn.dataset.subject || '';
+            document.getElementById('edit_activity_period').value = btn.dataset.period || '1';
+            document.getElementById('edit_activity_type').value = btn.dataset.type || 'Assignment';
+            document.getElementById('edit_submission_mode').value = btn.dataset.mode || 'file_upload';
+            document.getElementById('edit_scan_keywords').value = btn.dataset.keywords || '';
+            const maxEl = document.getElementById('edit_max_score');
+            if (maxEl) maxEl.value = btn.dataset.max || '100';
+            const notesEl = document.getElementById('edit_classroom_notes');
+            if (notesEl) notesEl.value = btn.dataset.notes || '';
+            const extEl = document.getElementById('edit_external_url');
+            if (extEl) extEl.value = btn.dataset.external || '';
+            if (window.bootstrap && bootstrap.Modal) {
+                bootstrap.Modal.getOrCreateInstance(editModalEl).show();
+            } else {
+                editModalEl.classList.add('show');
+                editModalEl.style.display = 'block';
+            }
+        });
+    });
 })();
 </script>
 {% endblock %}

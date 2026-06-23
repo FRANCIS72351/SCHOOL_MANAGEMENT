@@ -32,7 +32,8 @@
             <h2 class="glow-title mb-0"><i class="fas fa-coins text-emerald me-2"></i>VPI Financial Command Center</h2>
             <p class="text-muted small mb-0 mt-1">Tuition collections, school ledger, class fees, and fiscal oversight</p>
         </div>
-        <form method="get" class="d-flex gap-2 mt-2 mt-md-0">
+        <form method="get" class="d-flex gap-2 mt-2 mt-md-0 align-items-center">
+            <a href="{{ url_for('attendance_overview') }}" class="btn btn-sm btn-outline-info text-cyan">Attendance Summary</a>
             <select name="year" class="form-select form-cyber form-select-sm" onchange="this.form.submit()">
                 {% for y in years %}
                 <option value="{{ y.name }}" {% if y.name == selected_year_name %}selected{% endif %}>{{ y.name }}</option>
@@ -185,9 +186,9 @@
                                 <tbody>
                                     {% for payment in recent_payments %}
                                     <tr>
-                                        <td class="small">{{ payment.student.full_name if payment.student else '—' }}</td>
+                                        <td class="small text-emerald">{{ payment.student.full_name if payment.student else '—' }}</td>
                                         <td class="small text-emerald">${{ "{:,.2f}".format(payment.amount_paid) }}</td>
-                                        <td class="small text-muted">{{ payment.paid_on.strftime('%Y-%m-%d') if payment.paid_on else '—' }}</td>
+                                        <td class="small text-emerald">{{ payment.paid_on.strftime('%Y-%m-%d') if payment.paid_on else '—' }}</td>
                                     </tr>
                                     {% else %}
                                     <tr><td colspan="3" class="text-muted small text-center">No payments recorded yet.</td></tr>
@@ -205,19 +206,19 @@
                     <table class="table table-cyber mb-0">
                         <thead>
                             <tr>
-                                <th>Date</th>
-                                <th>Description</th>
-                                <th>Category</th>
-                                <th>Type</th>
-                                <th class="text-end">Amount</th>
+                                <th class="text-emerald">Date</th>
+                                <th class="text-emerald">Description</th>
+                                <th class="text-emerald">Category</th>
+                                <th class="text-emerald">Type</th>
+                                <th class="text-end text-emerald">Amount</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for tx in recent_transactions %}
                             <tr>
-                                <td class="small">{{ tx.date }}</td>
-                                <td class="small">{{ tx.description or '—' }}</td>
-                                <td class="small"><span class="badge bg-dark border border-secondary">{{ tx.category or 'General' }}</span></td>
+                                <td class="small text-emerald">{{ tx.date }}</td>
+                                <td class="small text-emerald">{{ tx.description or '—' }}</td>
+                                <td class="small text-emerald"><span class="badge bg-dark border border-secondary text-emerald">{{ tx.category or 'General' }}</span></td>
                                 <td>
                                     {% if tx.type == 'income' %}
                                     <span class="badge bg-emerald bg-opacity-10 text-emerald">Income</span>

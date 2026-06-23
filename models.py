@@ -49,13 +49,26 @@ class User(db.Model, UserMixin):
     totp_secret = db.Column(db.String(32))  # 2FA Secret Key
     home_address = db.Column(db.String(255))
     telephone_number = db.Column(db.String(20))
-                        
+    status = db.Column(db.String(20), default='Active', server_default='Active', nullable=False)
+    is_active = db.Column(db.Boolean, default=True, server_default='1', nullable=False)
+    deactivated_at = db.Column(db.DateTime, nullable=True)
+    deactivation_reason = db.Column(db.String(255), nullable=True)
+
+    def is_account_active(self):
+        """Return True when the account may authenticate."""
+        if self.is_active is False:
+            return False
+        normalized = (self.status or 'Active').strip().lower()
+        return normalized not in ('inactive', 'terminated', 'disabled', 'suspended')
+
     def set_password(self, password):
         """Hash and store the provided plaintext password."""
         self.password_hash = generate_password_hash(password)
 
     def check_password(self, password):
         """Verify the provided password against the stored hash."""
+        if not self.is_account_active():
+            return False
         return check_password_hash(self.password_hash, password)
 
     @property
@@ -122,7 +135,12 @@ class AcademicYear(db.Model):
     klass_id = db.Column(db.Integer, db.ForeignKey("classes.id"), nullable=True)
 
     # Relationships to enable cascading historical tracking
-    grades = db.relationship('Grade', backref='academic_year', lazy=True)
+    grades = db.relationship(
+        'Grade',
+        backref='academic_year',
+        lazy=True,
+        passive_deletes=True,
+    )
     
     # REMOVED the broken payments line! 
     # Your StudentPayment class automatically handles this link via 'payment_records'
@@ -141,7 +159,7 @@ class Class(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), unique=True, nullable=False, index=True)
-    grade_level = db.Column(db.Integer, nullable=False)                      # e.g., 1-12
+    grade_level = db.Column(db.String(50), nullable=False)                   # e.g., Grade 7, JSS 1
     stream = db.Column(db.String(50), nullable=True)                         # e.g., 'Science', 'Arts'
     yearly_fees = db.Column(db.Numeric(10, 2), default=0.00, nullable=False)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
@@ -168,9 +186,14 @@ class Class(db.Model):
 
     @validates('grade_level')
     def validate_grade_level(self, key, value):
-        if value is not None and (int(value) < 1 or int(value) > 12):
-            raise ValueError("Structural Constraint Violation: Academic grade tier must fall within 1-12.")
-        return int(value)
+        if value is None:
+            raise ValueError("Structural Constraint Violation: Grade level is required.")
+        text = str(value).strip()
+        if not text:
+            raise ValueError("Structural Constraint Violation: Grade level cannot be empty.")
+        if len(text) > 50:
+            raise ValueError("Structural Constraint Violation: Grade level must be 50 characters or fewer.")
+        return text
 
     @property
     def student_count(self):
@@ -303,8 +326,8 @@ class Student(db.Model):
     photo = db.Column(db.String(200), nullable=True)
     photo_filename = db.Column(db.String(200), default='default_student.png')
 
-    status = db.Column(db.String(20), default='ACTIVE', nullable=False)  # ACTIVE, SUSPENDED, REPEAT
-    grade_level = db.Column(db.Integer, nullable=True)
+    status = db.Column(db.String(20), default='ACTIVE', nullable=False)  # ACTIVE, REPEAT, SUSPENDED, ALUMNI, GRADUATED
+    grade_level = db.Column(db.String(50), nullable=True)
     level = db.Column(db.String(50), nullable=True)                      # Elementary, Junior High, Senior High
     registration_type = db.Column(db.String(20), default='New', nullable=False)
     registrar = db.Column(db.String(100), nullable=True)
@@ -315,6 +338,8 @@ class Student(db.Model):
 
     tuition_cleared = db.Column(db.Boolean, default=False, nullable=False)
     registration_fees = db.Column(db.Numeric(10, 2), default=0.00, nullable=False)
+    is_promoted = db.Column(db.Boolean, default=False, server_default='0', nullable=False)
+    is_registered = db.Column(db.Boolean, default=True, server_default='1', nullable=False)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
 
     # Relationships
@@ -339,6 +364,24 @@ class Student(db.Model):
     def current_class(self):
         """Dean/legacy dashboard alias for assigned class."""
         return self.assigned_class
+
+    @property
+    def current_class_id(self):
+        """Alias for klass_id used by roster and finance gatekeeping queries."""
+        return self.klass_id
+
+    @property
+    def current_grade(self):
+        """Grade tier for the student (maps to grade_level / assigned class)."""
+        if self.grade_level is not None:
+            return self.grade_level
+        if self.assigned_class and self.assigned_class.grade_level is not None:
+            return self.assigned_class.grade_level
+        return None
+
+    @current_grade.setter
+    def current_grade(self, value):
+        self.grade_level = value
 
     @validates('registration_fees')
     def validate_fees(self, key, value):
@@ -601,14 +644,18 @@ class Grade(db.Model):
     class_id = db.Column(db.Integer, db.ForeignKey("classes.id", ondelete="SET NULL"), nullable=True)
     
     # The crucial multi-tenancy link for academic year switching
-    academic_year_id = db.Column(db.Integer, db.ForeignKey("academic_years.id"), nullable=False)
+    academic_year_id = db.Column(
+        db.Integer,
+        db.ForeignKey("academic_years.id", ondelete="CASCADE"),
+        nullable=False,
+    )
 
     # Subject Details
     subject = db.Column(db.String(120), nullable=True)
     subject_name = db.Column(db.String(100), nullable=False)
     
     # Structural Context tracking 
-    marking_period = db.Column(db.Integer)  # 1-6
+    marking_period = db.Column(db.Integer)  # 1-6 regular, 7 Exam, 8 Final Exam
     period = db.Column(db.String(50), nullable=True)  # e.g., "Period 1", "First Semester"
     activity_type = db.Column(db.String(50))  # Test, Quiz, Assignment
     
@@ -661,6 +708,10 @@ class Assessment(db.Model):
     academic_year_id = db.Column(db.Integer, db.ForeignKey("academic_years.id"), nullable=True)
     teacher_id = db.Column(db.Integer, db.ForeignKey("teachers.id"), nullable=True)
     file_name = db.Column(db.String(255), nullable=True)
+    due_date = db.Column(db.String(20), nullable=True)
+    scan_keywords = db.Column(db.String(500), nullable=True)
+    external_url = db.Column(db.String(500), nullable=True)
+    classroom_notes = db.Column(db.Text, nullable=True)
 
     klass = db.relationship("Class", backref=db.backref("assessments", lazy="dynamic", cascade="all, delete-orphan"))
     teacher = db.relationship("Teacher", backref=db.backref("assessments", lazy="dynamic"))
@@ -669,6 +720,24 @@ class Assessment(db.Model):
     @property
     def is_exam_component(self):
         return (self.activity_type or '').strip().lower() == 'exam'
+
+    @property
+    def is_classroom_activity(self):
+        return (self.submission_mode or '').strip().lower() == 'in_class'
+
+    @property
+    def delivery_badge(self):
+        return 'Classroom Activity' if self.is_classroom_activity else 'Digital Submission'
+
+    @property
+    def is_overdue(self):
+        if not self.due_date:
+            return False
+        try:
+            from datetime import date
+            return date.fromisoformat(self.due_date) < date.today()
+        except ValueError:
+            return False
 
     def __repr__(self):
         return f"<Assessment ID {self.id}: {self.title} for Class {self.klass_id}>"
@@ -679,11 +748,18 @@ class Attendance(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     student_id = db.Column(db.Integer, db.ForeignKey("students.id", ondelete="CASCADE"), nullable=False)
+    class_id = db.Column(db.Integer, db.ForeignKey("classes.id", ondelete="SET NULL"), nullable=True)
+    teacher_id = db.Column(db.Integer, db.ForeignKey("teachers.id", ondelete="SET NULL"), nullable=True)
+    academic_year_id = db.Column(db.Integer, db.ForeignKey("academic_years.id", ondelete="SET NULL"), nullable=True)
     date = db.Column(db.String(20), nullable=False)
-    status = db.Column(db.String(20), nullable=False)  # present, absent, late
+    status = db.Column(db.String(20), nullable=False)  # present, absent, late, excused
     notes = db.Column(db.String(200))
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=True)
 
     student = db.relationship("Student", backref=db.backref("attendance_ledger", lazy="dynamic", cascade="all, delete-orphan"))
+    klass = db.relationship("Class", backref=db.backref("attendance_records", lazy="dynamic"))
+    teacher = db.relationship("Teacher", backref=db.backref("attendance_taken", lazy="dynamic"))
+    academic_year = db.relationship("AcademicYear", backref=db.backref("attendance_records", lazy="dynamic"))
 
     def __repr__(self):
         return f"<Attendance ID {self.id}: Student {self.student_id} - {self.status} on {self.date}>"

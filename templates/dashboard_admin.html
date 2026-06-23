@@ -142,6 +142,32 @@
         border-color: #1f2937 !important;
         padding: 12px 8px;
     }
+
+    .form-cyber {
+        background: #070a12 !important;
+        border: 1px solid #374151 !important;
+        color: #fff !important;
+        border-radius: 8px;
+    }
+    .form-cyber:focus {
+        border-color: #00f2ff !important;
+        box-shadow: 0 0 10px rgba(0, 242, 255, 0.12) !important;
+    }
+    .archived-banner {
+        background: linear-gradient(135deg, rgba(245, 158, 11, 0.08), rgba(17, 24, 39, 0.95));
+        border: 1px solid rgba(245, 158, 11, 0.35);
+        border-radius: 10px;
+    }
+    .year-view-badge-active {
+        background: rgba(28, 200, 138, 0.12);
+        color: #1cc88a;
+        border: 1px solid rgba(28, 200, 138, 0.25);
+    }
+    .year-view-badge-archived {
+        background: rgba(245, 158, 11, 0.12);
+        color: #f59e0b;
+        border: 1px solid rgba(245, 158, 11, 0.25);
+    }
 </style>
 
 <div class="container-fluid py-3">
@@ -153,8 +179,27 @@
     </div>
     {% endif %}
     
+    {% if viewing_archived %}
+    <div class="archived-banner p-3 mb-4 d-flex flex-wrap align-items-center justify-content-between gap-2" data-aos="fade-down">
+        <div>
+            <i class="fas fa-archive text-warning me-2"></i>
+            <strong>Viewing: {{ display_year.name }} (Archived)</strong>
+            <span class="text-muted small ms-2">Historical records — read-only snapshot</span>
+        </div>
+        {% if active_year %}
+        <a href="{{ url_for('dashboard', academic_year_id=active_year.id) }}" class="btn btn-sm btn-outline-success">
+            <i class="fas fa-arrow-left me-1"></i> Return to Active Year ({{ active_year.name }})
+        </a>
+        {% endif %}
+    </div>
+    {% elif display_year and display_year.is_active %}
+    <div class="alert alert-success bg-success bg-opacity-10 border-success border-opacity-25 mb-4 py-2 px-3" data-aos="fade-down">
+        <i class="fas fa-check-circle me-2"></i>Viewing: <strong>{{ display_year.name }}</strong> <span class="badge year-view-badge-active ms-1">Active</span>
+    </div>
+    {% endif %}
+
     <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3 bg-dark bg-opacity-25 p-3 rounded-3 border border-secondary border-opacity-10" data-aos="fade-down">
-        <div class="d-flex gap-4">
+        <div class="d-flex flex-wrap gap-4 align-items-center">
             <div>
                 <span class="text-muted small text-uppercase block d-block">System State</span>
                 {% if system_is_active %}
@@ -170,12 +215,20 @@
                 </a>
             </div>
             <div class="border-start border-secondary border-opacity-25 ps-4">
-                <span class="text-muted small text-uppercase block d-block">Academic Year Engine</span>
-                <strong class="text-white"><i class="fas fa-calendar-alt me-1"></i> {{ active_year.name if active_year else "-" }}</strong>
+                <span class="text-muted small text-uppercase d-block mb-1">Academic Year</span>
+                <form method="get" class="d-inline">
+                    <select name="academic_year_id" class="form-select form-select-sm form-cyber" style="min-width: 180px;" onchange="this.form.submit()">
+                        {% for y in (years or all_years or []) %}
+                        <option value="{{ y.id }}" {% if display_year and y.id == display_year.id %}selected{% endif %}>
+                            {{ y.name }}{% if y.is_active %} (Active){% endif %}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </form>
             </div>
         </div>
         
-        <div class="d-flex gap-2">
+        <div class="d-flex gap-2 flex-wrap">
             <div class="btn-group" role="group">
                 <button id="exportsDropdown" type="button" class="btn btn-sm btn-outline-info dropdown-toggle rounded-3" data-bs-toggle="dropdown" aria-expanded="false">
                     <i class="fas fa-download me-1"></i> Export Datasets
@@ -189,10 +242,13 @@
                 </ul>
             </div>
             <a href="{{ url_for('class_create') }}" class="btn btn-sm btn-outline-secondary text-white"><i class="fas fa-chalkboard"></i> Classes</a>
+            <a href="{{ url_for('attendance_overview', academic_year_id=display_year.id if display_year else None) }}" class="btn btn-sm btn-outline-info text-cyan"><i class="fas fa-calendar-check"></i> Attendance</a>
             <a href="{{ url_for('academic_years') }}" class="btn btn-sm btn-outline-secondary text-white"><i class="fas fa-calendar-plus"></i> Create Academic Year</a>
+            {% if not viewing_archived %}
             <a href="{{ url_for('academic_rollover') }}" class="btn btn-sm btn-outline-warning text-white">
                 <i class="fas fa-arrows-rotate"></i> Academic Rollover
             </a>
+            {% endif %}
             <a href="{{ url_for('admin_users') }}" class="btn btn-sm btn-outline-secondary text-white"><i class="fas fa-users-cog"></i> Users</a>
             <a href="{{ url_for('report_students_pdf', year=selected_year_name) }}" class="btn btn-sm btn-primary"><i class="fas fa-file-pdf me-1"></i> Master PDF</a>
         </div>
@@ -207,8 +263,14 @@
             </div>
 
             <div class="mb-3 mt-4">
-                <span class="text-muted text-uppercase small font-weight-bold">Active Scope Targets Filter:</span>
-                <span class="badge bg-danger bg-opacity-25 text-danger px-2 py-1 border border-danger border-opacity-50 ms-2">{{ selected_year }}</span>
+                <span class="text-muted text-uppercase small font-weight-bold">Scope Filter:</span>
+                {% if viewing_archived %}
+                <span class="badge year-view-badge-archived px-2 py-1 ms-2">{{ selected_year }} (Archived)</span>
+                {% elif display_year and display_year.is_active %}
+                <span class="badge year-view-badge-active px-2 py-1 ms-2">{{ selected_year }} (Active)</span>
+                {% else %}
+                <span class="badge bg-danger bg-opacity-25 text-danger px-2 py-1 border border-danger border-opacity-50 ms-2">{{ selected_year or 'No Year' }}</span>
+                {% endif %}
             </div>
             
             <div class="row g-3 mb-4">
@@ -240,7 +302,7 @@
                     <div class="card sec-card p-3 border-start border-4 border-success">
                         <div class="text-muted small text-uppercase">Collected Fees</div>
                         <div class="metric-value text-success my-1">{{ counts.payments }}</div>
-                        <div class="text-muted small" style="font-size: 0.72rem;">Cleared Batches</div>
+                        <div class="text-muted small" style="font-size: 0.72rem;">Cleared Batches{% if viewing_archived %} ({{ selected_year }}){% endif %}</div>
                     </div>
                 </div>
             </div>
@@ -437,35 +499,52 @@
         .catch(error => console.error('Error fetching background profile integration data sets:', error));
 
     // --- 4. DATA PLOTS ENGINE CHART BINDINGS ---
-    fetch('{{ url_for("analytics_enrollment") }}').then(r=>r.json()).then(data=>{
+    const yearQuery = {% if display_year %}'?academic_year_id={{ display_year.id }}'{% else %}''{% endif %};
+
+    fetch('{{ url_for("analytics_gender") }}' + yearQuery).then(r=>r.json()).then(data=>{
+        new Chart(document.getElementById('genderChart'), {
+            type:'doughnut',
+            data:{
+                labels:['Male','Female','Other'],
+                datasets:[{data:[data.male, data.female, data.other], backgroundColor:['#4e73df','#f43f5e','#6b7280']}]
+            },
+            options:{plugins:{legend:{labels:{color:'#e2e8f0'}}}}
+        });
+    });
+
+    fetch('{{ url_for("analytics_enrollment") }}' + yearQuery).then(r=>r.json()).then(data=>{
+        const rows = Array.isArray(data) ? data : Object.entries(data.by_class || {}).map(([k,v])=>({year:'Class '+k, count:v}));
         new Chart(document.getElementById('enrollChart'), {
             type:'bar', 
             data:{
-                labels:data.map(d=>d.year), 
-                datasets:[{label:'Students', data:data.map(d=>d.count), backgroundColor:'#4e73df', borderless: true}]
+                labels:rows.map(d=>d.year), 
+                datasets:[{label:'Students', data:rows.map(d=>d.count), backgroundColor:'#4e73df', borderless: true}]
             },
-            options: { plugins: { legend: { display: false } }, scalar: { grid: { color: '#222' } } }
+            options: { plugins: { legend: { display: false } }, scales: { y: { ticks: { color: '#94a3b8' } }, x: { ticks: { color: '#94a3b8' } } } }
         });
     });
     
-    fetch('{{ url_for("analytics_payments") }}').then(r=>r.json()).then(data=>{
+    fetch('{{ url_for("analytics_payments") }}' + yearQuery).then(r=>r.json()).then(data=>{
+        const rows = Array.isArray(data) ? data : Object.entries(data.by_year || {}).map(([k,v])=>({year:k, total:v}));
         new Chart(document.getElementById('payChart'), {
             type:'bar', 
             data:{
-                labels:data.map(d=>d.year), 
-                datasets:[{label:'Revenue', data:data.map(d=>d.total), backgroundColor:'#1cc88a'}]
+                labels:rows.map(d=>d.year), 
+                datasets:[{label:'Revenue', data:rows.map(d=>d.total), backgroundColor:'#1cc88a'}]
             },
-            options: { plugins: { legend: { display: false } } }
+            options: { plugins: { legend: { display: false } }, scales: { y: { ticks: { color: '#94a3b8' } }, x: { ticks: { color: '#94a3b8' } } } }
         });
     });
     
-    fetch('{{ url_for("analytics_grades") }}').then(r=>r.json()).then(data=>{
+    fetch('{{ url_for("analytics_grades") }}' + yearQuery).then(r=>r.json()).then(data=>{
+        const rows = Array.isArray(data) ? data : Object.entries(data.by_subject || {}).map(([k,v])=>({year:k, average:v}));
         new Chart(document.getElementById('gradeChart'), {
             type:'line', 
             data:{
-                labels:data.map(d=>d.year), 
-                datasets:[{label:'GPA Curve Index', data:data.map(d=>d.average), borderColor:'#00f2ff', fill: false, tension: 0.3}]
-            }
+                labels:rows.map(d=>d.year), 
+                datasets:[{label:'Average Score', data:rows.map(d=>d.average), borderColor:'#00f2ff', fill: false, tension: 0.3}]
+            },
+            options: { scales: { y: { ticks: { color: '#94a3b8' } }, x: { ticks: { color: '#94a3b8' } } } }
         });
     });
 </script>
