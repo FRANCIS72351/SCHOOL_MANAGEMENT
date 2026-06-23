@@ -16,7 +16,7 @@ Use this when you have a PythonAnywhere API token and SSH access configured:
 export PYTHONANYWHERE_USERNAME=YOUR_USERNAME
 export PYTHONANYWHERE_API_TOKEN=YOUR_API_TOKEN
 export PYTHONANYWHERE_ADMIN_PASSWORD='set_a_strong_password_here'
-python deploy/pythonanywhere/deploy.py --branch main
+python3 deploy/pythonanywhere/deploy.py --branch main
 ```
 
 Optional settings:
@@ -36,7 +36,7 @@ The deploy command syncs code over SSH, installs dependencies, initializes table
 To update only the web app configuration and reload after code is already on PythonAnywhere:
 
 ```bash
-python deploy/pythonanywhere/deploy.py --skip-ssh
+python3 deploy/pythonanywhere/deploy.py --skip-ssh
 ```
 
 ---
