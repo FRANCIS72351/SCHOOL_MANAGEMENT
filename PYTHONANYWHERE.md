@@ -4,18 +4,53 @@ Host the School Management System at `https://YOUR_USERNAME.pythonanywhere.com`.
 
 **Repository:** https://github.com/FRANCIS72351/SCHOOL_MANAGEMENT.git
 
-The database starts **fresh** on PythonAnywhere (your local `instance/*.db` is not in git).
+Your local `instance/*.db` is not in git. PythonAnywhere creates its own SQLite database and keeps it on redeploys unless `FRESH_DATABASE=1` is explicitly set.
 
 ---
 
-## 1. Open PythonAnywhere
+## Direct deploy from a terminal
+
+Use this when you have a PythonAnywhere API token and SSH access configured:
+
+```bash
+export PYTHONANYWHERE_USERNAME=YOUR_USERNAME
+export PYTHONANYWHERE_API_TOKEN=YOUR_API_TOKEN
+export PYTHONANYWHERE_ADMIN_PASSWORD='set_a_strong_password_here'
+python deploy/pythonanywhere/deploy.py --branch main
+```
+
+Optional settings:
+
+| Variable | Default |
+|----------|---------|
+| `PYTHONANYWHERE_DOMAIN` | `YOUR_USERNAME.pythonanywhere.com` |
+| `PYTHONANYWHERE_HOST` | `www.pythonanywhere.com` (`eu.pythonanywhere.com` for EU accounts) |
+| `PYTHONANYWHERE_REPO_URL` | `https://github.com/FRANCIS72351/SCHOOL_MANAGEMENT.git` |
+| `PYTHONANYWHERE_PROJECT_DIR` | `/home/YOUR_USERNAME/SCHOOL_MANAGEMENT` |
+| `PYTHONANYWHERE_PYTHON_VERSION` | `3.10` |
+| `PYTHONANYWHERE_VENV_NAME` | `schoolmgmt` |
+| `PYTHONANYWHERE_FRESH_DATABASE` | `0`; set `1` only to wipe production SQLite data |
+
+The deploy command syncs code over SSH, installs dependencies, initializes tables, creates or updates the PythonAnywhere web app through the API, configures `/static/`, uploads the WSGI file, and reloads the site.
+
+To update only the web app configuration and reload after code is already on PythonAnywhere:
+
+```bash
+python deploy/pythonanywhere/deploy.py --skip-ssh
+```
+
+---
+
+## Manual deploy
+
+### 1. Open PythonAnywhere
 
 1. Sign in at [pythonanywhere.com](https://www.pythonanywhere.com)
 2. Open the **Dashboard**
 
 ---
 
-## 2. Clone and install (Bash console)
+### 2. Clone and install (Bash console)
 
 Open a **Bash** console and run:
 
@@ -48,7 +83,7 @@ bash deploy/pythonanywhere/init-database.sh
 
 ---
 
-## 3. Create the Web app
+### 3. Create the Web app
 
 Go to the **Web** tab → **Add a new web app**:
 
@@ -69,7 +104,7 @@ Replace `YOUR_USERNAME` with your PythonAnywhere username.
 
 ---
 
-## 4. WSGI configuration
+### 4. WSGI configuration
 
 Click the WSGI configuration file link and replace its contents with
 `deploy/pythonanywhere/wsgi.py` from the project, changing:
@@ -88,7 +123,7 @@ Save the file.
 
 ---
 
-## 5. Static files
+### 5. Static files
 
 On the **Web** tab, under **Static files**, add:
 
@@ -98,7 +133,7 @@ On the **Web** tab, under **Static files**, add:
 
 ---
 
-## 6. Go live
+### 6. Go live
 
 Click the green **Reload** button on the Web tab.
 
