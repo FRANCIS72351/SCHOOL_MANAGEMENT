@@ -233,6 +233,16 @@ python -c "import subprocess, _posixsubprocess; print('venv Python OK')"
 
 If this fixes it, remove any `PYTHONHOME` or `PYTHONPATH` exports from `~/.bashrc`, `~/.profile`, and `~/.virtualenvs/schoolmgmt/bin/postactivate`.
 
+If system Python works but every virtualenv fails, install dependencies into the PythonAnywhere user site and leave the Web tab **Virtualenv** field blank:
+
+```bash
+cd ~/SCHOOL_MANAGEMENT
+git pull origin cursor/pythonanywhere-direct-deploy-a54b
+bash deploy/pythonanywhere/install-user-site.sh
+```
+
+Then set the Web tab to Python 3.11, clear the Virtualenv field, and reload the app.
+
 To print a full diagnosis before contacting support:
 
 ```bash
