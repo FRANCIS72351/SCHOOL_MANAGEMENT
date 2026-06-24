@@ -261,6 +261,7 @@ if ! command -v mkvirtualenv >/dev/null 2>&1; then
   exit 1
 fi
 
+unset PYTHONHOME PYTHONPATH
 PYTHON_BIN="/usr/bin/python$PYTHON_VERSION"
 if ! "$PYTHON_BIN" -c "import subprocess, _posixsubprocess" >/dev/null 2>&1; then
   echo "$PYTHON_BIN cannot import _posixsubprocess on this PythonAnywhere account." >&2
@@ -275,6 +276,7 @@ fi
 
 # shellcheck disable=SC1090
 source "$VIRTUALENV_PATH/bin/activate"
+unset PYTHONHOME PYTHONPATH
 if ! python -c "import subprocess, _posixsubprocess" >/dev/null 2>&1; then
   echo "Python $PYTHON_VERSION on this PythonAnywhere account cannot import _posixsubprocess." >&2
   echo "Remove the broken virtualenv, unset PYTHONHOME/PYTHONPATH, then recreate it with /usr/bin/python$PYTHON_VERSION." >&2

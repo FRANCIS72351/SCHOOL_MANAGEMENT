@@ -222,6 +222,17 @@ python -m pip install -r requirements.txt
 
 If `/usr/bin/python3.11 -c "import subprocess, _posixsubprocess"` fails before the virtualenv is created, stop there: pip cannot work because Python 3.11 itself is broken on that account/system image. Switch the PythonAnywhere Web tab/system image to one that supports Python 3.11, or contact PythonAnywhere support and ask them to fix Python 3.11 missing `_posixsubprocess`. The virtualenv path remains `/home/YOUR_USERNAME/.virtualenvs/schoolmgmt`.
 
+If system Python prints `Python 3.11 OK` but the virtualenv still fails, clear Python path contamination after activation:
+
+```bash
+workon schoolmgmt
+unset PYTHONHOME PYTHONPATH
+python -c "import sys; print(sys.executable); print(sys.path)"
+python -c "import subprocess, _posixsubprocess; print('venv Python OK')"
+```
+
+If this fixes it, remove any `PYTHONHOME` or `PYTHONPATH` exports from `~/.bashrc`, `~/.profile`, and `~/.virtualenvs/schoolmgmt/bin/postactivate`.
+
 To print a full diagnosis before contacting support:
 
 ```bash
