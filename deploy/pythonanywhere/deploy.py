@@ -210,9 +210,14 @@ def wsgi_path(domain: str) -> str:
 
 def wsgi_content(config: DeployConfig) -> str:
     return f'''import os
+import site
 import sys
 
 PROJECT_HOME = {config.project_dir!r}
+
+USER_SITE = site.getusersitepackages()
+if USER_SITE not in sys.path:
+    sys.path.insert(0, USER_SITE)
 
 if PROJECT_HOME not in sys.path:
     sys.path.insert(0, PROJECT_HOME)

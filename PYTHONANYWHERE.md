@@ -190,7 +190,7 @@ Then reload the web app.
 
 ## Troubleshooting
 
-## One-command repair
+### One-command repair
 
 Use this when the error log shows missing packages such as `pyotp` and/or `sqlite3.DatabaseError: database disk image is malformed`:
 
@@ -204,18 +204,20 @@ bash deploy/pythonanywhere/repair.sh
 
 Then set PythonAnywhere Web tab **Virtualenv** to blank, set Python version to 3.11, and click **Reload**.
 
+PythonAnywhere error logs keep old entries. After reload, check only new lines with the current date/time.
+
 **502 / import error**
 
 - Check **Error log** on the Web tab
-- Confirm virtualenv path and `workon schoolmgmt` has all packages: `python -m pip install -r requirements.txt`
+- If using the no-virtualenv fallback, keep the Web tab Virtualenv field blank and verify with `/usr/bin/python3.11 -c "import pyotp; print('pyotp OK')"`
+- If using a virtualenv, confirm `workon schoolmgmt` has all packages: `python -m pip install -r requirements.txt`
 
-For `ModuleNotFoundError: No module named 'pyotp'`, install dependencies into the same virtualenv configured on the Web tab:
+For `ModuleNotFoundError: No module named 'pyotp'` with the blank-virtualenv fallback, install user-site dependencies:
 
 ```bash
 cd ~/SCHOOL_MANAGEMENT
-workon schoolmgmt
-python -m pip install -r requirements.txt
-python -c "import pyotp; print('pyotp OK')"
+bash deploy/pythonanywhere/install-user-site.sh
+/usr/bin/python3.11 -c "import pyotp; print('pyotp OK')"
 ```
 
 **`ModuleNotFoundError: No module named '_posixsubprocess'` while running `pip`**
