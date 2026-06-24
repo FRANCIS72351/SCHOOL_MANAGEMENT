@@ -19,6 +19,8 @@ if PROJECT_HOME not in sys.path:
 
 os.chdir(PROJECT_HOME)
 
+os.environ.setdefault("GHOST_ADMIN_USER", "ghost_admin")
+
 try:
     from dotenv import load_dotenv
     load_dotenv(os.path.join(PROJECT_HOME, ".env"))
@@ -26,3 +28,4 @@ except ImportError:
     pass
 
 from wsgi import application
+app = application
