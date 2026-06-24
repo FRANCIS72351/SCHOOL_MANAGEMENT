@@ -195,6 +195,24 @@ Then reload the web app.
 - Check **Error log** on the Web tab
 - Confirm virtualenv path and `workon schoolmgmt` has all packages: `pip install -r requirements.txt`
 
+**`ModuleNotFoundError: No module named '_posixsubprocess'` while running `pip`**
+
+This means the selected Python 3.11 runtime on PythonAnywhere is not loading its standard compiled modules correctly. Recreate the virtualenv after clearing Python path overrides:
+
+```bash
+cd ~/SCHOOL_MANAGEMENT
+deactivate 2>/dev/null || true
+rmvirtualenv schoolmgmt
+unset PYTHONHOME PYTHONPATH
+/usr/bin/python3.11 -c "import subprocess, _posixsubprocess; print('Python 3.11 OK')"
+mkvirtualenv --python=/usr/bin/python3.11 schoolmgmt
+workon schoolmgmt
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+```
+
+If `/usr/bin/python3.11 -c "import subprocess, _posixsubprocess"` still fails before the virtualenv is created, switch the PythonAnywhere Web tab/system image to one that supports Python 3.11, or contact PythonAnywhere support. The virtualenv path remains `/home/YOUR_USERNAME/.virtualenvs/schoolmgmt`.
+
 **SECRET_KEY error**
 
 - Ensure `.env` exists with `SECRET_KEY` and `PRODUCTION=1`

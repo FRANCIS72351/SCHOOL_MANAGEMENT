@@ -33,6 +33,13 @@ fi
 # shellcheck disable=SC1091
 source "${HOME}/.virtualenvs/schoolmgmt/bin/activate"
 
+if ! python -c "import subprocess, _posixsubprocess" >/dev/null 2>&1; then
+  echo "Python ${PYTHON_VERSION} on this PythonAnywhere account cannot import _posixsubprocess." >&2
+  echo "Remove the broken virtualenv, unset PYTHONHOME/PYTHONPATH, then recreate it with /usr/bin/python${PYTHON_VERSION}." >&2
+  echo "If it still fails, switch the Web tab/system image to one that supports Python ${PYTHON_VERSION}, or contact PythonAnywhere support." >&2
+  exit 1
+fi
+
 pip install --upgrade pip
 pip install -r requirements.txt
 
