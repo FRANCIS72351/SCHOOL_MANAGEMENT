@@ -193,7 +193,16 @@ Then reload the web app.
 **502 / import error**
 
 - Check **Error log** on the Web tab
-- Confirm virtualenv path and `workon schoolmgmt` has all packages: `pip install -r requirements.txt`
+- Confirm virtualenv path and `workon schoolmgmt` has all packages: `python -m pip install -r requirements.txt`
+
+For `ModuleNotFoundError: No module named 'pyotp'`, install dependencies into the same virtualenv configured on the Web tab:
+
+```bash
+cd ~/SCHOOL_MANAGEMENT
+workon schoolmgmt
+python -m pip install -r requirements.txt
+python -c "import pyotp; print('pyotp OK')"
+```
 
 **`ModuleNotFoundError: No module named '_posixsubprocess'` while running `pip`**
 
@@ -227,6 +236,20 @@ If `/usr/bin/python3.11 -c "import subprocess, _posixsubprocess"` fails before t
 ```bash
 chmod 775 ~/SCHOOL_MANAGEMENT/instance
 ```
+
+**`sqlite3.DatabaseError: database disk image is malformed`**
+
+The SQLite database is corrupted. Back it up, recreate a fresh database, then reload the Web app:
+
+```bash
+cd ~/SCHOOL_MANAGEMENT
+workon schoolmgmt
+export ADMIN_EMAIL=admin@school.com
+export ADMIN_PASSWORD='set_a_strong_password_here'
+bash deploy/pythonanywhere/recover-database.sh
+```
+
+The script saves old SQLite files under `instance/backups/` before creating the fresh database. To reset even when integrity checks pass, run `RESET_DATABASE=1 bash deploy/pythonanywhere/recover-database.sh`.
 
 **OCR grading (pytesseract)**
 
