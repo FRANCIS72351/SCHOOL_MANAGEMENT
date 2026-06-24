@@ -190,6 +190,20 @@ Then reload the web app.
 
 ## Troubleshooting
 
+## One-command repair
+
+Use this when the error log shows missing packages such as `pyotp` and/or `sqlite3.DatabaseError: database disk image is malformed`:
+
+```bash
+cd ~/SCHOOL_MANAGEMENT
+git pull origin cursor/pythonanywhere-direct-deploy-a54b
+export ADMIN_EMAIL=admin@school.com
+export ADMIN_PASSWORD='set_a_strong_password_here'
+bash deploy/pythonanywhere/repair.sh
+```
+
+Then set PythonAnywhere Web tab **Virtualenv** to blank, set Python version to 3.11, and click **Reload**.
+
 **502 / import error**
 
 - Check **Error log** on the Web tab
