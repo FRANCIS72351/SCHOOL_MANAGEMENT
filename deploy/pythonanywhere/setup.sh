@@ -26,8 +26,16 @@ if ! command -v mkvirtualenv >/dev/null 2>&1; then
   exit 1
 fi
 
+PYTHON_BIN="/usr/bin/python${PYTHON_VERSION}"
+if ! "${PYTHON_BIN}" -c "import subprocess, _posixsubprocess" >/dev/null 2>&1; then
+  echo "${PYTHON_BIN} cannot import _posixsubprocess on this PythonAnywhere account." >&2
+  echo "Dependency installation cannot run until Python ${PYTHON_VERSION} is fixed on the account/system image." >&2
+  echo "Unset PYTHONHOME/PYTHONPATH and retry; if this still fails, switch the PythonAnywhere system image or contact support." >&2
+  exit 1
+fi
+
 if [[ ! -d "${HOME}/.virtualenvs/schoolmgmt" ]]; then
-  mkvirtualenv --python="/usr/bin/python${PYTHON_VERSION}" schoolmgmt
+  mkvirtualenv --python="${PYTHON_BIN}" schoolmgmt
 fi
 
 # shellcheck disable=SC1091
@@ -40,8 +48,8 @@ if ! python -c "import subprocess, _posixsubprocess" >/dev/null 2>&1; then
   exit 1
 fi
 
-pip install --upgrade pip
-pip install -r requirements.txt
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
 
 if [[ ! -f .env ]]; then
   cp deploy/pythonanywhere/env.example .env
