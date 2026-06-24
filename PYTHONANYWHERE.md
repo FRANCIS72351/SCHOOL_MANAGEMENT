@@ -27,7 +27,7 @@ Optional settings:
 | `PYTHONANYWHERE_HOST` | `www.pythonanywhere.com` (`eu.pythonanywhere.com` for EU accounts) |
 | `PYTHONANYWHERE_REPO_URL` | `https://github.com/FRANCIS72351/SCHOOL_MANAGEMENT.git` |
 | `PYTHONANYWHERE_PROJECT_DIR` | `/home/YOUR_USERNAME/SCHOOL_MANAGEMENT` |
-| `PYTHONANYWHERE_PYTHON_VERSION` | `3.10` |
+| `PYTHONANYWHERE_PYTHON_VERSION` | `3.11` |
 | `PYTHONANYWHERE_VENV_NAME` | `schoolmgmt` |
 | `PYTHONANYWHERE_FRESH_DATABASE` | `0`; set `1` only to wipe production SQLite data |
 
@@ -61,6 +61,23 @@ cd SCHOOL_MANAGEMENT
 bash deploy/pythonanywhere/setup.sh
 ```
 
+The virtualenv path is:
+
+```bash
+/home/YOUR_USERNAME/.virtualenvs/schoolmgmt
+```
+
+To create it manually with Python 3.11 and download dependencies:
+
+```bash
+cd ~/SCHOOL_MANAGEMENT
+mkvirtualenv --python=/usr/bin/python3.11 schoolmgmt
+workon schoolmgmt
+python --version
+pip install --upgrade pip
+pip install -r requirements.txt
+```
+
 Edit `.env` and set a strong admin password:
 
 ```bash
@@ -90,7 +107,7 @@ Go to the **Web** tab → **Add a new web app**:
 | Setting | Value |
 |---------|--------|
 | Framework | Manual configuration |
-| Python | 3.10 (or 3.11) |
+| Python | 3.11 |
 
 Then configure:
 

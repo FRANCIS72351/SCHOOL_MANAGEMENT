@@ -7,7 +7,7 @@ set -euo pipefail
 REPO_URL="${REPO_URL:-https://github.com/FRANCIS72351/SCHOOL_MANAGEMENT.git}"
 USERNAME="$(whoami)"
 PROJECT_DIR="/home/${USERNAME}/SCHOOL_MANAGEMENT"
-PYTHON_VERSION="${PYTHON_VERSION:-3.10}"
+PYTHON_VERSION="${PYTHON_VERSION:-3.11}"
 
 echo "==> PythonAnywhere setup for user: ${USERNAME}"
 echo "==> Project directory: ${PROJECT_DIR}"
