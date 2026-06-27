@@ -4,7 +4,7 @@ from wtforms import (
     FloatField, TextAreaField, DateField, IntegerField,
     BooleanField, FileField
 )
-from wtforms.validators import DataRequired, Email, Optional, ValidationError
+from wtforms.validators import DataRequired, Email, Optional, ValidationError, Length
 from flask_wtf.file import FileAllowed
 from constants import GRADING_PERIODS
 from utils import parse_currency_amount
@@ -42,12 +42,28 @@ class LeaderForm(FlaskForm):
     role = StringField('Position/Role', validators=[DataRequired()])
     bio = TextAreaField('Short Bio', validators=[DataRequired()])
     contact = StringField('Contact Email or Link', validators=[Optional()])
-    category = SelectField('Category', coerce=optional_int_coerce, validators=[DataRequired()])
+    category = StringField('Category', validators=[DataRequired(), Length(max=100)])
     photo = FileField('Photo', validators=[FileAllowed(['jpg', 'png', 'jpeg'], 'Images only!')])
     submit = SubmitField('Save Leader')
 
+def validate_login_identifier(form, field):
+    """Accept portal email or permanent student ID (e.g. 2526-00001)."""
+    value = (field.data or '').strip()
+    if not value:
+        raise ValidationError('Email or Student ID is required.')
+    if '@' in value:
+        if len(value) > 120 or value.count('@') != 1 or not value.split('@')[1]:
+            raise ValidationError('Enter a valid email address or student ID.')
+        return
+    if value.replace('-', '').isdigit() and len(value.replace('-', '')) >= 4:
+        return
+    if len(value) >= 3 and '-' in value:
+        return
+    raise ValidationError('Enter a valid email address or student ID (e.g. 2526-00001).')
+
+
 class LoginForm(FlaskForm):
-    email = StringField("Email", validators=[DataRequired(), Email()])
+    email = StringField("Email or Student ID", validators=[DataRequired(), validate_login_identifier])
     password = PasswordField("Password", validators=[DataRequired()])
     submit = SubmitField("Login")
 
@@ -398,7 +414,7 @@ class RecordClassroomActivityForm(FlaskForm):
             "rows": 5,
         },
     )
-    submit = SubmitField("Create Activity & Enter Scores")
+    submit = SubmitField("Create Activity")
 
     def validate_title(self, field):
         if not (field.data or "").strip():

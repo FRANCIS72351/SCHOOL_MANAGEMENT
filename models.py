@@ -322,6 +322,8 @@ class Student(db.Model):
     dob = db.Column(db.Date, nullable=False)
     gender = db.Column(db.String(10), nullable=False)
     parent_email = db.Column(db.String(120), nullable=True)
+    parent_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='SET NULL'), nullable=True)
+    secure_qr_token = db.Column(db.String(128), unique=True, nullable=True, index=True)
 
     photo = db.Column(db.String(200), nullable=True)
     photo_filename = db.Column(db.String(200), default='default_student.png')
@@ -343,7 +345,16 @@ class Student(db.Model):
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
 
     # Relationships
-    user = db.relationship("User", backref=db.backref("student_profile", uselist=False))
+    user = db.relationship(
+        "User",
+        foreign_keys=[user_id],
+        backref=db.backref("student_profile", uselist=False),
+    )
+    parent_user = db.relationship(
+        "User",
+        foreign_keys=[parent_id],
+        backref=db.backref("linked_students", lazy="dynamic"),
+    )
     assigned_class = db.relationship("Class", back_populates="students")
     academic_year = db.relationship("AcademicYear", backref=db.backref("students_ledger", lazy="dynamic"))
     
@@ -410,6 +421,11 @@ class Student(db.Model):
 
     def __repr__(self):
         return f"<StudentNode ID: {self.student_id} | Name: {self.full_name}>"
+
+    @property
+    def student_code(self):
+        """Permanent public student code (alias for student_id)."""
+        return self.student_id
 
 
 class Suspension(db.Model):

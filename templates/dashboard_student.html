@@ -72,7 +72,23 @@
                             </div>
                             {% if student %}
                             <h2 class="h5 fw-bold mb-1">{{ student.full_name }}</h2>
-                            <div class="badge bg-light text-dark border mb-2">ID: {{ student.student_id }}</div>
+                            <div class="student-id-display mb-2">
+                                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-3 py-2">
+                                    <i class="fas fa-id-card me-1"></i>Student ID: <strong>{{ student.student_id }}</strong>
+                                </span>
+                            </div>
+                            <p class="text-muted small mb-2">Your student ID is permanent for your entire enrollment.</p>
+                            {% if qr_code_data_uri %}
+                            <div class="student-qr-card mt-3 p-3 rounded-3 border border-secondary border-opacity-25 text-center">
+                                <div class="text-muted small text-uppercase mb-2"><i class="fas fa-qrcode me-1"></i>Digital ID — Scan to Verify</div>
+                                <img src="{{ qr_code_data_uri }}" alt="Student verification QR code" class="img-fluid rounded" style="max-width: 160px; background: #fff; padding: 8px;">
+                                {% if student_verify_url %}
+                                <div class="mt-2">
+                                    <a href="{{ student_verify_url }}" class="small text-cyan" target="_blank" rel="noopener">Open verification page</a>
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% endif %}
                             {% if display_grade_level or klass or class_display_name %}
                             <div class="student-class-banner d-flex flex-wrap justify-content-center gap-2 mt-2 mb-1">
                                 {% if display_grade_level %}

@@ -62,6 +62,23 @@
         </div>
     </div>
 
+    {% if qr_code_data_uri %}
+    <div class="card sec-card p-4 mb-4">
+        <div class="row align-items-center g-4">
+            <div class="col-md-auto text-center">
+                <img src="{{ qr_code_data_uri }}" alt="Student QR verification code" class="rounded" style="max-width: 140px; background: #fff; padding: 10px;">
+            </div>
+            <div class="col-md">
+                <h3 class="h6 text-white mb-2"><i class="fas fa-qrcode text-cyan me-2"></i>Secure Verification QR</h3>
+                <p class="text-muted small mb-2">Permanent student code <strong class="text-white">{{ student.student_code }}</strong> — print on ID card. Scanning opens the official verification page (no private data exposed).</p>
+                {% if student_verify_url %}
+                <a href="{{ student_verify_url }}" class="btn btn-sm btn-outline-info" target="_blank" rel="noopener">Preview verification page</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <div class="card sec-card p-4">
         <form method="POST" enctype="multipart/form-data">
             {{ form.hidden_tag() }}

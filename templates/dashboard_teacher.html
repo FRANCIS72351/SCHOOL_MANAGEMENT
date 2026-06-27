@@ -70,7 +70,7 @@
     {% set qa_class = activity_class_id or grade_class_id or (class_cards[0].id if class_cards else none) %}
     <section class="teacher-quick-actions" aria-label="Quick actions">
         <div class="qa-heading"><i class="bi bi-lightning-charge-fill me-2 text-cyan"></i>Quick Actions</div>
-        <p class="qa-subtitle mb-0">Enter period scores directly, or optionally create named activities{% if display_year %} for <strong class="text-cyan">{{ display_year.name }}</strong>{% endif %}.</p>
+        <p class="qa-subtitle mb-0">Enter activity grades fast, document work when needed, or open the MoE period sheet{% if display_year %} for <strong class="text-cyan">{{ display_year.name }}</strong>{% endif %}.</p>
         <div class="teacher-quick-actions-grid mt-3">
             {% if qa_class %}
             <a href="{{ url_for('teacher_class_attendance', class_id=qa_class) }}" class="teacher-qa-card qa-primary">
@@ -78,15 +78,15 @@
                 <span class="qa-label">Take Attendance</span>
                 <span class="qa-hint">Daily roll — present, late, absent</span>
             </a>
-            <a href="{{ url_for('manual_activity_grades', class_id=qa_class) }}" class="teacher-qa-card qa-secondary">
-                <span class="qa-icon"><i class="bi bi-pencil-square"></i></span>
-                <span class="qa-label">Enter Period Grades</span>
-                <span class="qa-hint">CA + exam — no activity required</span>
+            <a href="{{ url_for('manual_activity_grades', class_id=qa_class) }}" class="teacher-qa-card qa-primary">
+                <span class="qa-icon"><i class="bi bi-lightning-charge"></i></span>
+                <span class="qa-label">Enter Activity Grades</span>
+                <span class="qa-hint">Score students — no setup required</span>
             </a>
             <a href="{{ url_for('record_classroom_activity', class_id=qa_class) }}" class="teacher-qa-card qa-secondary">
                 <span class="qa-icon"><i class="bi bi-journal-plus"></i></span>
-                <span class="qa-label">Create Classroom Activity</span>
-                <span class="qa-hint">Optional — log blackboard or Drive work</span>
+                <span class="qa-label">Create Activity</span>
+                <span class="qa-hint">Document work with notes or Drive</span>
             </a>
             <a href="{{ url_for('teacher_dashboard', tab='grades', grade_class_id=qa_class) }}" class="teacher-qa-card qa-secondary">
                 <span class="qa-icon"><i class="bi bi-table"></i></span>
@@ -99,15 +99,15 @@
                 <span class="qa-label">Take Attendance</span>
                 <span class="qa-hint">Pick a class first</span>
             </a>
-            <a href="{{ url_for('teacher_dashboard', tab='grades') }}" class="teacher-qa-card qa-primary">
-                <span class="qa-icon"><i class="bi bi-pencil-square"></i></span>
-                <span class="qa-label">Enter Period Grades</span>
+            <a href="{{ url_for('teacher_dashboard', tab='activities') }}" class="teacher-qa-card qa-primary">
+                <span class="qa-icon"><i class="bi bi-journal-plus"></i></span>
+                <span class="qa-label">Create Activity</span>
                 <span class="qa-hint">Pick a class first</span>
             </a>
             <a href="{{ url_for('teacher_dashboard', tab='activities') }}" class="teacher-qa-card qa-secondary">
-                <span class="qa-icon"><i class="bi bi-journal-plus"></i></span>
-                <span class="qa-label">Create Classroom Activity</span>
-                <span class="qa-hint">Optional — pick a class first</span>
+                <span class="qa-icon"><i class="bi bi-pencil-square"></i></span>
+                <span class="qa-label">Enter Activity Grades</span>
+                <span class="qa-hint">Pick a class first</span>
             </a>
             <a href="{{ url_for('teacher_dashboard', tab='grades') }}" class="teacher-qa-card qa-secondary">
                 <span class="qa-icon"><i class="bi bi-table"></i></span>
@@ -181,7 +181,7 @@
         {% if active_tab == 'classes' %}
         <strong>Classes</strong> — See your assigned classes, open rosters, and view student report cards.
         {% elif active_tab == 'activities' %}
-        <strong>Activities</strong> — Optionally upload files or record in-class work. Enter period grades directly from Quick Actions or the Enter Grades tab.
+        <strong>Activities</strong> — Enter activity grades directly (no setup required), or optionally create named activities and manage digital submissions. MoE period totals are on the Enter Grades tab.
         {% else %}
         <strong>Enter Grades</strong> — Enter period scores (CA + exam), save drafts, and publish to report cards.
         {% endif %}
@@ -237,7 +237,7 @@
                                         <i class="bi bi-calendar-check me-1"></i>Take Attendance
                                     </a>
                                     <a href="{{ url_for('manual_activity_grades', class_id=card.id) }}" class="btn btn-cyber-sm btn-sm">
-                                        <i class="bi bi-pencil-square me-1"></i>Enter Period Grades
+                                        <i class="bi bi-pencil-square me-1"></i>Enter Activity Grades
                                     </a>
                                     <a href="{{ url_for('teacher_class_folder', class_id=card.id) }}" class="btn btn-cyber-sm btn-sm">
                                         <i class="bi bi-people me-1"></i>View Roster
@@ -335,14 +335,15 @@
                 <strong class="text-white"><i class="bi bi-cloud-upload me-2"></i>Class Activities</strong>
                 <span class="small opacity-75">
                     {% if display_year %}<span class="badge teacher-year-badge-current me-1">{{ display_year.name }}</span>{% endif %}
-                    Pick a class folder → drop activity files → assign to students
+                    Create activities and score student work
                 </span>
             </div>
+            <p class="small text-blue mb-2 mb-md-3">Enter activity grades directly — no setup required. Create named activities only when you want to document work or collect digital submissions. MoE period totals live on the <strong>Period Grade Sheet</strong> tab.</p>
             <ol class="workflow-steps">
-                <li><span class="step-num">1</span> <strong>Enter period grades</strong> (CA + exam) — no activity required</li>
-                <li><span class="step-num">2</span> <em>Optional:</em> record in-class work or drop digital files</li>
-                <li><span class="step-num">3</span> Set subject, period &amp; details when uploading</li>
-                <li><span class="step-num">4</span> Grade submissions or per-activity scores if needed</li>
+                <li><span class="step-num">1</span> <strong>Enter activity grades</strong> — score students immediately (recommended)</li>
+                <li><span class="step-num">2</span> <em>Optional:</em> create a named activity with notes or files</li>
+                <li><span class="step-num">3</span> Review digital submissions and use AI scan when configured</li>
+                <li><span class="step-num">4</span> <em>Separate:</em> MoE CA + exam totals on Period Grade Sheet</li>
             </ol>
         </div>
 
@@ -380,7 +381,7 @@
             <div class="card-header d-flex align-items-center justify-content-between">
                 <div>
                     <h5 class="mb-0 text-white"><i class="bi bi-folder2 me-2 text-cyber"></i>Choose a Class</h5>
-                    <p class="teacher-section-lead">Open a class folder to enter period grades or optionally upload assignment files.</p>
+                    <p class="teacher-section-lead">Open a class folder to create activities, enter activity grades, or upload assignment files.</p>
                 </div>
                 <span class="badge bg-secondary rounded-pill align-self-start">{{ class_cards|length }}</span>
             </div>
@@ -425,21 +426,13 @@
                     <h5 class="mb-0 text-white">
                         <i class="bi bi-folder2-open me-2 text-warning"></i>{{ selected_activity_class.name }}
                     </h5>
-                    <p class="teacher-section-lead">Record in-class work, upload files, or grade submissions for this class.</p>
+                    <p class="teacher-section-lead">Enter activity grades directly, or document work first when you need notes, files, or Drive links.</p>
                 </div>
                 <div class="class-card-actions border-0 pt-0 mt-0">
-                    <div class="class-card-actions-primary">
-                        <a href="{{ url_for('manual_activity_grades', class_id=activity_class_id) }}" class="btn btn-cyber-primary btn-sm">
-                            <i class="bi bi-pencil-square me-1"></i>Enter Period Grades
-                        </a>
-                        <a href="{{ url_for('record_classroom_activity', class_id=activity_class_id) }}" class="btn btn-cyber-sm btn-sm">
-                            <i class="bi bi-journal-plus me-1"></i>Create Activity <span class="opacity-75">(optional)</span>
-                        </a>
-                        <a href="{{ url_for('teacher_dashboard', tab='grades', grade_class_id=activity_class_id) }}" class="btn btn-cyber-sm btn-sm">
-                            <i class="bi bi-table me-1"></i>Period Grades
-                        </a>
-                    </div>
                     <div class="class-card-actions-secondary">
+                        <a href="{{ url_for('teacher_dashboard', tab='grades', grade_class_id=activity_class_id) }}" class="btn btn-cyber-sm btn-sm">
+                            <i class="bi bi-table me-1"></i>Period Grade Sheet
+                        </a>
                         <a href="{{ url_for('class_grading_hub', class_id=activity_class_id) }}" class="btn btn-cyber-sm btn-sm">
                             <i class="bi bi-mortarboard me-1"></i>Grading Hub
                         </a>
@@ -457,19 +450,26 @@
                 </div>
 
                 {% if activity_subjects %}
-                <div class="record-classroom-cta d-flex flex-wrap justify-content-between align-items-center gap-3">
-                    <div>
-                        <div class="cta-title"><i class="bi bi-pencil-square me-2 text-cyan"></i>Enter period grades</div>
-                        <p class="cta-hint mb-0">Grade CA + exam directly — no activity record required.</p>
-                    </div>
-                    <a href="{{ url_for('manual_activity_grades', class_id=activity_class_id) }}" class="btn btn-cyber-primary btn-sm flex-shrink-0">
-                        <i class="bi bi-pencil-square me-1"></i>Enter Period Grades
+                <div class="activity-path-grid mb-4">
+                    <a href="{{ url_for('manual_activity_grades', class_id=activity_class_id) }}" class="activity-path-card path-recommended">
+                        <span class="path-badge path-badge-recommended">Recommended</span>
+                        <span class="path-card-icon"><i class="bi bi-lightning-charge-fill"></i></span>
+                        <h3 class="path-card-title">Enter Activity Grades</h3>
+                        <p class="path-card-hint">Score students now — pick class, subject &amp; period. No activity setup required.</p>
+                        <span class="path-card-action">Start grading <i class="bi bi-arrow-right ms-1"></i></span>
+                    </a>
+                    <a href="{{ url_for('record_classroom_activity', class_id=activity_class_id) }}" class="activity-path-card path-optional">
+                        <span class="path-badge path-badge-optional">Optional</span>
+                        <span class="path-card-icon"><i class="bi bi-journal-plus"></i></span>
+                        <h3 class="path-card-title">Create Activity</h3>
+                        <p class="path-card-hint">Document blackboard work, instructions, or Google Drive materials before grading.</p>
+                        <span class="path-card-action">Document first <i class="bi bi-arrow-right ms-1"></i></span>
                     </a>
                 </div>
                 <p class="text-muted small mb-3">
-                    <strong>Optional:</strong>
-                    <a href="{{ url_for('record_classroom_activity', class_id=activity_class_id) }}" class="text-cyan text-decoration-none">create a classroom activity</a>
-                    to document blackboard work, or drop files below for digital submissions.
+                    MoE period CA + exam totals:
+                    <a href="{{ url_for('teacher_dashboard', tab='grades', grade_class_id=activity_class_id) }}" class="text-cyan text-decoration-none">open Period Grade Sheet</a>
+                    — separate from activity scoring.
                 </p>
 
                 <div class="drive-dropzone" id="activityDropzone" role="button" tabindex="0"
@@ -696,7 +696,7 @@
                                     <i class="bi bi-inbox me-1"></i>Submissions{% if act.scan_keywords %} <i class="bi bi-camera-fill text-info ms-1" title="AI scanner configured"></i>{% endif %}
                                 </a>
                                 <a href="{{ url_for('manual_activity_grades', class_id=activity_class_id, subject=act.subject_name, period=act.marking_period or 1, assessment_id=act.id) }}" class="file-action-btn">
-                                    <i class="bi bi-pencil-square me-1"></i>Enter Grades
+                                    <i class="bi bi-pencil-square me-1"></i>Enter Activity Grades
                                 </a>
                                 <button type="button" class="file-action-btn btn-edit-activity"
                                         data-id="{{ act.id }}"
@@ -736,14 +736,14 @@
                 </div>
                 {% else %}
                 <div class="drive-empty-state">
-                    <i class="bi bi-pencil-square empty-icon"></i>
-                    <h6>No uploaded activities yet</h6>
-                    <p>Enter period grades anytime — activities are optional for tracking worksheets or in-class work.</p>
+                    <i class="bi bi-lightning-charge empty-icon"></i>
+                    <h6>Ready to grade</h6>
+                    <p>No named activities yet — that is fine. Enter activity grades directly, or create an activity when you want to document work first.</p>
                     <a href="{{ url_for('manual_activity_grades', class_id=activity_class_id) }}" class="btn btn-cyber-primary btn-sm mt-2 me-2">
-                        <i class="bi bi-pencil-square me-1"></i>Enter Period Grades
+                        <i class="bi bi-lightning-charge me-1"></i>Enter Activity Grades
                     </a>
                     <a href="{{ url_for('record_classroom_activity', class_id=activity_class_id) }}" class="btn btn-cyber-sm btn-sm mt-2">
-                        <i class="bi bi-journal-plus me-1"></i>Create Activity <span class="opacity-75">(optional)</span>
+                        <i class="bi bi-journal-plus me-1"></i>Create Activity
                     </a>
                 </div>
                 {% endif %}

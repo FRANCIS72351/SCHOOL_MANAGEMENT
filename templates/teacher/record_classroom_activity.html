@@ -1,12 +1,12 @@
 {% extends 'base.html' %}
-{% block title %}Create Classroom Activity — {{ klass.name }}{% endblock %}
+{% block title %}Create Activity — {{ klass.name }}{% endblock %}
 {% block content %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/grading_hub.css') }}">
 <div class="container my-4 teacher-terminal record-classroom-activity-page">
 
     <div class="record-activity-header mb-4">
         {% if return_to == 'grading_hub' %}
-        <a href="{{ url_for('class_grading_hub', class_id=klass.id, subject=prefill_subject or none, period=prefill_period or 1, hub_tab='moe') }}"
+        <a href="{{ url_for('class_grading_hub', class_id=klass.id, subject=prefill_subject or none, period=prefill_period or 1, hub_tab='activities') }}"
            class="text-white-50 small text-decoration-none d-inline-block mb-2">
             <i class="bi bi-arrow-left me-1"></i>Back to Grading Hub
         </a>
@@ -27,37 +27,43 @@
         <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
             <div>
                 <h1 class="h4 fw-bold text-white mb-1">
-                    <i class="bi bi-journal-plus text-cyan me-2"></i>Create Classroom Activity
+                    <i class="bi bi-journal-plus text-cyan me-2"></i>Create Activity
+                    <span class="text-muted fw-normal fs-6">(optional)</span>
                 </h1>
                 <p class="text-muted small mb-0">
                     {{ klass.name }} · Grade {{ klass.grade_level }}{% if klass.stream %} · {{ klass.stream }}{% endif %}
                 </p>
             </div>
-            <div class="d-flex flex-wrap gap-2">
-                <a href="{{ url_for('manual_activity_grades', class_id=klass.id, subject=prefill_subject or none, period=prefill_period or 1) }}"
-                   class="btn btn-cyber-primary btn-sm">
-                    <i class="bi bi-pencil-square me-1"></i>Enter Period Grades
-                </a>
-                <span class="badge activity-delivery-badge classroom">
-                    <i class="bi bi-easel me-1"></i>Classroom Activity
-                </span>
-            </div>
+            <span class="badge activity-delivery-badge classroom">
+                <i class="bi bi-easel me-1"></i>Classroom Activity
+            </span>
         </div>
     </div>
 
+    <a href="{{ url_for('manual_activity_grades', class_id=klass.id, subject=prefill_subject or none, period=prefill_period or 1) }}"
+       class="activity-skip-banner text-decoration-none mb-4">
+        <span class="skip-banner-icon"><i class="bi bi-lightning-charge-fill"></i></span>
+        <span class="skip-banner-body">
+            <strong class="text-white d-block">Skip this — Enter Activity Grades directly</strong>
+            <span class="small text-muted">No setup required. Pick subject &amp; period, score students immediately.</span>
+        </span>
+        <span class="skip-banner-action">Enter grades <i class="bi bi-arrow-right ms-1"></i></span>
+    </a>
+
     <div class="classroom-workflow-banner mb-4">
-        <strong class="text-white d-block mb-2">Optional: track classroom work</strong>
+        <strong class="text-white d-block mb-2">When to create an activity</strong>
         <p class="small text-blue mb-2">
-            Use this form when you want a named activity record — for blackboard work, verbal instructions, or shared Google Drive materials.
-            You can also enter period scores directly without creating an activity.
+            Use this form when you want a <strong>named record</strong> — blackboard content, verbal instructions, or a shared Google Drive link.
+            If you only need to enter scores, use <strong>Enter Activity Grades</strong> instead.
         </p>
         <ol class="workflow-steps">
-            <li><span class="step-num">1</span> <strong>Enter scores directly</strong> on Enter Period Grades — no activity required</li>
-            <li><span class="step-num">2</span> <em>Optional:</em> create an activity here to document what you taught</li>
-            <li><span class="step-num">3</span> <em>Optional:</em> enter per-activity scores for that named activity</li>
+            <li><span class="step-num">1</span> <strong>Create the activity</strong> — title, subject, period, and instructions</li>
+            <li><span class="step-num">2</span> <strong>Enter activity grades</strong> — score each student on this activity</li>
+            <li><span class="step-num">3</span> Scores roll up into draft period CA on the MoE grade sheet</li>
         </ol>
         <p class="small text-muted mb-0 mt-2">
             For worksheets students submit online, use <strong>Drop activity files</strong> on the Activities tab instead.
+            MoE CA + exam totals are entered separately on the <strong>Period Grade Sheet</strong>.
         </p>
     </div>
 
@@ -139,11 +145,13 @@
                 </div>
 
                 <div class="d-flex flex-wrap gap-2 mt-4 pt-3 border-top border-secondary border-opacity-25">
-                    {{ form.submit(class="btn btn-cyber-sm") }}
+                    {{ form.submit(class="btn btn-cyber-primary") }}
                     <a href="{{ url_for('manual_activity_grades', class_id=klass.id, subject=prefill_subject or none, period=prefill_period or 1) }}"
-                       class="btn btn-cyber-primary">Skip — Enter Period Grades</a>
+                       class="btn btn-cyber-sm">
+                        <i class="bi bi-lightning-charge me-1"></i>Enter Activity Grades Instead
+                    </a>
                     <a href="{{ url_for('teacher_dashboard', tab='activities', activity_class_id=klass.id) }}"
-                       class="btn btn-cyber-sm">Cancel</a>
+                       class="btn btn-outline-light btn-sm">Back to Activities</a>
                 </div>
             </form>
         </div>

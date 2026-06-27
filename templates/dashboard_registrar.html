@@ -534,13 +534,13 @@
                 <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2 mb-3">
                     <div>
                         <h5 class="text-emerald font-weight-bold mb-0"><i class="fas fa-user-plus me-2"></i>Register Student</h5>
-                        <p class="text-muted small mb-0">Official registrar enrollment — look up the student email first, then complete registration details.</p>
+                        <p class="text-muted small mb-0">Official registrar enrollment — search by email or student ID first, then complete registration details.</p>
                     </div>
                 </div>
 
                 <div class="enroll-wizard-steps" aria-label="Registration progress">
                     <div class="enroll-wizard-step active" id="wizardStep1" data-step="1">
-                        <span class="step-num">1</span> Email Lookup
+                        <span class="step-num">1</span> Find Student
                     </div>
                     <div class="enroll-wizard-step" id="wizardStep2" data-step="2">
                         <span class="step-num">2</span> Registration Details
@@ -550,8 +550,9 @@
                 <div class="enroll-staff-guide">
                     <strong class="text-white"><i class="fas fa-circle-info me-1"></i>Registrar instructions</strong>
                     <ol class="mb-0">
-                        <li><strong>Returning students</strong> — enter their portal email in Step 1 and click <strong>Look Up Student</strong>. Identity and ID lock automatically.</li>
+                        <li><strong>Returning students</strong> — enter their portal email <em>or</em> permanent student ID in Step 1 and click <strong>Look Up Student</strong>. Identity and ID lock automatically.</li>
                         <li><strong>New students</strong> — if lookup finds no record, complete the form and leave Student ID blank to auto-generate, or enter an unused ID.</li>
+                        <li><strong>Student ID is permanent</strong> for the student's entire enrollment — it never changes across academic years.</li>
                         <li>Never reuse an existing Student ID for a different person — the system will block it.</li>
                     </ol>
                 </div>
@@ -584,18 +585,27 @@
                         </div>
                     {% endif %}
 
-                    <!-- Step 1: Email Lookup -->
+                    <!-- Step 1: Email or Student ID Lookup -->
                     <div class="p-3 mb-3 rounded-3 border border-cyan border-opacity-15" style="background: rgba(0, 242, 255, 0.03);" id="enrollStep1Panel">
-                        <div class="enroll-step-label"><i class="fas fa-envelope me-1"></i> Step 1 — Student Email Lookup</div>
-                        <label class="text-white small mb-1 fw-semibold" for="registrarEmailField">Student Email Address <span class="text-rose">*</span></label>
-                        <div class="input-group mb-2">
-                            {{ form.email(class_='form-control form-cyber py-2', id='registrarEmailField', placeholder='student@school.edu', autocomplete='email', required=True) }}
+                        <div class="enroll-step-label"><i class="fas fa-search me-1"></i> Step 1 — Search by Email or Student ID</div>
+                        <div class="row g-2 mb-2">
+                            <div class="col-md-6">
+                                <label class="text-white small mb-1 fw-semibold" for="registrarEmailField">Student Email</label>
+                                {{ form.email(class_='form-control form-cyber py-2', id='registrarEmailField', placeholder='student@school.edu', autocomplete='email') }}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="text-white small mb-1 fw-semibold" for="registrarStudentIdLookup">Student ID</label>
+                                <input type="text" class="form-control form-cyber py-2" id="registrarStudentIdLookup" placeholder="e.g. 2526-00001" autocomplete="off" inputmode="text">
+                            </div>
+                        </div>
+                        <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
                             <button type="button" class="btn btn-lookup px-3" id="lookupBtn">
                                 <span id="lookupBtnText"><i class="fas fa-search me-1"></i>Look Up Student</span>
                                 <span class="lookup-spinner" id="lookupSpinner"><i class="fas fa-circle-notch fa-spin me-1"></i>Searching…</span>
                             </button>
+                            <span class="text-muted small">Enter email <strong>or</strong> student ID — one is enough.</span>
                         </div>
-                        <div class="text-muted small">Required for portal access. Search checks for returning students before you enter profile details.</div>
+                        <div class="text-muted small">Email is used for portal access. Student ID is permanent across all academic years.</div>
                         {% for error in form.email.errors %}
                         <div class="text-danger small mt-1">{{ error }}</div>
                         {% endfor %}
@@ -613,7 +623,8 @@
 
                         <div class="enroll-policy-banner" id="enrollPolicyBanner">
                             <strong><i class="fas fa-shield-halved me-1"></i>Student ID policy</strong><br>
-                            <span class="text-white">Returning students</span> → use email lookup in Step 1 (ID is read-only).<br>
+                            <span class="text-white">Permanent identity</span> — each student's ID stays the same for their entire enrollment.<br>
+                            <span class="text-white">Returning students</span> → search by email or student ID in Step 1 (ID is read-only).<br>
                             <span class="text-white">New students</span> → leave ID blank to auto-generate{% if suggested_student_id %} (next: <code class="text-cyan">{{ suggested_student_id }}</code>){% endif %}, or enter an unused ID.
                         </div>
 
@@ -632,7 +643,7 @@
                                         <span class="lock-indicator"><i class="fas fa-lock"></i></span>
                                     </div>
                                     <div class="text-muted small mt-1" id="studentIdHint">
-                                        Leave blank to auto-assign{% if suggested_student_id %} (next: {{ suggested_student_id }}){% endif %}.
+                                        Permanent ID — retained across all academic years{% if suggested_student_id %}; new IDs start at {{ suggested_student_id }}{% endif %}.
                                     </div>
                                     <div class="student-id-feedback" id="studentIdFeedback" role="alert" aria-live="polite"></div>
                                 </div>
@@ -930,6 +941,7 @@
 <script>
 (function () {
     const emailField = document.getElementById('registrarEmailField');
+    const studentIdLookupField = document.getElementById('registrarStudentIdLookup');
     const banner = document.getElementById('lookupBanner');
     const spinner = document.getElementById('lookupSpinner');
     const lookupBtn = document.getElementById('lookupBtn');
@@ -993,7 +1005,7 @@
             ? 'Locked — loaded from existing record'
             : 'Enter personal information for new student';
         studentIdHint.textContent = locked
-            ? 'ID retained from prior enrollment'
+            ? 'Permanent ID — retained from prior enrollment'
             : 'Leave blank to auto-assign' + (suggestedId ? ' (next: ' + suggestedId + ').' : ' the next available ID.');
         if (!locked) {
             clearStudentIdFeedback();
@@ -1047,7 +1059,7 @@
                 showStudentIdFeedback(
                     data.message || 'This Student ID is already in use.',
                     'error',
-                    data.hint || 'Go back to Step 1 and search by their portal email.'
+                    data.hint || 'Go back to Step 1 and search by their portal email or student ID.'
                 );
             }
         } catch (err) {
@@ -1109,6 +1121,7 @@
         if (studentIdEl && data.student_id) studentIdEl.value = data.student_id;
         const parentEl = document.getElementById('parentEmailField');
         if (parentEl && data.parent_email) parentEl.value = data.parent_email;
+        if (emailField && data.email) emailField.value = data.email;
         const klassEl = document.querySelector('#registrarEnrollForm [name="klass"]');
         if (klassEl && data.klass_id) klassEl.value = String(data.klass_id);
         const feesEl = document.getElementById('registrationFeesField');
@@ -1133,13 +1146,16 @@
         setLocked(false);
         clearIdentityFields();
         clearStudentIdFeedback();
+        if (studentIdLookupField) studentIdLookupField.value = '';
         emailField.focus();
     }
 
     async function runLookup() {
         const email = (emailField.value || '').trim();
-        if (!email || !email.includes('@')) {
-            showBanner('Enter a valid email address before searching.', 'error');
+        const studentIdLookup = studentIdLookupField ? (studentIdLookupField.value || '').trim() : '';
+
+        if (!email && !studentIdLookup) {
+            showBanner('Enter a student email or student ID (e.g. 2526-00001) before searching.', 'error');
             step2Panel.classList.remove('visible');
             setWizardStep(1);
             lookupDone = false;
@@ -1149,6 +1165,15 @@
         setLoading(true);
         banner.className = 'lookup-banner mt-3';
 
+        const payload = {};
+        if (studentIdLookup) {
+            payload.student_id = studentIdLookup;
+        } else if (email.includes('@')) {
+            payload.email = email.toLowerCase();
+        } else {
+            payload.student_id = email;
+        }
+
         try {
             const resp = await fetch('{{ url_for("api_registrar_lookup_student") }}', {
                 method: 'POST',
@@ -1156,7 +1181,7 @@
                     'Content-Type': 'application/json',
                     'X-CSRFToken': csrfToken,
                 },
-                body: JSON.stringify({ email: email }),
+                body: JSON.stringify(payload),
             });
             const data = await resp.json();
 
@@ -1228,6 +1253,15 @@
         }
     });
 
+    if (studentIdLookupField) {
+        studentIdLookupField.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                runLookup();
+            }
+        });
+    }
+
     resetBtn.addEventListener('click', resetWizard);
 
     enrollForm.addEventListener('submit', function (e) {
@@ -1242,7 +1276,7 @@
             showStudentIdFeedback(
                 studentIdFeedback ? studentIdFeedback.textContent.replace(/<[^>]*>/g, '') : 'This Student ID is already assigned.',
                 'error',
-                'Go back to Step 1 and search by their portal email.'
+                'Go back to Step 1 and search by their portal email or student ID.'
             );
             if (studentIdField) studentIdField.focus();
             return;
@@ -1266,7 +1300,7 @@
         setLocked(false);
         showTypeBadge('new-student', 'New Student — complete all fields below');
         {% if form.student_id.errors %}
-        showStudentIdFeedback({{ form.student_id.errors[0]|tojson }}, 'error', 'Go back to Step 1 and search by their portal email.');
+        showStudentIdFeedback({{ form.student_id.errors[0]|tojson }}, 'error', 'Go back to Step 1 and search by their portal email or student ID.');
         {% endif %}
         {% endif %}
     })();

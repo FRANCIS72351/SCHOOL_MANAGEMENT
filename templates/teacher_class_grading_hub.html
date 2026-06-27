@@ -63,7 +63,7 @@
                 <div class="col-md-2">
                     <a href="{{ url_for('manual_activity_grades', class_id=klass.id, subject=selected_subject, period=selected_period) }}"
                        class="btn btn-primary btn-sm w-100">
-                        <i class="bi bi-pencil-square me-1"></i>Enter Period Grades
+                        <i class="bi bi-lightning-charge me-1"></i>Enter Grades
                     </a>
                 </div>
             </form>
@@ -94,25 +94,26 @@
     {% if hub_tab == 'activities' %}
     <div class="record-classroom-cta d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
         <div>
-            <div class="cta-title"><i class="bi bi-pencil-square me-2 text-cyan"></i>Enter period scores</div>
-            <p class="cta-hint mb-0">Grade CA + exam directly — no activity record required.</p>
+            <div class="cta-title"><i class="bi bi-lightning-charge me-2 text-cyan"></i>Score student work</div>
+            <p class="cta-hint mb-0">Enter activity grades for <strong>{{ selected_subject }}</strong> · {{ period_label }} — no activity setup required.</p>
         </div>
-        <a href="{{ url_for('manual_activity_grades', class_id=klass.id, subject=selected_subject, period=selected_period) }}"
-           class="btn btn-primary btn-sm flex-shrink-0">
-            <i class="bi bi-pencil-square me-1"></i>Enter Scores
-        </a>
+        <div class="d-flex flex-wrap gap-2 flex-shrink-0">
+            <a href="{{ url_for('manual_activity_grades', class_id=klass.id, subject=selected_subject, period=selected_period) }}"
+               class="btn btn-primary btn-sm">
+                <i class="bi bi-lightning-charge me-1"></i>Enter Activity Grades
+            </a>
+            <a href="{{ url_for('record_classroom_activity', class_id=klass.id, subject=selected_subject, period=selected_period, return_to='grading_hub') }}"
+               class="btn btn-outline-primary btn-sm">
+                <i class="bi bi-journal-plus me-1"></i>Document Activity
+            </a>
+        </div>
     </div>
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
         <p class="text-muted small mb-0">
-            <strong>Optional:</strong> named activities for <strong>{{ selected_subject }}</strong> · {{ period_label }}
-            {% if publish_stats %}<span class="ms-1 badge {% if publish_stats.published %}bg-success{% else %}bg-warning text-dark{% endif %}">{{ publish_stats.published }} published · {{ publish_stats.draft }} draft</span>{% endif %}
+            {% if publish_stats %}<span class="badge {% if publish_stats.published %}bg-success{% else %}bg-warning text-dark{% endif %}">{{ publish_stats.published }} published · {{ publish_stats.draft }} draft</span>{% endif %}
         </p>
-        <a href="{{ url_for('record_classroom_activity', class_id=klass.id, subject=selected_subject, period=selected_period, return_to='grading_hub') }}"
-           class="btn btn-sm btn-outline-primary">
-            <i class="bi bi-journal-plus me-1"></i>Create Activity <span class="opacity-75">(optional)</span>
-        </a>
-        <a href="{{ url_for('teacher_dashboard', tab='grades', grade_class_id=klass.id, grade_subject=selected_subject, grade_period=selected_period) }}" class="btn btn-sm btn-outline-primary">
-            <i class="bi bi-pencil-square me-1"></i>Period Grade Sheet
+        <a href="{{ url_for('teacher_dashboard', tab='grades', grade_class_id=klass.id, grade_subject=selected_subject, grade_period=selected_period) }}" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-table me-1"></i>Period Grade Sheet
         </a>
     </div>
 
@@ -151,7 +152,7 @@
                         <i class="bi bi-inbox me-1"></i>Review Submissions
                     </a>
                     <a href="{{ url_for('manual_activity_grades', class_id=klass.id, subject=selected_subject, period=selected_period, assessment_id=act.id) }}" class="btn btn-outline-primary btn-sm w-100">
-                        <i class="bi bi-pencil-square me-1"></i>Manual Entry
+                        <i class="bi bi-pencil-square me-1"></i>Enter Activity Grades
                     </a>
                 </div>
             </div>
@@ -160,15 +161,16 @@
     </div>
     {% else %}
     <div class="text-center py-5 bg-white rounded shadow-sm">
-        <i class="bi bi-pencil-square fs-1 text-primary mb-2 d-block"></i>
-        <p class="text-muted mb-2">No named activities for {{ selected_subject }} in {{ period_label }}.</p>
+        <i class="bi bi-lightning-charge fs-1 text-primary mb-2 d-block"></i>
+        <p class="text-muted mb-2">No named activities for {{ selected_subject }} in {{ period_label }} — that is fine.</p>
+        <p class="text-muted small mb-3">Enter activity grades directly without creating an activity first.</p>
         <a href="{{ url_for('manual_activity_grades', class_id=klass.id, subject=selected_subject, period=selected_period) }}" class="btn btn-primary btn-sm me-2">
-            <i class="bi bi-pencil-square me-1"></i>Enter Period Scores
+            <i class="bi bi-lightning-charge me-1"></i>Enter Activity Grades
         </a>
         <a href="{{ url_for('record_classroom_activity', class_id=klass.id, subject=selected_subject, period=selected_period, return_to='grading_hub') }}" class="btn btn-outline-primary btn-sm me-2">
-            <i class="bi bi-journal-plus me-1"></i>Create Activity <span class="opacity-75">(optional)</span>
+            <i class="bi bi-journal-plus me-1"></i>Document Activity
         </a>
-        <a href="{{ url_for('teacher_dashboard', tab='activities', activity_class_id=klass.id) }}" class="btn btn-outline-primary btn-sm">Upload Digital Activity</a>
+        <a href="{{ url_for('teacher_dashboard', tab='activities', activity_class_id=klass.id) }}" class="btn btn-outline-secondary btn-sm">Upload Digital Activity</a>
     </div>
     {% endif %}
 

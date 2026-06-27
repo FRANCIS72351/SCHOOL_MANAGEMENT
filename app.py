@@ -7,6 +7,7 @@ from models import db, User, Student, Teacher, Class, Announcement, Grade, Acade
 from itsdangerous import URLSafeTimedSerializer
 import pyotp
 from reportlab.pdfgen import canvas
+import re
 from decorators import role_required  # Adjust this import to match your layout
 from constants import ROLE_ADMIN, GRADING_PERIODS, grading_period_label
 from utils import (
@@ -52,6 +53,12 @@ from ocr_scanner import (
     ocr_libraries_available,
     parse_scan_keywords,
 )
+from student_scanner import (
+    build_student_verify_url,
+    generate_student_scanner_code,
+    get_site_base_url,
+)
+import secrets
 try:
     import pytesseract
     from PIL import Image, ImageEnhance, ImageFilter
@@ -69,6 +76,56 @@ logger = logging.getLogger(__name__)
 def normalize_role(user):
     """Return lowercase stripped role string for consistent access checks."""
     return (getattr(user, 'role', None) or '').strip().lower()
+
+
+def ensure_student_secure_qr_token(student):
+    """Assign a unique cryptographic QR token to a student if missing."""
+    if not student:
+        return None
+    if student.secure_qr_token:
+        return student.secure_qr_token
+    while True:
+        token = secrets.token_urlsafe(48)
+        if not Student.query.filter_by(secure_qr_token=token).first():
+            student.secure_qr_token = token
+            return token
+
+
+def link_student_parent_account(student):
+    """Link parent_id when a parent portal User exists for parent_email."""
+    if not student:
+        return None
+    email = (student.parent_email or '').strip()
+    if not email:
+        student.parent_id = None
+        return None
+    parent = User.query.filter(func.lower(User.email) == email.lower()).first()
+    student.parent_id = parent.id if parent else None
+    return parent
+
+
+def repair_student_qr_tokens():
+    """Backfill secure QR tokens for legacy student rows."""
+    missing = Student.query.filter(
+        or_(Student.secure_qr_token.is_(None), Student.secure_qr_token == '')
+    ).all()
+    for student in missing:
+        ensure_student_secure_qr_token(student)
+    if missing:
+        db.session.commit()
+        return len(missing)
+    return 0
+
+
+def build_student_qr_context(student):
+    """Template context for student ID card / QR display."""
+    if not student:
+        return {'qr_code_data_uri': None, 'student_verify_url': None}
+    ensure_student_secure_qr_token(student)
+    return {
+        'qr_code_data_uri': generate_student_scanner_code(student),
+        'student_verify_url': build_student_verify_url(student),
+    }
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 if BASE_DIR not in sys.path:
@@ -1345,6 +1402,8 @@ def build_activity_grading_inbox(activities, activity_stats, class_cards):
     class_names = {card['id']: card['name'] for card in class_cards}
     inbox = []
     for act in activities:
+        if is_quick_entry_assessment(act):
+            continue
         stats = activity_stats.get(act.id, {})
         pending = stats.get('pending_grade_count', 0)
         if pending <= 0:
@@ -1425,6 +1484,60 @@ def create_assessment_record(
             klass, teacher_user, title, subject_name, marking_period, description, due_date
         )
     return assessment
+
+
+QUICK_ENTRY_DESC_MARKER = '[auto:quick_entry]'
+
+
+def is_quick_entry_assessment(assessment):
+    """True for auto-created assessments used by direct grade entry (no manual setup)."""
+    if not assessment:
+        return False
+    desc = (assessment.description or '').strip()
+    return desc.startswith(QUICK_ENTRY_DESC_MARKER)
+
+
+def quick_entry_assessment_title(subject_name, marking_period):
+    return f'Quick Entry — {subject_name} — {grading_period_label(marking_period)}'
+
+
+def find_quick_entry_assessment(class_id, subject_name, marking_period, academic_year_id):
+    """Return the implicit quick-entry assessment for class/subject/period, if any."""
+    if not class_id or not subject_name or marking_period not in range(1, 9):
+        return None
+    candidates = Assessment.query.filter_by(
+        klass_id=class_id,
+        subject_name=subject_name,
+        marking_period=marking_period,
+        academic_year_id=academic_year_id,
+        submission_mode='in_class',
+    ).all()
+    for assessment in candidates:
+        if is_quick_entry_assessment(assessment):
+            return assessment
+    return None
+
+
+def get_or_create_quick_entry_assessment(
+    class_id, subject_name, marking_period, active_year, teacher_profile
+):
+    """Get or auto-create the implicit assessment backing direct grade entry."""
+    existing = find_quick_entry_assessment(
+        class_id, subject_name, marking_period, active_year.id
+    )
+    if existing:
+        return existing
+    return create_assessment_record(
+        title=quick_entry_assessment_title(subject_name, marking_period),
+        description=f'{QUICK_ENTRY_DESC_MARKER} Auto-created for direct activity grade entry.',
+        evaluation_type='Class Work',
+        submission_mode='in_class',
+        subject_name=subject_name,
+        marking_period=marking_period,
+        active_year=active_year,
+        teacher_profile=teacher_profile,
+        klass_id=class_id,
+    )
 
 
 def get_students_for_class_ids(class_ids, academic_year_id=None):
@@ -2587,6 +2700,10 @@ def provision_student_portal_account(student, email, password=None, full_name=No
             user.set_password(password)
 
     student.user_id = user.id
+    if student.student_id:
+        username_owner = User.query.filter_by(username=student.student_id).first()
+        if not username_owner or username_owner.id == user.id:
+            user.username = student.student_id
     if student.photo and not user.photo:
         user.photo = student.photo
     return user
@@ -2754,6 +2871,11 @@ def validate_student_id_for_registration(student_id_value, form, academic_year, 
     academic_year_id = academic_year.id if academic_year else None
 
     if not raw:
+        if is_returning:
+            return False, (
+                'Student ID is required for returning registration. '
+                'Use Step 1 to search by email or student ID.'
+            ), None, None
         resolved = generate_next_student_id(academic_year)
         return True, None, None, resolved
 
@@ -2772,7 +2894,7 @@ def validate_student_id_for_registration(student_id_value, form, academic_year, 
 
     return False, (
         f"Student ID {raw} is already assigned to {existing.full_name}. "
-        'Use email lookup to re-register returning students.'
+        'Use email or student ID lookup in Step 1 to re-register returning students.'
     ), existing, raw
 
 
@@ -2949,6 +3071,7 @@ def compile_student_dashboard_context(student, display_year, request_args=None, 
             student, display_year
         ) if student and display_year else [],
         'attendance_self': build_student_self_attendance_context(student, display_year),
+        **build_student_qr_context(student),
     }
 
 
@@ -3322,6 +3445,8 @@ def ensure_legacy_sqlite_schema():
             "registration_fees": "FLOAT DEFAULT 0.0",
             "is_promoted": "BOOLEAN DEFAULT 0",
             "is_registered": "BOOLEAN DEFAULT 1",
+            "secure_qr_token": "VARCHAR(128)",
+            "parent_id": "INTEGER",
         },
         "student_payments": {
             "installment": "INTEGER",
@@ -3648,7 +3773,7 @@ def login():
             flash('Too many failed login attempts. Please try again in 15 minutes.', 'danger')
             return render_template('login.html', form=form)
 
-        user = User.query.filter_by(email=form.email.data).first()
+        user = resolve_user_for_login(form.email.data)
         if user and user.check_password(form.password.data):
             settings = get_system_settings()
             if not settings.system_active and normalize_role(user) != 'admin':
@@ -3662,7 +3787,7 @@ def login():
             return redirect(url_for('dashboard'))
         
         track_failed_attempt(ip, form.email.data)
-        flash('Invalid email or password.', 'danger')
+        flash('Invalid email, student ID, or password.', 'danger')
     return render_template('login.html', form=form)
 
 @app.route('/logout')
@@ -5115,7 +5240,10 @@ def student_dashboard():
         # 1. Fetch core student identity profile
         student_profile = get_student_for_user(current_user)
         if student_profile:
-            if sync_student_class_assignment(student_profile):
+            ensure_student_secure_qr_token(student_profile)
+            if sync_student_class_assignment(student_profile) or db.session.is_modified(
+                student_profile, include_collections=False
+            ):
                 db.session.commit()
 
         if student_profile and student_is_alumni(student_profile):
@@ -5212,6 +5340,50 @@ def student_academic_records(academic_year_id):
         academic_year_id=academic_year_id,
         tab='grades',
     ))
+
+
+@app.route('/verify-student/<token>', methods=['GET'])
+def verify_student(token):
+    """
+    Public student identity verification (QR / barcode scan destination).
+    Shows limited info; staff see expanded details when logged in.
+    """
+    token = (token or '').strip()
+    if not token:
+        abort(404)
+
+    student = Student.query.filter_by(secure_qr_token=token).first()
+    if not student:
+        return render_template(
+            'verify_student.html',
+            verified=False,
+            student=None,
+            staff_view=False,
+        )
+
+    display_year = get_active_academic_year() or student.academic_year
+    year_id = display_year.id if display_year else student.academic_year_id
+    klass = get_student_class_for_year(student, year_id) if year_id else student.klass
+    staff_view = False
+    if current_user.is_authenticated:
+        role = normalize_role(current_user)
+        staff_view = role in {'admin', 'principal', 'registrar', 'teacher', 'business', 'sponsor'}
+
+    registration_label = 'Registered' if student.is_registered else 'Pending'
+    if student.status and str(student.status).upper() in ALUMNI_STATUSES:
+        registration_label = 'Alumni'
+
+    return render_template(
+        'verify_student.html',
+        verified=True,
+        student=student,
+        klass=klass,
+        display_year=display_year,
+        staff_view=staff_view,
+        registration_label=registration_label,
+        verify_url=build_student_verify_url(student),
+        class_display_name=format_student_class_name(student, year_id) if year_id else None,
+    )
 
 
 @app.route('/student/grade-sheet', methods=['GET'])
@@ -5498,6 +5670,22 @@ def _require_leader_manager():
         flash("Administrator access required.", "danger")
         return redirect(url_for("dashboard"))
     return None
+
+
+def get_or_create_leader_category(name):
+    """Find or create a leader category from free-text input."""
+    cleaned = (name or "").strip()
+    if not cleaned:
+        return None
+    existing = LeaderCategory.query.filter(
+        db.func.lower(LeaderCategory.name) == cleaned.lower()
+    ).first()
+    if existing:
+        return existing
+    category = LeaderCategory(name=cleaned)
+    db.session.add(category)
+    db.session.flush()
+    return category
 
 
 @app.route("/admin/events")
@@ -5841,15 +6029,19 @@ def add_leader():
         return redirect_resp
 
     form = LeaderForm()
-    form.category.choices = [(c.id, c.name) for c in LeaderCategory.query.order_by(LeaderCategory.name.asc())]
 
     if form.validate_on_submit():
+        category = get_or_create_leader_category(form.category.data)
+        if not category:
+            flash('Category is required.', 'danger')
+            return render_template('admin/add_leader.html', form=form)
+
         leader = Leader(
             name=form.name.data,
             role=form.role.data,
             bio=form.bio.data,
             contact=form.contact.data,
-            category_id=form.category.data if form.category.data else None
+            category_id=category.id,
         )
 
         if form.photo.data:
@@ -5877,14 +6069,20 @@ def edit_leader(leader_id):
 
     leader = Leader.query.get_or_404(leader_id)
     form = LeaderForm(obj=leader)
-    form.category.choices = [(c.id, c.name) for c in LeaderCategory.query.order_by(LeaderCategory.name.asc())]
+    if request.method == 'GET' and leader.category_node:
+        form.category.data = leader.category_node.name
 
     if form.validate_on_submit():
+        category = get_or_create_leader_category(form.category.data)
+        if not category:
+            flash('Category is required.', 'danger')
+            return render_template('admin/edit_leader.html', form=form, leader=leader)
+
         leader.name = form.name.data
         leader.role = form.role.data
         leader.bio = form.bio.data
         leader.contact = form.contact.data
-        leader.category_id = form.category.data if form.category.data else None
+        leader.category_id = category.id
 
         if form.photo.data:
             photo_file = form.photo.data
@@ -6732,6 +6930,8 @@ def teacher_dashboard():
                     for stats in activity_stats.values()
                 )
                 for act in all_teacher_activities:
+                    if is_quick_entry_assessment(act):
+                        continue
                     activity_count_by_class[act.klass_id] = activity_count_by_class.get(act.klass_id, 0) + 1
                     pending_for_class = activity_stats.get(act.id, {}).get('pending_grade_count', 0)
                     if pending_for_class:
@@ -6739,13 +6939,16 @@ def teacher_dashboard():
                         activity_count_by_class[f'pending_{act.klass_id}'] = (
                             activity_count_by_class.get(f'pending_{act.klass_id}', 0) + pending_for_class
                         )
-                total_activity_count = len(all_teacher_activities)
+                total_activity_count = sum(
+                    1 for act in all_teacher_activities if not is_quick_entry_assessment(act)
+                )
                 if activity_class_id:
                     activity_subjects = get_assignable_subjects_for_class(
                         teacher_profile, current_user, activity_class_id
                     )
                     class_activity_items = [
-                        act for act in all_teacher_activities if act.klass_id == activity_class_id
+                        act for act in all_teacher_activities
+                        if act.klass_id == activity_class_id and not is_quick_entry_assessment(act)
                     ]
             except Exception as exc:
                 logger.warning('Could not load class activities: %s', exc)
@@ -7156,6 +7359,8 @@ def class_grading_hub(class_id):
 
     activity_cards = []
     for act in class_activities:
+        if is_quick_entry_assessment(act):
+            continue
         subs = Submission.query.filter_by(assessment_id=act.id).all()
         graded = sum(1 for s in subs if s.is_graded)
         pending = sum(
@@ -7738,6 +7943,112 @@ def bulk_grade_activity(assessment_id):
     return redirect(url_for('activity_detail', assessment_id=assessment.id))
 
 
+@app.route('/teacher/class/<int:class_id>/quick-activity-grades', methods=['POST'])
+@login_required
+def save_quick_activity_grades(class_id):
+    """Save per-student activity scores without requiring a pre-created named activity."""
+    role = normalize_role(current_user)
+    teacher_profile = Teacher.query.filter_by(user_id=current_user.id).first()
+    if role not in ('teacher', 'admin'):
+        flash('Access denied.', 'danger')
+        return redirect(url_for('dashboard'))
+    if role == 'teacher' and not teacher_profile:
+        flash('Teacher profile not found.', 'danger')
+        return redirect(url_for('dashboard'))
+
+    klass = Class.query.get_or_404(class_id)
+    if not can_enter_class_grades(current_user, teacher_profile, class_id):
+        flash('You are not authorized to enter grades for this class.', 'danger')
+        return redirect(url_for('teacher_dashboard'))
+
+    active_year = get_active_academic_year()
+    if not active_year:
+        flash('No active academic year found.', 'danger')
+        return redirect(url_for('teacher_dashboard'))
+
+    subject_name = (request.form.get('subject') or '').strip()
+    period = request.form.get('period', type=int)
+    if not subject_name:
+        flash('Please select a subject before saving scores.', 'danger')
+        return redirect(url_for('manual_activity_grades', class_id=class_id))
+    if period not in range(1, 9):
+        flash('Invalid marking period selected.', 'danger')
+        return redirect(url_for('manual_activity_grades', class_id=class_id, subject=subject_name))
+
+    if role == 'teacher':
+        allowed_subjects = get_assignable_subjects_for_class(
+            teacher_profile, current_user, class_id
+        )
+        if subject_name not in allowed_subjects:
+            flash('You are not assigned to teach that subject in this class.', 'danger')
+            return redirect(url_for('manual_activity_grades', class_id=class_id))
+
+    assessment = get_or_create_quick_entry_assessment(
+        class_id, subject_name, period, active_year, teacher_profile
+    )
+    max_score = assessment.max_score or 100.0
+    roster_ids = {
+        s.id for s in get_students_for_class_ids([class_id], academic_year_id=active_year.id)
+    }
+    saved_count = 0
+    errors = []
+
+    for student_id in roster_ids:
+        score_raw = request.form.get(f'score_{student_id}', '').strip()
+        if score_raw == '':
+            continue
+        try:
+            score = float(score_raw)
+        except (TypeError, ValueError):
+            errors.append(f'Invalid score for student #{student_id}')
+            continue
+        if score < 0 or score > max_score:
+            errors.append(f'Score for student #{student_id} must be 0–{max_score}')
+            continue
+
+        student = db.session.get(Student, student_id)
+        if not student:
+            continue
+        feedback = request.form.get(f'feedback_{student_id}', '').strip() or None
+        _apply_activity_score(
+            teacher_profile,
+            assessment,
+            student,
+            score,
+            feedback=feedback,
+        )
+        saved_count += 1
+
+    if errors:
+        for msg in errors[:3]:
+            flash(msg, 'danger')
+        if not saved_count:
+            db.session.rollback()
+            return redirect(url_for(
+                'manual_activity_grades',
+                class_id=class_id,
+                subject=subject_name,
+                period=period,
+            ))
+
+    db.session.commit()
+    if saved_count:
+        flash(
+            f'Saved {saved_count} activity score{"s" if saved_count != 1 else ""} '
+            f'for {subject_name} · {grading_period_label(period)}.',
+            'success',
+        )
+    else:
+        flash('No scores entered. Fill in at least one score field.', 'warning')
+
+    return redirect(url_for(
+        'manual_activity_grades',
+        class_id=class_id,
+        subject=subject_name,
+        period=period,
+    ))
+
+
 @app.route('/teacher/class/<int:class_id>/activity-grades', methods=['GET'])
 @login_required
 def manual_activity_grades(class_id):
@@ -7796,10 +8107,16 @@ def manual_activity_grades(class_id):
         .all()
     )
 
+    assessment_id = request.args.get('assessment_id', type=int)
+
     activity_options = []
+    quick_entry_assessment = None
+    quick_entry_submissions = {}
+    quick_entry_graded_count = 0
+    quick_entry_max_score = 100.0
     if selected_subject:
-        activity_options = (
-            Assessment.query.filter_by(
+        activity_options = [
+            act for act in Assessment.query.filter_by(
                 klass_id=class_id,
                 subject_name=selected_subject,
                 marking_period=selected_period,
@@ -7807,9 +8124,19 @@ def manual_activity_grades(class_id):
             )
             .order_by(Assessment.id.desc())
             .all()
-        )
-
-    assessment_id = request.args.get('assessment_id', type=int)
+            if not is_quick_entry_assessment(act)
+        ]
+        if not assessment_id:
+            quick_entry_assessment = find_quick_entry_assessment(
+                class_id, selected_subject, selected_period, active_year.id
+            )
+            if quick_entry_assessment:
+                quick_entry_max_score = quick_entry_assessment.max_score or 100.0
+                subs = Submission.query.filter_by(
+                    assessment_id=quick_entry_assessment.id
+                ).all()
+                quick_entry_submissions = {sub.student_id: sub for sub in subs}
+                quick_entry_graded_count = sum(1 for sub in subs if sub.is_graded)
     selected_assessment = None
     class_students = []
     submission_by_student = {}
@@ -7883,6 +8210,10 @@ def manual_activity_grades(class_id):
         roster_size=len(students),
         grade_rows=grade_rows,
         publish_stats=publish_stats,
+        quick_entry_assessment=quick_entry_assessment,
+        quick_entry_submissions=quick_entry_submissions,
+        quick_entry_graded_count=quick_entry_graded_count,
+        quick_entry_max_score=quick_entry_max_score,
     )
 
 
@@ -9887,6 +10218,73 @@ def log_student_lookup(ip):
     db.session.commit()
 
 
+def looks_like_student_id(value):
+    """Return True when the input appears to be a student ID rather than email."""
+    raw = (value or '').strip()
+    if not raw or '@' in raw:
+        return False
+    if re.match(r'^\d{4}-\d{1,5}$', raw):
+        return True
+    return raw.replace('-', '').isdigit() and len(raw.replace('-', '')) >= 4
+
+
+def validate_student_id_format(student_id_value):
+    """Validate registrar/student ID lookup format. Returns (ok, error_message)."""
+    raw = (student_id_value or '').strip()
+    if not raw:
+        return False, 'Student ID is required.'
+    if '@' in raw:
+        return False, 'Enter a student ID (e.g. 2526-00001), not an email address.'
+    if re.match(r'^\d{4}-\d{1,5}$', raw) or raw.isdigit():
+        return True, None
+    if '-' in raw and all(part.isdigit() for part in raw.split('-', 1) if part):
+        return True, None
+    return False, 'Invalid student ID format. Use format like 2526-00001.'
+
+
+def find_student_by_student_id(student_id_value):
+    """Resolve a Student record from a permanent student ID (exact or normalized)."""
+    raw = (student_id_value or '').strip()
+    if not raw:
+        return None
+
+    student = Student.query.filter_by(student_id=raw).first()
+    if student:
+        return student
+
+    if '-' in raw:
+        prefix, suffix = raw.split('-', 1)
+        if suffix.isdigit():
+            for candidate in (
+                f"{prefix}-{int(suffix):05d}",
+                f"{prefix}-{int(suffix):04d}",
+                f"{prefix}-{int(suffix)}",
+            ):
+                student = Student.query.filter_by(student_id=candidate).first()
+                if student:
+                    return student
+
+    return None
+
+
+def resolve_user_for_login(identifier):
+    """Resolve a User from portal email or permanent student ID."""
+    raw = (identifier or '').strip()
+    if not raw:
+        return None
+
+    if looks_like_student_id(raw):
+        student = find_student_by_student_id(raw)
+        if student and student.user_id:
+            return db.session.get(User, student.user_id)
+        user = User.query.filter(func.lower(User.username) == raw.lower()).first()
+        if user:
+            return user
+        return None
+
+    return User.query.filter(func.lower(User.email) == raw.lower()).first()
+
+
 def find_student_by_email(email):
     """
     Resolve a student record from a portal or parent/guardian email.
@@ -9930,6 +10328,7 @@ def build_student_lookup_payload(student, match_kind, *, staff=False):
         'parent_email': student.parent_email or '',
         'klass_id': student.klass_id,
         'student_id': student.student_id,
+        'email': (student.user.email if student.user else '') or '',
     }
 
     if staff:
@@ -10134,19 +10533,46 @@ def api_registrar_lookup_student():
 
     payload = request.get_json(silent=True) or {}
     email = (payload.get('email') or request.form.get('email') or '').strip().lower()
+    student_id_input = (payload.get('student_id') or request.form.get('student_id') or '').strip()
 
-    if not email or '@' not in email or len(email) > 120:
-        return jsonify({'found': False, 'error': 'A valid email address is required.'}), 400
+    student = None
+    match_kind = None
 
-    student, match_kind = find_student_by_email(email)
-    if not student:
+    if student_id_input or (email and looks_like_student_id(email)):
+        lookup_id = student_id_input or email
+        ok, format_error = validate_student_id_format(lookup_id)
+        if not ok:
+            return jsonify({'found': False, 'error': format_error}), 400
+
+        student = find_student_by_student_id(lookup_id)
+        if not student:
+            return jsonify({
+                'found': False,
+                'is_returning': False,
+                'welcome_message': (
+                    f'No existing record for student ID {lookup_id.strip()}. '
+                    'Complete the form below to register a new student.'
+                ),
+            })
+
+        match_kind = 'student_id'
+    elif email:
+        if '@' not in email or len(email) > 120:
+            return jsonify({'found': False, 'error': 'A valid email address is required.'}), 400
+        student, match_kind = find_student_by_email(email)
+        if not student:
+            return jsonify({
+                'found': False,
+                'is_returning': False,
+                'welcome_message': (
+                    'No existing record for this email. Complete the form below to register a new student.'
+                ),
+            })
+    else:
         return jsonify({
             'found': False,
-            'is_returning': False,
-            'welcome_message': (
-                'No existing record for this email. Complete the form below to register a new student.'
-            ),
-        })
+            'error': 'Enter a student email or student ID (e.g. 2526-00001) to search.',
+        }), 400
 
     if student_is_alumni(student):
         return jsonify({
@@ -10528,6 +10954,9 @@ def apply_student_form_to_record(student, form, *, registrar_name, registration_
     if student.student_id:
         student.student_id_code = student.student_id
 
+    ensure_student_secure_qr_token(student)
+    link_student_parent_account(student)
+
     return registration_fee_value, academic_year_id
 
 
@@ -10623,7 +11052,7 @@ def register_student():
                     is_returning or _same_student_identity(existing_student, form)
                 ):
                     flash(
-                        'Go back to Step 1 and search by their portal email.',
+                        'Go back to Step 1 and search by their portal email or student ID.',
                         'info',
                     )
                 form.student_id.errors.append(id_error)
@@ -10638,7 +11067,7 @@ def register_student():
                     registrar_name=current_user.full_name,
                     registration_type='Returning',
                 )
-                student.student_id = student_id_value
+                student.student_id = existing_student.student_id or student_id_value
                 activate_student_registration(student, actor_id=current_user.id)
                 flash(
                     f"Returning student {student.full_name} re-registered for "
@@ -10723,6 +11152,9 @@ def edit_student(student_id):
         return redirect(url_for('dashboard'))
 
     student = Student.query.get_or_404(student_id)
+    ensure_student_secure_qr_token(student)
+    if db.session.is_modified(student, include_collections=False):
+        db.session.commit()
     form = RegisterStudentForm(obj=student)
     context = build_registrar_dashboard_context(form=form)
     form.klass.data = student.klass_id or 0
@@ -10806,6 +11238,7 @@ def edit_student(student_id):
         student=student,
         active_year=context.get('active_year'),
         return_to=return_to,
+        **build_student_qr_context(student),
     )
 
 # =========================================================================
@@ -12785,6 +13218,9 @@ with app.app_context():
         repaired_classes = repair_student_class_assignments()
         if repaired_classes:
             print(f"Student class repair: synced {repaired_classes} student class assignment(s) after rollover.")
+        repaired_qr = repair_student_qr_tokens()
+        if repaired_qr:
+            print(f"Student QR repair: issued secure verification tokens for {repaired_qr} student profile(s).")
         synced = backfill_student_payments_to_income_ledger()
         if synced:
             print(f"Business ledger sync: posted {synced} historical student fee payment(s) as income.")

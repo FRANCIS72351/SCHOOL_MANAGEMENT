@@ -1176,9 +1176,440 @@
     box-shadow: 0 0 24px rgba(0, 242, 255, 0.08);
 }
 
+/* Split-path activity cards (dashboard Activities tab) */
+.activity-path-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1rem;
+}
+.activity-path-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    padding: 1.35rem 1.4rem;
+    border-radius: 16px;
+    border: 1px solid rgba(56, 189, 248, 0.22);
+    background: rgba(255, 255, 255, 0.03);
+    color: #e2e8f0;
+    text-decoration: none;
+    transition: transform 0.18s, border-color 0.18s, box-shadow 0.18s, background 0.18s;
+    min-height: 190px;
+    overflow: hidden;
+}
+.activity-path-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transition: opacity 0.2s;
+    pointer-events: none;
+}
+.activity-path-card.path-recommended {
+    border-color: rgba(0, 242, 255, 0.38);
+    background: linear-gradient(145deg, rgba(0, 242, 255, 0.08) 0%, rgba(15, 23, 42, 0.55) 100%);
+}
+.activity-path-card.path-recommended::before {
+    background: radial-gradient(circle at top right, rgba(0, 242, 255, 0.12), transparent 55%);
+}
+.activity-path-card.path-optional {
+    border-color: rgba(148, 163, 184, 0.25);
+}
+.activity-path-card:hover,
+.activity-path-card:focus-visible {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.28);
+    color: #fff;
+    outline: none;
+}
+.activity-path-card.path-recommended:hover,
+.activity-path-card.path-recommended:focus-visible {
+    border-color: rgba(0, 242, 255, 0.65);
+    box-shadow: 0 12px 36px rgba(0, 242, 255, 0.15);
+}
+.activity-path-card.path-recommended:hover::before,
+.activity-path-card.path-recommended:focus-visible::before {
+    opacity: 1;
+}
+.activity-path-card.path-optional:hover,
+.activity-path-card.path-optional:focus-visible {
+    border-color: rgba(74, 222, 128, 0.45);
+    background: rgba(74, 222, 128, 0.05);
+}
+.path-badge {
+    display: inline-block;
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    width: fit-content;
+}
+.path-badge-recommended {
+    background: rgba(0, 242, 255, 0.18);
+    color: #00f2ff;
+    border: 1px solid rgba(0, 242, 255, 0.35);
+}
+.path-badge-optional {
+    background: rgba(148, 163, 184, 0.15);
+    color: #94a3b8;
+    border: 1px solid rgba(148, 163, 184, 0.25);
+}
+.path-card-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+}
+.path-recommended .path-card-icon {
+    background: rgba(0, 242, 255, 0.15);
+    color: #00f2ff;
+}
+.path-optional .path-card-icon {
+    background: rgba(74, 222, 128, 0.12);
+    color: #4ade80;
+}
+.path-card-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #f8fafc;
+    margin: 0;
+    line-height: 1.3;
+}
+.path-card-hint {
+    font-size: 0.82rem;
+    color: #94a3b8;
+    margin: 0;
+    line-height: 1.45;
+    flex: 1;
+}
+.path-card-action {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #38bdf8;
+    margin-top: auto;
+}
+.path-optional .path-card-action { color: #4ade80; }
+
+/* Quick grade entry panel (Enter Activity Grades page) */
+.quick-grade-entry-panel {
+    background: linear-gradient(145deg, rgba(0, 242, 255, 0.07) 0%, rgba(15, 23, 42, 0.65) 100%);
+    border: 1px solid rgba(0, 242, 255, 0.32);
+    border-radius: 16px;
+    padding: 1.35rem 1.4rem;
+    box-shadow: 0 8px 28px rgba(0, 242, 255, 0.08);
+}
+.quick-grade-entry-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+}
+.quick-grade-entry-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    background: rgba(0, 242, 255, 0.18);
+    color: #00f2ff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.35rem;
+    flex-shrink: 0;
+}
+.quick-grade-entry-panel .quick-score-input.is-invalid {
+    border-color: #f87171 !important;
+    box-shadow: 0 0 0 2px rgba(248, 113, 113, 0.25);
+}
+
+.named-activities-section {
+    padding-top: 0.5rem;
+    border-top: 1px solid rgba(148, 163, 184, 0.15);
+}
+.named-activities-empty {
+    padding: 1rem 1.15rem;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px dashed rgba(148, 163, 184, 0.2);
+}
+
+.moe-period-details {
+    border-top: 1px solid rgba(148, 163, 184, 0.15);
+    padding-top: 0.5rem;
+}
+.moe-period-summary {
+    cursor: pointer;
+    font-weight: 600;
+    color: #94a3b8;
+    font-size: 0.9rem;
+    padding: 0.65rem 0;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+}
+.moe-period-summary::-webkit-details-marker { display: none; }
+.moe-period-summary::before {
+    content: '▸';
+    margin-right: 0.35rem;
+    color: #64748b;
+    transition: transform 0.15s;
+}
+.moe-period-details[open] .moe-period-summary::before {
+    transform: rotate(90deg);
+}
+.moe-period-body {
+    padding-left: 0.15rem;
+}
+
+/* Skip banner on Create Activity page */
+.activity-skip-banner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
+    border-radius: 14px;
+    border: 1px solid rgba(0, 242, 255, 0.35);
+    background: linear-gradient(90deg, rgba(0, 242, 255, 0.1) 0%, rgba(15, 23, 42, 0.5) 100%);
+    transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
+}
+.activity-skip-banner:hover,
+.activity-skip-banner:focus-visible {
+    border-color: rgba(0, 242, 255, 0.6);
+    box-shadow: 0 8px 24px rgba(0, 242, 255, 0.12);
+    transform: translateY(-1px);
+    outline: none;
+}
+.skip-banner-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    background: rgba(0, 242, 255, 0.18);
+    color: #00f2ff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    flex-shrink: 0;
+}
+.skip-banner-body { flex: 1; min-width: 180px; }
+.skip-banner-action {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #00f2ff;
+    white-space: nowrap;
+}
+
 @media (max-width: 767.98px) {
     .teacher-quick-actions { padding: 1rem; }
     .teacher-quick-actions-grid { grid-template-columns: repeat(2, 1fr); gap: 0.6rem; }
     .teacher-qa-card { min-height: 80px; padding: 0.8rem; }
     .teacher-qa-card .qa-hint { display: none; }
+    .activity-path-grid { grid-template-columns: 1fr; }
 }
+
+/* ── Direct / quick activity grade entry ── */
+.path-badge {
+    display: inline-block;
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    line-height: 1.3;
+}
+.path-badge-recommended {
+    background: rgba(0, 242, 255, 0.15);
+    color: #00f2ff;
+    border: 1px solid rgba(0, 242, 255, 0.35);
+}
+.path-badge-optional {
+    background: rgba(148, 163, 184, 0.12);
+    color: #94a3b8;
+    border: 1px solid rgba(148, 163, 184, 0.25);
+}
+.direct-entry-badge {
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 0.25rem 0.65rem;
+    border-radius: 999px;
+    background: rgba(250, 204, 21, 0.12);
+    color: #facc15;
+    border: 1px solid rgba(250, 204, 21, 0.3);
+    white-space: nowrap;
+}
+.grading-workflow-banner .step-num.optional {
+    background: rgba(148, 163, 184, 0.15);
+    color: #94a3b8;
+}
+
+.quick-grade-entry-panel {
+    background: linear-gradient(145deg, rgba(0, 242, 255, 0.06) 0%, rgba(15, 23, 42, 0.95) 40%, rgba(12, 18, 34, 0.98) 100%);
+    border: 1px solid rgba(0, 242, 255, 0.28);
+    border-radius: 16px;
+    padding: 1.35rem 1.5rem 1.5rem;
+    box-shadow: 0 12px 40px rgba(0, 242, 255, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    position: relative;
+    overflow: hidden;
+}
+.quick-grade-entry-panel::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #00f2ff, #38bdf8, #818cf8);
+    border-radius: 16px 16px 0 0;
+}
+.quick-grade-entry-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+}
+.quick-grade-entry-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    background: rgba(0, 242, 255, 0.12);
+    border: 1px solid rgba(0, 242, 255, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.35rem;
+    color: #00f2ff;
+    flex-shrink: 0;
+    box-shadow: 0 0 20px rgba(0, 242, 255, 0.15);
+}
+.quick-grade-entry-panel .quick-score-input:focus {
+    border-color: #00f2ff !important;
+    box-shadow: 0 0 0 2px rgba(0, 242, 255, 0.2);
+}
+
+.named-activities-section {
+    padding-top: 0.5rem;
+}
+.named-activities-empty {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px dashed rgba(148, 163, 184, 0.25);
+    border-radius: 12px;
+    padding: 1rem 1.25rem;
+}
+
+.moe-period-details {
+    border-top: 1px solid rgba(56, 189, 248, 0.12);
+}
+.moe-period-summary {
+    cursor: pointer;
+    font-weight: 600;
+    color: #94a3b8;
+    font-size: 0.9rem;
+    padding: 0.5rem 0;
+    list-style: none;
+    user-select: none;
+}
+.moe-period-summary::-webkit-details-marker { display: none; }
+.moe-period-summary::before {
+    content: '▸';
+    display: inline-block;
+    margin-right: 0.35rem;
+    transition: transform 0.2s;
+    color: #64748b;
+}
+.moe-period-details[open] .moe-period-summary::before {
+    transform: rotate(90deg);
+}
+.moe-period-summary:hover { color: #e2e8f0; }
+
+/* Teacher dashboard — activity path cards */
+.activity-path-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1rem;
+}
+.activity-path-card {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+    padding: 1.25rem 1.35rem;
+    border-radius: 14px;
+    text-decoration: none;
+    color: #e2e8f0;
+    border: 1px solid rgba(56, 189, 248, 0.2);
+    background: rgba(255, 255, 255, 0.03);
+    transition: transform 0.18s, border-color 0.18s, box-shadow 0.18s, background 0.18s;
+    position: relative;
+    min-height: 180px;
+}
+.activity-path-card:hover,
+.activity-path-card:focus-visible {
+    transform: translateY(-3px);
+    color: #fff;
+    outline: none;
+}
+.activity-path-card.path-recommended {
+    border-color: rgba(0, 242, 255, 0.35);
+    background: linear-gradient(145deg, rgba(0, 242, 255, 0.08) 0%, rgba(255, 255, 255, 0.02) 100%);
+}
+.activity-path-card.path-recommended:hover {
+    border-color: rgba(0, 242, 255, 0.55);
+    box-shadow: 0 10px 32px rgba(0, 242, 255, 0.14);
+}
+.activity-path-card.path-optional:hover {
+    border-color: rgba(148, 163, 184, 0.4);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+.activity-path-card .path-badge {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+}
+.path-card-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    margin-top: 0.25rem;
+}
+.path-recommended .path-card-icon {
+    background: rgba(0, 242, 255, 0.15);
+    color: #00f2ff;
+}
+.path-optional .path-card-icon {
+    background: rgba(148, 163, 184, 0.1);
+    color: #94a3b8;
+}
+.path-card-title {
+    font-size: 1rem;
+    font-weight: 700;
+    margin: 0;
+    color: #fff;
+}
+.path-card-hint {
+    font-size: 0.82rem;
+    color: #94a3b8;
+    margin: 0;
+    line-height: 1.45;
+    flex-grow: 1;
+}
+.path-card-action {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #38bdf8;
+    margin-top: auto;
+}
+.activity-path-card:hover .path-card-action { color: #00f2ff; }
+.path-optional .path-card-action { color: #94a3b8; }
+.path-optional:hover .path-card-action { color: #cbd5e1; }

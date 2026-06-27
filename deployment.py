@@ -43,6 +43,9 @@ def configure_app(app):
         )
 
     max_mb = int(os.environ.get('MAX_UPLOAD_MB', '16'))
+    site_url = (os.environ.get('SITE_URL') or '').strip().rstrip('/')
+    if site_url:
+        app.config['SITE_URL'] = site_url
     app.config['MAX_CONTENT_LENGTH'] = max_mb * 1024 * 1024
 
     bind_host = os.environ.get('BIND_HOST', '127.0.0.1')
