@@ -38,11 +38,41 @@
             <h2 class="glow-title mb-0"><i class="fas fa-user-shield text-cyan me-2"></i>Dean of Students Command Center</h2>
             <p class="text-muted small mb-0 mt-1">Student conduct, welfare, attendance oversight, and campus safety</p>
         </div>
-        {% if active_year %}
-        <span class="badge bg-dark border border-secondary border-opacity-25 text-white px-3 py-2 mt-2 mt-md-0">
-            <i class="fas fa-calendar-check text-cyan me-1"></i>{{ active_year.name }}
-        </span>
-        {% endif %}
+        <div class="d-flex flex-wrap align-items-center gap-2 mt-2 mt-md-0">
+            {% if years|length > 1 %}
+            <form method="get" class="d-flex align-items-center gap-2">
+                {% if class_id %}<input type="hidden" name="class_id" value="{{ class_id }}">{% endif %}
+                {% if search_q %}<input type="hidden" name="q" value="{{ search_q }}">{% endif %}
+                <label for="deanYearSelect" class="text-muted small mb-0">Year</label>
+                <select id="deanYearSelect" name="academic_year_id" class="form-select form-select-sm form-cyber" onchange="this.form.submit()">
+                    {% for year in years %}
+                    <option value="{{ year.id }}" {% if display_year and display_year.id == year.id %}selected{% endif %}>{{ year.name }}</option>
+                    {% endfor %}
+                </select>
+            </form>
+            {% elif active_year %}
+            <span class="badge bg-dark border border-secondary border-opacity-25 text-white px-3 py-2">
+                <i class="fas fa-calendar-check text-cyan me-1"></i>{{ active_year.name }}
+            </span>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="card sec-card p-3 mb-4">
+        <div class="d-flex flex-wrap gap-2">
+            <a href="{{ url_for('dean_attendance') }}" class="btn-command" style="width:auto;min-width:180px;flex:1;">
+                <i class="fas fa-clipboard-check text-cyan me-2"></i><strong>Attendance &amp; Truancy</strong>
+                <div class="text-muted small mt-1">School-wide absence and late patterns</div>
+            </a>
+            <a href="{{ url_for('dean_dashboard') }}" class="btn-command" style="width:auto;min-width:180px;flex:1;">
+                <i class="fas fa-gavel text-rose me-2"></i><strong>Conduct Registry</strong>
+                <div class="text-muted small mt-1">Log incidents and issue suspensions</div>
+            </a>
+            <a href="{{ url_for('announcements') }}" class="btn-command" style="width:auto;min-width:180px;flex:1;">
+                <i class="fas fa-bullhorn text-amber me-2"></i><strong>Announcements</strong>
+                <div class="text-muted small mt-1">Student &amp; parent communications</div>
+            </a>
+        </div>
     </div>
 
     <div class="row g-3 mb-4">
@@ -161,18 +191,30 @@
                                     </span>
                                 </td>
                                 <td class="text-end">
+                                    <a href="{{ url_for('report_card', student_id=student.id) }}{% if display_year %}?academic_year_id={{ display_year.id }}{% endif %}"
+                                       class="btn btn-sm btn-outline-secondary me-1" title="View report card">
+                                        <i class="fas fa-file-alt"></i>
+                                    </a>
                                     <button type="button" class="btn btn-sm btn-outline-info me-1 btn-log-incident"
                                         data-student-id="{{ student.id }}"
                                         data-student-name="{{ student.full_name }}"
                                         data-student-class="{{ student.klass.name if student.klass else 'Unassigned' }}">
                                         <i class="fas fa-clipboard-list"></i> Log
                                     </button>
+                                    {% if student.has_active_suspension %}
+                                    <button type="button" class="btn btn-sm btn-outline-success me-1 btn-reinstate-student"
+                                        data-student-id="{{ student.id }}"
+                                        data-student-name="{{ student.full_name }}">
+                                        <i class="fas fa-user-check"></i> Reinstate
+                                    </button>
+                                    {% else %}
                                     <button type="button" class="btn btn-sm btn-outline-danger btn-suspend-student"
                                         data-student-id="{{ student.id }}"
                                         data-student-name="{{ student.full_name }}"
                                         data-student-class="{{ student.klass.name if student.klass else 'Unassigned' }}">
                                         <i class="fas fa-gavel"></i> Suspend
                                     </button>
+                                    {% endif %}
                                 </td>
                             </tr>
                             {% else %}
@@ -392,6 +434,33 @@
     </div>
 </div>
 
+<!-- Reinstate Modal -->
+<div class="modal fade" id="reinstateModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark border border-secondary">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title text-white"><i class="fas fa-user-check text-emerald me-2"></i>Reinstate Student</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('dean_reinstate_student') }}">
+                {{ form.hidden_tag() }}
+                <input type="hidden" name="student_id" id="reinstateStudentId">
+                <input type="hidden" name="return_class_id" value="{{ class_id or '' }}">
+                <input type="hidden" name="return_q" value="{{ search_q or '' }}">
+                <div class="modal-body">
+                    <p class="small text-muted mb-3">Restore <strong class="text-white" id="reinstateStudentName">—</strong> to active status and close open suspensions.</p>
+                    <label class="form-label small text-muted">Readmission notes (optional)</label>
+                    <textarea name="notes" class="form-control form-cyber" rows="3" placeholder="Parent conference completed, behavioral agreement signed..."></textarea>
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">Reinstate Student</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script>
 function openIncidentModal(id, name, klass) {
     document.getElementById('incidentStudentId').value = id;
@@ -412,6 +481,12 @@ function openSuspensionModal(id, name, klass) {
     new bootstrap.Modal(document.getElementById('suspensionModal')).show();
 }
 
+function openReinstateModal(id, name) {
+    document.getElementById('reinstateStudentId').value = id;
+    document.getElementById('reinstateStudentName').textContent = name;
+    new bootstrap.Modal(document.getElementById('reinstateModal')).show();
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.btn-log-incident').forEach(btn => {
         btn.addEventListener('click', () => openIncidentModal(
@@ -425,6 +500,12 @@ document.addEventListener('DOMContentLoaded', function() {
             btn.dataset.studentId,
             btn.dataset.studentName,
             btn.dataset.studentClass
+        ));
+    });
+    document.querySelectorAll('.btn-reinstate-student').forEach(btn => {
+        btn.addEventListener('click', () => openReinstateModal(
+            btn.dataset.studentId,
+            btn.dataset.studentName
         ));
     });
 

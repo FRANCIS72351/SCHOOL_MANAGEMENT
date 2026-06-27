@@ -106,6 +106,18 @@ class SelfRegistrationForm(FlaskForm):
     submit = SubmitField("Submit Registration")
 
 
+class ParentReportGateForm(FlaskForm):
+    verify_method = SelectField(
+        'Verification method',
+        choices=[('pin', 'Parent PIN'), ('phone', 'Phone last 4 digits')],
+        validators=[DataRequired()],
+        default='pin',
+    )
+    parent_pin = StringField('Parent PIN', validators=[Optional()])
+    phone_last4 = StringField('Last 4 digits of parent phone', validators=[Optional()])
+    submit = SubmitField('View Report Card')
+
+
 class RegisterStudentForm(FlaskForm):
     first_name = StringField("First Name", validators=[DataRequired()])
     last_name = StringField("Last Name", validators=[DataRequired()])
@@ -128,6 +140,16 @@ class RegisterStudentForm(FlaskForm):
         description="Leave blank to auto-generate for new students.",
     )
     parent_email = StringField("Parent Email", validators=[Optional(), Email()])
+    parent_phone = StringField(
+        "Parent/Guardian Phone",
+        validators=[Optional(), Length(max=20)],
+        description="Used for parent report QR verification (last 4 digits).",
+    )
+    parent_report_pin = StringField(
+        "Parent Report PIN",
+        validators=[Optional(), Length(min=4, max=6)],
+        description="4–6 digit PIN for scanning report QR without login. Leave blank to keep current.",
+    )
     photo = FileField("Photo", validators=[FileAllowed(["jpg", "png", "jpeg"], "Images only!")])
     klass = SelectField("Assign Class", coerce=optional_int_coerce, validators=[Optional()])
     academic_year = SelectField("Academic Year", coerce=optional_int_coerce, validators=[DataRequired()])

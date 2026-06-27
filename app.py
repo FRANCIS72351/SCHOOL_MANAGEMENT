@@ -19,6 +19,7 @@ from utils import (
 from io import BytesIO, StringIO
 from sqlalchemy import func, text, or_
 from werkzeug.utils import secure_filename
+from werkzeug.security import generate_password_hash, check_password_hash
 from models import Student, AcademicYear, Class, BusinessTransaction, StudentPayment, SchoolFee
 from decimal import Decimal, ROUND_HALF_UP
 from datetime import datetime, date, timezone, timedelta
@@ -54,7 +55,9 @@ from ocr_scanner import (
     parse_scan_keywords,
 )
 from student_scanner import (
+    build_parent_report_url,
     build_student_verify_url,
+    generate_parent_report_qr_code,
     generate_student_scanner_code,
     get_site_base_url,
 )
@@ -126,6 +129,135 @@ def build_student_qr_context(student):
         'qr_code_data_uri': generate_student_scanner_code(student),
         'student_verify_url': build_student_verify_url(student),
     }
+
+
+PARENT_REPORT_SESSION_HOURS = 2
+PARENT_REPORT_MAX_ATTEMPTS = 5
+
+
+def phone_digits_only(value):
+    return ''.join(ch for ch in str(value or '') if ch.isdigit())
+
+
+def ensure_parent_report_token(student):
+    """Assign a unique parent report QR token if missing."""
+    if not student:
+        return None
+    if student.parent_report_token:
+        return student.parent_report_token
+    while True:
+        token = secrets.token_urlsafe(48)
+        if not Student.query.filter_by(parent_report_token=token).first():
+            student.parent_report_token = token
+            return token
+
+
+def parent_phone_digits(student):
+    """Digits from parent_phone, linked parent user phone, or student portal phone."""
+    if not student:
+        return ''
+    for candidate in (
+        student.parent_phone,
+        getattr(getattr(student, 'parent_user', None), 'telephone_number', None),
+        getattr(getattr(student, 'user', None), 'telephone_number', None),
+    ):
+        digits = phone_digits_only(candidate)
+        if len(digits) >= 4:
+            return digits
+    return ''
+
+
+def parent_phone_last_four(student):
+    digits = parent_phone_digits(student)
+    return digits[-4:] if len(digits) >= 4 else ''
+
+
+def set_parent_report_pin(student, pin):
+    pin = (pin or '').strip()
+    if not pin:
+        return False
+    if not pin.isdigit() or not (4 <= len(pin) <= 6):
+        return False
+    student.parent_report_pin_hash = generate_password_hash(pin)
+    return True
+
+
+def verify_parent_report_pin(student, pin):
+    if not student or not student.parent_report_pin_hash:
+        return False
+    return check_password_hash(student.parent_report_pin_hash, (pin or '').strip())
+
+
+def verify_parent_phone_last4(student, last4):
+    expected = parent_phone_last_four(student)
+    entered = phone_digits_only(last4)
+    if len(expected) != 4 or len(entered) != 4:
+        return False
+    return entered == expected
+
+
+def parent_report_access_configured(student):
+    return bool(
+        student
+        and (
+            student.parent_report_pin_hash
+            or parent_phone_last_four(student)
+        )
+    )
+
+
+def grant_parent_report_access(student_id, year_id=None):
+    bucket = session.get('parent_report_access') or {}
+    bucket[str(student_id)] = {
+        'exp': (datetime.now(timezone.utc) + timedelta(hours=PARENT_REPORT_SESSION_HOURS)).timestamp(),
+        'year_id': year_id,
+    }
+    session['parent_report_access'] = bucket
+    session.modified = True
+
+
+def has_parent_report_access(student_id, year_id=None):
+    bucket = session.get('parent_report_access') or {}
+    entry = bucket.get(str(student_id))
+    if not entry:
+        return False
+    if entry.get('exp', 0) < datetime.now(timezone.utc).timestamp():
+        bucket.pop(str(student_id), None)
+        session['parent_report_access'] = bucket
+        session.modified = True
+        return False
+    if year_id is not None and entry.get('year_id') not in (None, year_id):
+        return False
+    return True
+
+
+def build_parent_report_qr_context(student, academic_year_id=None):
+    if not student:
+        return {
+            'parent_report_qr_data_uri': None,
+            'parent_report_url': None,
+            'parent_report_configured': False,
+            'parent_phone_last4_hint': None,
+        }
+    ensure_parent_report_token(student)
+    return {
+        'parent_report_qr_data_uri': generate_parent_report_qr_code(student, academic_year_id=academic_year_id),
+        'parent_report_url': build_parent_report_url(student, academic_year_id=academic_year_id),
+        'parent_report_configured': parent_report_access_configured(student),
+        'parent_phone_last4_hint': parent_phone_last_four(student) or None,
+    }
+
+
+def repair_parent_report_tokens():
+    missing = Student.query.filter(
+        or_(Student.parent_report_token.is_(None), Student.parent_report_token == '')
+    ).all()
+    for student in missing:
+        ensure_parent_report_token(student)
+    if missing:
+        db.session.commit()
+        return len(missing)
+    return 0
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 if BASE_DIR not in sys.path:
@@ -601,7 +733,7 @@ def get_attendance_visibility_scope(user):
     role = normalize_role(user)
     if role in ('admin', 'principal'):
         return ATTENDANCE_SCOPE_FULL
-    if role == 'registrar':
+    if role in ('registrar', 'dean'):
         return ATTENDANCE_SCOPE_READ
     if role in ('business', 'vpi', 'vpa'):
         return ATTENDANCE_SCOPE_SUMMARY
@@ -961,6 +1093,8 @@ def _attendance_overview_session_key(role):
         return PRINCIPAL_YEAR_SESSION_KEY
     if role == 'registrar':
         return REGISTRAR_YEAR_SESSION_KEY
+    if role == 'dean':
+        return DEAN_YEAR_SESSION_KEY
     if role == 'admin':
         return ADMIN_YEAR_SESSION_KEY
     return ATTENDANCE_YEAR_SESSION_KEY
@@ -3447,6 +3581,9 @@ def ensure_legacy_sqlite_schema():
             "is_registered": "BOOLEAN DEFAULT 1",
             "secure_qr_token": "VARCHAR(128)",
             "parent_id": "INTEGER",
+            "parent_phone": "VARCHAR(20)",
+            "parent_report_token": "VARCHAR(128)",
+            "parent_report_pin_hash": "VARCHAR(200)",
         },
         "student_payments": {
             "installment": "INTEGER",
@@ -3592,7 +3729,7 @@ from forms import (
     LoginForm, RegisterStudentForm, SelfRegistrationForm, PayrollForm, AcademicYearForm, RolloverWizardForm,
     AnnouncementForm, BusinessTransactionForm, AssignTeacherForm, CreateClassForm,
     EventForm, ConfirmDeleteForm, LeaderForm, EnrollmentForm, PaymentForm, TransactionForm,
-    DisciplineForm, RecordClassroomActivityForm,
+    DisciplineForm, RecordClassroomActivityForm, ParentReportGateForm,
 )
 from export_routes import init_export_routes
 #
@@ -3638,6 +3775,8 @@ def _system_hold_exempt_endpoints():
         'events_list', 'school_media_gallery', 'school_media_download',
         'admin_system_control', 'admin_system_activate', 'admin_system_deactivate',
         'student_enrollment', 'submit_registration', 'api_lookup_student',
+        'verify_student', 'verify_transcript', 'parent_report_gate', 'parent_report_view',
+        'download_report_card',
     }
 
 
@@ -3678,7 +3817,7 @@ def inject_nav_flags():
         settings = None
         system_is_active = True
     return {
-        "announcements_link": role_lower in {"admin", "teacher", "principal", "vpa"},
+        "announcements_link": role_lower in {"admin", "teacher", "principal", "vpa", "dean"},
         "can_manage_leaders": role_lower in {"admin", "principal"},
         "can_manage_events": role_lower in COMMUNICATIONS_MANAGER_ROLES,
         "can_manage_school_media": role_lower in SCHOOL_MEDIA_MANAGER_ROLES,
@@ -3784,6 +3923,8 @@ def login():
             log_incident('SUCCESSFUL_LOGIN')
             if (user.role or '').strip().lower() == 'teacher':
                 return redirect(url_for('teacher_dashboard'))
+            if normalize_role(user) == 'dean':
+                return redirect(url_for('dean_dashboard'))
             return redirect(url_for('dashboard'))
         
         track_failed_attempt(ip, form.email.data)
@@ -3899,7 +4040,7 @@ def dashboard():
     # Global template view model layer anchors
     years = all_academic_years()
     current_role = (current_user.role or "").lower()
-    announcements_link = current_role in {"admin", "principal"}
+    announcements_link = current_role in {"admin", "principal", "dean"}
 
     # ======================================================================
     # 1.5 SPECIALIZED FACULTY / INSTRUCTOR DIRECT ROUTING (EARLY DISPATCH)
@@ -5027,32 +5168,38 @@ def report_card(student_id):
     display_year = db.session.get(AcademicYear, year_id) if year_id else None
     data = build_report_card_structured_data(student, year_id)
 
-    return render_template('report_card.html', student=student, data=data, display_year=display_year)
+    return render_template(
+        'report_card.html',
+        student=student,
+        data=data,
+        display_year=display_year,
+        parent_qr_view=False,
+        **build_parent_report_qr_context(student, year_id),
+    )
 
 @app.route('/download-report-card/<int:student_id>')
-@login_required
 def download_report_card(student_id):
     student = Student.query.get_or_404(student_id)
     
     staff_roles = {'admin', 'teacher', 'registrar', 'principal', 'vpa', 'vpi', 'dean', 'business'}
-    user_role = (current_user.role or '').lower()
-    if (user_role not in staff_roles and 
-        student.user_id != current_user.id and 
-        (user_role != 'parent' or student.parent_email != current_user.email)):
-        abort(403)
-
-    if user_role == 'teacher':
-        teacher_profile = Teacher.query.filter_by(user_id=current_user.id).first()
-        if not teacher_profile or not teacher_can_access_student(teacher_profile, current_user, student):
-            abort(403)
-    
-    if not student.tuition_cleared and user_role not in {'admin', 'teacher', 'registrar', 'principal'}:
-        # flash('Report card access blocked due to outstanding tuition.', 'warning')
-        # abort(403)
-        pass
-    
     active_year = get_active_academic_year()
     year_id = request.args.get('academic_year_id', type=int) or (active_year.id if active_year else None)
+    parent_qr_access = has_parent_report_access(student.id, year_id)
+
+    if not parent_qr_access:
+        if not current_user.is_authenticated:
+            abort(403)
+        user_role = (current_user.role or '').lower()
+        if (user_role not in staff_roles and 
+            student.user_id != current_user.id and 
+            (user_role != 'parent' or student.parent_email != current_user.email)):
+            abort(403)
+        if user_role == 'teacher':
+            teacher_profile = Teacher.query.filter_by(user_id=current_user.id).first()
+            if not teacher_profile or not teacher_can_access_student(teacher_profile, current_user, student):
+                abort(403)
+        if not student.tuition_cleared and user_role not in {'admin', 'teacher', 'registrar', 'principal'}:
+            pass
 
     # Generate PDF
     from reportlab.lib import colors
@@ -5383,6 +5530,117 @@ def verify_student(token):
         registration_label=registration_label,
         verify_url=build_student_verify_url(student),
         class_display_name=format_student_class_name(student, year_id) if year_id else None,
+    )
+
+
+@app.route('/parent/report/<token>', methods=['GET', 'POST'])
+def parent_report_gate(token):
+    """Parent report access — verify with PIN or phone last 4, no dashboard login."""
+    token = (token or '').strip()
+    if not token:
+        abort(404)
+
+    student = Student.query.filter_by(parent_report_token=token).first()
+    if not student:
+        return render_template(
+            'parent_report_gate.html',
+            valid=False,
+            student=None,
+            form=ParentReportGateForm(),
+        )
+
+    ensure_parent_report_token(student)
+    if db.session.is_modified(student, include_collections=False):
+        db.session.commit()
+
+    active_year = get_active_academic_year()
+    year_id = request.args.get('academic_year_id', type=int) or (active_year.id if active_year else None)
+    display_year = db.session.get(AcademicYear, year_id) if year_id else None
+
+    if has_parent_report_access(student.id, year_id):
+        return redirect(url_for(
+            'parent_report_view',
+            token=token,
+            academic_year_id=year_id,
+        ))
+
+    form = ParentReportGateForm()
+    attempts_key = f'parent_report_attempts_{token}'
+    attempts = session.get(attempts_key, 0)
+
+    if request.method == 'POST' and form.validate_on_submit():
+        if attempts >= PARENT_REPORT_MAX_ATTEMPTS:
+            flash('Too many failed attempts. Please try again later or contact the school.', 'danger')
+        elif not parent_report_access_configured(student):
+            flash(
+                'Parent access is not configured yet. Ask the registrar to set a parent phone or report PIN.',
+                'warning',
+            )
+        else:
+            method = (request.form.get('verify_method') or form.verify_method.data or 'pin').strip()
+            verified = False
+            if method == 'phone':
+                verified = verify_parent_phone_last4(student, form.phone_last4.data)
+                if not verified:
+                    flash('Incorrect phone digits. Enter the last 4 digits of the parent phone on file.', 'danger')
+            else:
+                verified = verify_parent_report_pin(student, form.parent_pin.data)
+                if not verified:
+                    flash('Incorrect parent PIN. Check the PIN provided by the school.', 'danger')
+
+            if verified:
+                session.pop(attempts_key, None)
+                grant_parent_report_access(student.id, year_id)
+                return redirect(url_for(
+                    'parent_report_view',
+                    token=token,
+                    academic_year_id=year_id,
+                ))
+            session[attempts_key] = attempts + 1
+            session.modified = True
+
+    phone_hint = parent_phone_last_four(student)
+    return render_template(
+        'parent_report_gate.html',
+        valid=True,
+        student=student,
+        form=form,
+        display_year=display_year,
+        year_id=year_id,
+        phone_hint_available=bool(phone_hint),
+        pin_configured=bool(student.parent_report_pin_hash),
+        attempts_remaining=max(0, PARENT_REPORT_MAX_ATTEMPTS - attempts),
+    )
+
+
+@app.route('/parent/report/<token>/view', methods=['GET'])
+def parent_report_view(token):
+    """Read-only report card after parent QR verification."""
+    token = (token or '').strip()
+    student = Student.query.filter_by(parent_report_token=token).first()
+    if not student:
+        abort(404)
+
+    active_year = get_active_academic_year()
+    year_id = request.args.get('academic_year_id', type=int) or (active_year.id if active_year else None)
+    if not has_parent_report_access(student.id, year_id):
+        return redirect(url_for(
+            'parent_report_gate',
+            token=token,
+            academic_year_id=year_id,
+        ))
+
+    display_year = db.session.get(AcademicYear, year_id) if year_id else None
+    data = build_report_card_structured_data(student, year_id)
+
+    return render_template(
+        'report_card.html',
+        student=student,
+        data=data,
+        display_year=display_year,
+        parent_qr_view=True,
+        parent_report_token=token,
+        **build_parent_report_qr_context(student, year_id),
     )
 
 
@@ -7217,6 +7475,7 @@ def attendance_overview():
         'business': (url_for('dashboard'), 'Business Dashboard'),
         'vpi': (url_for('dashboard'), 'VPI Dashboard'),
         'vpa': (url_for('dashboard'), 'VPA Dashboard'),
+        'dean': (url_for('dean_dashboard'), 'Dean Dashboard'),
     }
     back_url, back_label = back_map.get(role, (url_for('dashboard'), 'Dashboard'))
     return render_attendance_overview(back_url, back_label, 'Attendance Overview')
@@ -7233,6 +7492,20 @@ def principal_attendance():
         url_for('principal_dashboard'),
         'Principal Dashboard',
         'Principal Attendance Overview',
+    )
+
+
+@app.route('/dean/attendance', methods=['GET'])
+@login_required
+def dean_attendance():
+    """Dean attendance & truancy oversight."""
+    if normalize_role(current_user) != 'dean':
+        flash('Access denied.', 'danger')
+        return redirect(url_for('dashboard'))
+    return render_attendance_overview(
+        url_for('dean_dashboard'),
+        'Dean Dashboard',
+        'Dean Attendance & Truancy Overview',
     )
 
 
@@ -7279,6 +7552,8 @@ def attendance_class_day_detail(class_id, date_str):
         back_url = url_for('principal_attendance', **request.args.to_dict())
     elif role == 'registrar':
         back_url = url_for('registrar_attendance', **request.args.to_dict())
+    elif role == 'dean':
+        back_url = url_for('dean_attendance', **request.args.to_dict())
     else:
         back_url = url_for('attendance_overview', **request.args.to_dict())
 
@@ -8247,18 +8522,19 @@ def teacher_download_submission(submission_id):
     return safe_send_upload_file(os.path.dirname(rel_path), os.path.basename(rel_path))
 # -------------------------- DISCIPLINE & SUSPENSION ---------------------------
 @app.route('/student/<int:student_id>/suspend', methods=['POST'])
-@role_required('Dean')
+@login_required
+@role_required('Dean', 'admin')
 def suspend_student(student_id):
     days = request.form.get('days', type=int)
     reason = request.form.get('reason')
     if not days or not reason:
         flash("Days and reason are required for suspension.", "danger")
-        return redirect(url_for('dashboard'))
+        return redirect(url_for('dean_dashboard'))
     
     msg = SchoolEngine.suspend_student(student_id, days, reason)
     log_security_event(f"Student {student_id} suspended. Reason: {reason}")
     flash(msg, "warning")
-    return redirect(url_for('dashboard'))
+    return redirect(url_for('dean_dashboard'))
 
 # -------------------------- CLASS MANAGEMENT ---------------------------
 
@@ -10631,6 +10907,7 @@ REGISTRAR_YEAR_SESSION_KEY = 'registrar_display_year_id'
 ADMIN_YEAR_SESSION_KEY = 'admin_display_year_id'
 PRINCIPAL_YEAR_SESSION_KEY = 'principal_display_year_id'
 BUSINESS_YEAR_SESSION_KEY = 'business_display_year_id'
+DEAN_YEAR_SESSION_KEY = 'dean_display_year_id'
 
 
 def all_academic_years():
@@ -10645,6 +10922,8 @@ def dashboard_year_session_key(role=None):
         return ADMIN_YEAR_SESSION_KEY
     if role == 'principal':
         return PRINCIPAL_YEAR_SESSION_KEY
+    if role == 'dean':
+        return DEAN_YEAR_SESSION_KEY
     if role in ('business', 'vpi'):
         return BUSINESS_YEAR_SESSION_KEY
     return REGISTRAR_YEAR_SESSION_KEY
@@ -10933,6 +11212,10 @@ def apply_student_form_to_record(student, form, *, registrar_name, registration_
     student.dob = form.dob.data
     student.gender = form.gender.data
     student.parent_email = (form.parent_email.data or '').strip() or None
+    student.parent_phone = (getattr(form, 'parent_phone', None) and (form.parent_phone.data or '').strip()) or None
+    if getattr(form, 'parent_report_pin', None) and (form.parent_report_pin.data or '').strip():
+        if not set_parent_report_pin(student, form.parent_report_pin.data):
+            raise ValueError('Parent report PIN must be 4–6 digits.')
     student.klass_id = klass_id
     student.academic_year_id = academic_year_id
     student.level = form.level.data
@@ -10955,6 +11238,7 @@ def apply_student_form_to_record(student, form, *, registrar_name, registration_
         student.student_id_code = student.student_id
 
     ensure_student_secure_qr_token(student)
+    ensure_parent_report_token(student)
     link_student_parent_account(student)
 
     return registration_fee_value, academic_year_id
@@ -11153,6 +11437,7 @@ def edit_student(student_id):
 
     student = Student.query.get_or_404(student_id)
     ensure_student_secure_qr_token(student)
+    ensure_parent_report_token(student)
     if db.session.is_modified(student, include_collections=False):
         db.session.commit()
     form = RegisterStudentForm(obj=student)
@@ -11170,6 +11455,7 @@ def edit_student(student_id):
             form.registration_fees.data = "0.00"
         if student.user and student.user.email:
             form.email.data = student.user.email
+        form.parent_phone.data = student.parent_phone
 
     if form.validate_on_submit():
         existing_student = Student.query.filter_by(student_id=form.student_id.data.strip()).first()
@@ -11177,11 +11463,23 @@ def edit_student(student_id):
             flash("That student ID is already assigned to another student.", "danger")
             return redirect(url_for('edit_student', student_id=student_id))
 
-        registration_fee_value, academic_year_id = apply_student_form_to_record(
-            student,
-            form,
-            registrar_name=current_user.full_name,
-        )
+        try:
+            registration_fee_value, academic_year_id = apply_student_form_to_record(
+                student,
+                form,
+                registrar_name=current_user.full_name,
+            )
+        except ValueError as exc:
+            flash(str(exc), 'danger')
+            return render_template(
+                'edit_student.html',
+                form=form,
+                student=student,
+                active_year=context.get('active_year'),
+                return_to=return_to,
+                **build_student_qr_context(student),
+                **build_parent_report_qr_context(student, student.academic_year_id),
+            )
 
         if form.photo.data and hasattr(form.photo.data, 'filename') and form.photo.data.filename:
             photo_file = form.photo.data
@@ -11224,6 +11522,11 @@ def edit_student(student_id):
 
         db.session.commit()
         flash(f"Student {student.full_name} has been updated.", "success")
+        if (form.parent_report_pin.data or '').strip():
+            flash(
+                "Parent report PIN saved. Share it with the guardian for QR report access.",
+                "info",
+            )
         if return_to == 'class_roster' and student.klass_id:
             return redirect(url_for(
                 'registrar_class_students',
@@ -11239,6 +11542,7 @@ def edit_student(student_id):
         active_year=context.get('active_year'),
         return_to=return_to,
         **build_student_qr_context(student),
+        **build_parent_report_qr_context(student, student.academic_year_id),
     )
 
 # =========================================================================
@@ -11598,7 +11902,7 @@ def subject_setup(class_id=None):
 @login_required
 def announcements():
     # 1. Secure case-insensitive executive gatekeeping
-    if current_user.role.lower() not in ["admin", "teacher", "principal", "vpa"]:
+    if current_user.role.lower() not in ["admin", "teacher", "principal", "vpa", "dean"]:
         flash("Unauthorized access to communications management.", "danger")
         return redirect(url_for('dashboard'))
 
@@ -12356,7 +12660,7 @@ def dean_dashboard():
     """Dean of Students — conduct, welfare, attendance, and campus oversight."""
     current_time = datetime.now(timezone.utc)
     display_year, active_year, years, viewing_archived = resolve_dashboard_academic_year(
-        session_key=REGISTRAR_YEAR_SESSION_KEY,
+        session_key=DEAN_YEAR_SESSION_KEY,
     )
     class_id = request.args.get('class_id', type=int)
     search_q = (request.args.get('q') or '').strip()
@@ -12539,6 +12843,47 @@ def process_suspension():
         flash(f'Could not save suspension: {e}', 'danger')
 
     return redirect(url_for('dean_dashboard', class_id=class_id, q=search_q or None))
+
+
+@app.route('/dean/suspension/reinstate', methods=['POST'])
+@login_required
+@role_required('Dean', 'admin')
+def dean_reinstate_student():
+    """Clear suspension and restore student to active status."""
+    student_id = request.form.get('student_id', type=int)
+    notes = (request.form.get('notes') or '').strip()
+    class_id = request.form.get('return_class_id', type=int)
+    search_q = (request.form.get('return_q') or '').strip()
+
+    if not student_id:
+        flash('Student is required.', 'danger')
+        return redirect(url_for('dean_dashboard'))
+
+    student = db.session.get(Student, student_id)
+    if not student:
+        flash('Student record not found.', 'danger')
+        return redirect(url_for('dean_dashboard'))
+
+    current_time = datetime.now(timezone.utc)
+    active_suspensions = Suspension.query.filter(
+        Suspension.student_id == student_id,
+        Suspension.return_date > current_time,
+    ).all()
+    for suspension in active_suspensions:
+        suspension.return_date = current_time
+
+    student.status = 'ACTIVE'
+    db.session.add(Discipline(
+        student_id=student_id,
+        offense='Suspension lifted / readmitted',
+        action_taken='Reinstated to active status',
+        notes=notes or None,
+        logged_by_id=current_user.id,
+    ))
+    db.session.commit()
+    flash(f'{student.full_name} has been reinstated and marked active.', 'success')
+    return redirect(url_for('dean_dashboard', class_id=class_id, q=search_q or None))
+
 
 # -------------------------- VPA DASHBOARD -------------------------------
 def _vpa_student_average(student, academic_year=None):
@@ -13221,6 +13566,9 @@ with app.app_context():
         repaired_qr = repair_student_qr_tokens()
         if repaired_qr:
             print(f"Student QR repair: issued secure verification tokens for {repaired_qr} student profile(s).")
+        repaired_parent_qr = repair_parent_report_tokens()
+        if repaired_parent_qr:
+            print(f"Parent report QR repair: issued tokens for {repaired_parent_qr} student profile(s).")
         synced = backfill_student_payments_to_income_ledger()
         if synced:
             print(f"Business ledger sync: posted {synced} historical student fee payment(s) as income.")

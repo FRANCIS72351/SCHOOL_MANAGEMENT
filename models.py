@@ -322,8 +322,11 @@ class Student(db.Model):
     dob = db.Column(db.Date, nullable=False)
     gender = db.Column(db.String(10), nullable=False)
     parent_email = db.Column(db.String(120), nullable=True)
+    parent_phone = db.Column(db.String(20), nullable=True)
     parent_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='SET NULL'), nullable=True)
     secure_qr_token = db.Column(db.String(128), unique=True, nullable=True, index=True)
+    parent_report_token = db.Column(db.String(128), unique=True, nullable=True, index=True)
+    parent_report_pin_hash = db.Column(db.String(200), nullable=True)
 
     photo = db.Column(db.String(200), nullable=True)
     photo_filename = db.Column(db.String(200), default='default_student.png')

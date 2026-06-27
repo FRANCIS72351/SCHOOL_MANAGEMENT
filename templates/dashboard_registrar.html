@@ -686,6 +686,16 @@
                                     <label class="text-white small mb-1">Parent / Guardian Email</label>
                                     {{ form.parent_email(class_='form-control form-cyber py-2', id='parentEmailField', placeholder='parent@email.com') }}
                                 </div>
+                                <div class="col-sm-6 col-md-4">
+                                    <label class="text-white small mb-1">Parent / Guardian Phone</label>
+                                    {{ form.parent_phone(class_='form-control form-cyber py-2', placeholder='+231 77 123 4567') }}
+                                    <div class="form-text text-muted small">For QR report access (last 4 digits).</div>
+                                </div>
+                                <div class="col-sm-6 col-md-4">
+                                    <label class="text-white small mb-1">Parent Report PIN</label>
+                                    {{ form.parent_report_pin(class_='form-control form-cyber py-2', placeholder='4–6 digits') }}
+                                    <div class="form-text text-muted small">Optional — for scanning report QR without login.</div>
+                                </div>
                             </div>
                         </div>
 

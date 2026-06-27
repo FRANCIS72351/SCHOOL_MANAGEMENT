@@ -179,7 +179,8 @@
                     <li><a class="dropdown-item dropdown-item-custom" href="{{ url_for('vpi_dashboard') }}"><i class="fas fa-book fa-sm mr-2"></i>VPI Dashboard</a></li>
                   {% endif %}
                   {% if user_role == "dean" %}
-                    <li><a class="dropdown-item dropdown-item-custom" href="{{ url_for('dean_dashboard') }}"><i class="fas fa-user-tie fa-sm mr-2"></i>Dean Dashboard</a></li>
+                    <li><a class="dropdown-item dropdown-item-custom font-weight-bold text-dark" href="{{ url_for('dean_dashboard') }}"><i class="fas fa-user-shield fa-sm mr-2 text-cyan"></i>Dean Command Center</a></li>
+                    <li><a class="dropdown-item dropdown-item-custom" href="{{ url_for('dean_attendance') }}"><i class="fas fa-clipboard-check fa-sm mr-2"></i>Attendance &amp; Truancy</a></li>
                   {% endif %}
                 </ul>
               </li>

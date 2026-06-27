@@ -79,6 +79,29 @@
     </div>
     {% endif %}
 
+    {% if parent_report_qr_data_uri %}
+    <div class="card sec-card p-4 mb-4">
+        <div class="row align-items-center g-4">
+            <div class="col-md-auto text-center">
+                <img src="{{ parent_report_qr_data_uri }}" alt="Parent report QR code" class="rounded" style="max-width: 140px; background: #fff; padding: 10px;">
+            </div>
+            <div class="col-md">
+                <h3 class="h6 text-white mb-2"><i class="fas fa-user-shield text-cyan me-2"></i>Parent Report QR</h3>
+                <p class="text-muted small mb-2">
+                    Print on the report card so parents can scan and view grades without logging in.
+                    They verify with the <strong>parent PIN</strong> or <strong>last 4 digits</strong> of the parent phone below.
+                </p>
+                {% if parent_report_url %}
+                <a href="{{ parent_report_url }}" class="btn btn-sm btn-outline-info" target="_blank" rel="noopener">Preview parent gate</a>
+                {% endif %}
+                {% if not parent_report_configured %}
+                <p class="text-warning small mb-0 mt-2"><i class="fas fa-exclamation-triangle me-1"></i>Add parent phone and/or set a report PIN before sharing.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <div class="card sec-card p-4">
         <form method="POST" enctype="multipart/form-data">
             {{ form.hidden_tag() }}
@@ -135,6 +158,16 @@
                 <div class="col-sm-6 col-md-4">
                     <label class="text-muted small mb-1">Parent/Guardian Email</label>
                     {{ form.parent_email(class_='form-control form-cyber py-2') }}
+                </div>
+                <div class="col-sm-6 col-md-4">
+                    <label class="text-muted small mb-1">Parent/Guardian Phone</label>
+                    {{ form.parent_phone(class_='form-control form-cyber py-2', placeholder='+231 77 123 4567') }}
+                    <div class="form-text text-muted small">Last 4 digits used for QR report access.</div>
+                </div>
+                <div class="col-sm-6 col-md-4">
+                    <label class="text-muted small mb-1">Parent Report PIN</label>
+                    {{ form.parent_report_pin(class_='form-control form-cyber py-2', placeholder='4–6 digits', autocomplete='new-password') }}
+                    <div class="form-text text-muted small">Leave blank to keep current PIN.</div>
                 </div>
                 <div class="col-sm-6 col-md-4">
                     <label class="text-muted small mb-1">Student Portal Email</label>

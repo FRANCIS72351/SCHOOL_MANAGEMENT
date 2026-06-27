@@ -34,6 +34,10 @@
         <a class="btn btn-primary btn-sm" href="{{ url_for('report_card', student_id=child.id) }}?academic_year_id={{ active_year.id if active_year else '' }}">Report Card</a>
         <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('transcript', student_id=child.id) }}">Transcript</a>
       </div>
+      <p class="text-muted small mt-2 mb-0">
+        <i class="fas fa-qrcode me-1"></i>
+        You can also scan the <strong>Parent Report QR</strong> on the printed report card — verify with your PIN or phone last 4 digits (no login required).
+      </p>
     </div>
   </div>
   {% endfor %}
