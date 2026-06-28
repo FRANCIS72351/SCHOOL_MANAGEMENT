@@ -7,7 +7,7 @@ There is no frontend build step; templates are server-rendered Jinja under `temp
 
 ### Environment
 - Python 3.12. Dependencies are installed into a `.venv` virtualenv by the startup update script. Prefix commands with `.venv/bin/` (e.g. `.venv/bin/python`, `.venv/bin/pytest`).
-- `Werkzeug` must stay `<2.3`: `requirements.txt` does not pin it, but `pip install -r requirements.txt` resolves to Werkzeug 3.x which breaks the pinned Flask 2.2.5 / Flask-WTF 1.1.1 (`werkzeug.urls.url_encode` was removed). The update script reinstalls `Werkzeug<2.3` after requirements; keep that constraint.
+- `Werkzeug` must stay `<2.3` (pinned to `2.2.3` in `requirements.txt`). Without the pin, `pip install -r requirements.txt` resolves to Werkzeug 3.x which breaks the pinned Flask 2.2.5 / Flask-WTF 1.1.1 (`werkzeug.urls.url_encode` was removed). The startup update script also reinstalls `Werkzeug<2.3` as a safety net; keep that constraint.
 - The app runs as development by default (no `.env` needed); it falls back to a SQLite DB at `instance/keeptrack_full.db` and a default dev secret. Do NOT set `FLASK_ENV=production`/`PRODUCTION=1` for local dev — production mode requires a real `SECRET_KEY` and forces secure cookies.
 
 ### Database (not in update script — run manually when needed)
