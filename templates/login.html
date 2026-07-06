@@ -42,7 +42,6 @@
     <img src="{{ url_for('static', filename='images/LOGO.png') }}" alt="Logo" class="logo">
 
     <h3 class="text-center mb-4">Login</h3>
-    <p class="text-center text-muted small mb-3">Students may sign in with their permanent <strong>Student ID</strong> or email address.</p>
 
     {% if system_on_hold %}
     <div class="alert alert-warning small py-2 mb-3">
@@ -63,8 +62,7 @@
 
       <div class="mb-3">
         {{ form.email.label(class_="form-label") }}
-        {{ form.email(class_="form-control", placeholder="Email or Student ID (e.g. 2526-00001)") }}
-        <div class="form-text">Staff: use your email. Students: email or permanent student ID.</div>
+        {{ form.email(class_="form-control", placeholder="Email or Student ID") }}
         {% for error in form.email.errors %}
           <div class="text-danger small">{{ error }}</div>
         {% endfor %}

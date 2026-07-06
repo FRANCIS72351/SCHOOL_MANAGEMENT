@@ -13,4 +13,7 @@ itsdangerous
 waitress
 flask-migrate
 pytesseract
+pyzbar
 gunicorn==22.0.0
+mutagen==1.47.0
+psycopg2-binary==2.9.9

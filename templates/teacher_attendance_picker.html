@@ -11,9 +11,12 @@
         <h2 class="text-white fw-bold mt-2 mb-1">
             <i class="bi bi-calendar-check text-cyan me-2"></i>Take Attendance
         </h2>
-        <p class="text-blue mb-0 small">
-            Select a class to open the attendance roll{% if active_year %} · {{ active_year.name }}{% endif %}
-        </p>
+        <p class="text-blue mb-2 small">Select a class to open today's attendance roll.</p>
+        {% if active_year %}
+        <span class="badge att-session-badge">
+            <i class="bi bi-mortarboard me-1"></i>Current Session: {{ active_year.name }}
+        </span>
+        {% endif %}
     </div>
 
     <div class="row g-3">
@@ -48,4 +51,16 @@
         {% endfor %}
     </div>
 </div>
+<style>
+    body { background: #0b0f19; }
+    .teacher-terminal .text-blue { color: #38bdf8 !important; }
+    .att-session-badge {
+        background: rgba(0, 242, 255, 0.12);
+        border: 1px solid rgba(0, 242, 255, 0.35);
+        color: #00f2ff;
+        font-size: 0.78rem;
+        font-weight: 600;
+        padding: 0.4rem 0.75rem;
+    }
+</style>
 {% endblock %}

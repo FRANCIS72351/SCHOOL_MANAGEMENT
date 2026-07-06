@@ -13,7 +13,7 @@
                 <i class="bi bi-calendar3-week text-cyan me-2"></i>{{ page_title }}
             </h2>
             <p class="text-blue mb-0 small">
-                {% if display_year %}{{ display_year.name }}{% else %}All years{% endif %}
+                {% if display_year %}{{ display_year.name }}{% if viewing_archived %} <span class="badge bg-warning text-dark">Archived</span>{% endif %}{% else %}All years{% endif %}
                 {% if read_only %} · <span class="text-warning">Read-only</span>{% endif %}
                 {% if scope == 'summary' %} · <span class="text-info">Summary only — no student drill-down</span>{% endif %}
             </p>

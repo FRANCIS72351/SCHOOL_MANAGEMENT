@@ -478,10 +478,16 @@
                        class="btn btn-cyber-primary btn-sm">
                         <i class="bi bi-lightning-charge me-1"></i>Quick Entry
                     </a>
-                    <a href="{{ url_for('manual_activity_grades', class_id=klass.id, subject=selected_subject, period=selected_period) }}"
+                    {% if ocr_available %}
+                    <a href="{{ url_for('activity_batch_scan', assessment_id=selected_assessment.id) }}"
                        class="btn btn-outline-light btn-sm">
-                        <i class="bi bi-arrow-left me-1"></i>All activities
+                        <i class="bi bi-upc-scan me-1"></i>Batch Scan
                     </a>
+                    <a href="{{ url_for('activity_detail', assessment_id=selected_assessment.id) }}"
+                       class="btn btn-outline-light btn-sm">
+                        <i class="bi bi-inbox me-1"></i>Submissions
+                    </a>
+                    {% endif %}
                 </div>
             </div>
         </div>

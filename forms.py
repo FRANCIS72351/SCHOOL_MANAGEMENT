@@ -49,6 +49,7 @@ class LeaderForm(FlaskForm):
 def validate_login_identifier(form, field):
     """Accept portal email or permanent student ID (e.g. 2526-00001)."""
     value = (field.data or '').strip()
+    field.data = value
     if not value:
         raise ValidationError('Email or Student ID is required.')
     if '@' in value:

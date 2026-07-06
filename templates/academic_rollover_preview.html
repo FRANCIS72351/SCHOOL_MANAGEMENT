@@ -111,8 +111,9 @@
         </div>
         <div class="col-6 col-md-3">
             <div class="stat-pill text-center">
-                <div class="text-muted small text-uppercase">Retained</div>
-                <div class="h3 text-amber mb-0">{{ preview.retained }}</div>
+                <div class="text-muted small text-uppercase">Did Not Pass</div>
+                <div class="h3 text-rose mb-0">{{ preview.failed }}</div>
+                <div class="small text-muted mt-1">Repeat same grade</div>
             </div>
         </div>
         <div class="col-6 col-md-3">
@@ -122,6 +123,15 @@
             </div>
         </div>
     </div>
+
+    {% if preview.failed %}
+    <div class="warning-banner text-rose mb-4">
+        <i class="fas fa-circle-xmark me-2"></i>
+        <strong>{{ preview.failed }} student{{ 's' if preview.failed != 1 else '' }}</strong>
+        did not meet the {{ preview.pass_score }}% promotion standard and will be marked
+        <strong>FAILED</strong> (repeat grade) during rollover.
+    </div>
+    {% endif %}
 
     <div class="sec-card mb-4">
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
@@ -153,7 +163,7 @@
             {% endif %}
             <button type="submit" class="btn btn-warning text-dark fw-semibold" id="rolloverExecuteBtn"
                 data-promoted="{{ preview.promoted }}"
-                data-retained="{{ preview.retained }}"
+                data-failed="{{ preview.failed }}"
                 data-graduated="{{ preview.graduated }}"
                 data-next="{{ preview.next_year_name }}"
                 data-repeat="{{ '1' if preview.already_rolled_today else '0' }}">
@@ -173,7 +183,7 @@
             'Execute academic year rollover?',
             '',
             'Promoted: ' + btn.dataset.promoted,
-            'Retained: ' + btn.dataset.retained,
+            'Did not pass: ' + btn.dataset.failed,
             'Graduated: ' + btn.dataset.graduated,
             'New year: ' + btn.dataset.next,
             '',

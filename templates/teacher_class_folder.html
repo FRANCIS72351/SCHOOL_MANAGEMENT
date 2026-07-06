@@ -10,11 +10,15 @@
             <h2 class="text-white fw-bold mt-2 mb-1">
                 <i class="bi bi-folder2-open text-cyan me-2"></i>{{ klass.name }}
             </h2>
-            <p class="text-blue mb-0 small">
+            <p class="text-blue mb-2 small">
                 Grade {{ klass.grade_level }}
                 {% if klass.stream %} &middot; {{ klass.stream }}{% endif %}
-                {% if active_year %} &middot; {{ active_year.name }}{% endif %}
             </p>
+            {% if active_year %}
+            <span class="badge att-session-badge">
+                <i class="bi bi-mortarboard me-1"></i>Current Session: {{ active_year.name }}
+            </span>
+            {% endif %}
         </div>
         <div class="d-flex flex-wrap gap-2">
             {% if is_sponsor %}
@@ -102,5 +106,13 @@
     .card-header { border-bottom: 1px solid rgba(0, 242, 255, 0.15); }
     .text-cyan { color: #00f2ff !important; }
     .border-cyber { border-color: rgba(0, 242, 255, 0.35) !important; }
+    .att-session-badge {
+        background: rgba(0, 242, 255, 0.12);
+        border: 1px solid rgba(0, 242, 255, 0.35);
+        color: #00f2ff;
+        font-size: 0.78rem;
+        font-weight: 600;
+        padding: 0.4rem 0.75rem;
+    }
 </style>
 {% endblock %}

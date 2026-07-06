@@ -259,8 +259,8 @@
             <iframe src="{{ youtube_embed_url(item.external_url) }}" title="{{ item.title }}" allowfullscreen></iframe>
           </div>
           {% elif item.media_type == 'video' and item.static_file_path %}
-          <video class="w-100" controls style="max-height:220px;">
-            <source src="{{ url_for('static', filename=item.static_file_path) }}">
+          <video class="school-media-video w-100" controls playsinline preload="metadata">
+            <source src="{{ url_for('static', filename=item.static_file_path) }}" type="{{ video_mime_type(item.static_file_path) }}">
           </video>
           {% else %}
           <div class="bg-light text-center py-5">
@@ -271,6 +271,9 @@
             <span class="badge bg-primary-subtle text-primary me-1">{{ item.media_type|title }}</span>
             <span class="badge bg-secondary-subtle text-secondary">{{ item.category|replace('_', ' ')|title }}</span>
             <h3 class="h6 fw-bold text-dark mt-2 mb-1">{{ item.title }}</h3>
+            {% if item.media_type == 'video' and item.duration_seconds %}
+            <p class="small text-muted mb-1"><i class="fas fa-clock me-1"></i>{{ format_video_duration(item.duration_seconds) }}</p>
+            {% endif %}
             {% if item.media_type == 'document' and item.static_file_path %}
             <a href="{{ url_for('school_media_download', item_id=item.id) }}" class="small fw-bold text-decoration-none">Download <i class="fas fa-download ms-1"></i></a>
             {% endif %}
@@ -325,6 +328,14 @@
   .text-slate-300 { color: #cbd5e1; }
   .text-slate-400 { color: #94a3b8; }
   .fw-extrabold { font-weight: 800; }
+
+  .school-media-video {
+    display: block;
+    width: 100%;
+    max-height: 360px;
+    background: #000;
+    object-fit: contain;
+  }
   
   /* Custom Hero Display Configurations */
   .hero-wrapper {

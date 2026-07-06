@@ -1004,6 +1004,93 @@
     min-height: 1.1rem;
 }
 
+/* Batch activity scanner */
+.batch-scan-page {
+    padding-bottom: 3rem;
+}
+.batch-scan-hero {
+    background: linear-gradient(135deg, #0c1222 0%, #0f2744 55%, #0c1929 100%);
+    border: 1px solid rgba(0, 242, 255, 0.25);
+    border-radius: 16px;
+    padding: 1.25rem 1.35rem;
+}
+.batch-scan-workflow {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(56, 189, 248, 0.2);
+    border-radius: 12px;
+    padding: 1rem 1.25rem;
+}
+.batch-scan-capture {
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid rgba(56, 189, 248, 0.2) !important;
+}
+.batch-drop-zone {
+    border: 2px dashed rgba(0, 242, 255, 0.35);
+    border-radius: 14px;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+}
+.batch-drop-zone:hover {
+    border-color: rgba(0, 242, 255, 0.65);
+    background: rgba(0, 242, 255, 0.04);
+}
+.batch-results-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+.batch-result-card {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 12px;
+    padding: 1rem 1.1rem;
+}
+.batch-result-card.matched {
+    border-color: rgba(34, 197, 94, 0.35);
+}
+.batch-result-card.unmatched {
+    border-color: rgba(251, 191, 36, 0.35);
+}
+.batch-roster-details {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(56, 189, 248, 0.15);
+    border-radius: 12px;
+    padding: 0.75rem 1rem;
+}
+.batch-roster-summary {
+    cursor: pointer;
+    font-weight: 600;
+    color: #e2e8f0;
+    list-style: none;
+}
+.batch-roster-summary::-webkit-details-marker {
+    display: none;
+}
+.batch-roster-chip {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    border-radius: 10px;
+    background: rgba(15, 23, 42, 0.5);
+    border: 1px solid rgba(148, 163, 184, 0.15);
+    height: 100%;
+}
+.batch-roster-qr {
+    background: #fff;
+    border-radius: 6px;
+    padding: 2px;
+    flex-shrink: 0;
+}
+.batch-roster-meta {
+    min-width: 0;
+}
+.scan-code-label {
+    font-size: 0.62rem;
+    word-break: break-all;
+    color: #7dd3fc;
+}
+
 /* Manual activity grade entry (teacher-terminal) */
 .manual-activity-grades-page {
     max-width: 1140px;

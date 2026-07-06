@@ -12,10 +12,14 @@
             <h2 class="text-white fw-bold mt-2 mb-1">
                 <i class="bi bi-calendar-check text-cyan me-2"></i>Class Attendance
             </h2>
-            <p class="text-blue mb-0 small">
+            <p class="text-blue mb-2 small">
                 {{ klass.name }} · Grade {{ klass.grade_level }}{% if klass.stream %} · {{ klass.stream }}{% endif %}
-                {% if active_year %} · {{ active_year.name }}{% endif %}
             </p>
+            {% if active_year %}
+            <span class="badge att-session-badge">
+                <i class="bi bi-mortarboard me-1"></i>Current Session: {{ active_year.name }}
+            </span>
+            {% endif %}
         </div>
         <div class="d-flex flex-wrap gap-2">
             <a href="{{ url_for('teacher_class_folder', class_id=klass.id) }}" class="btn btn-cyber-sm btn-sm">
@@ -75,9 +79,9 @@
             <div class="att-card">
                 <div class="att-card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
                     <h5 class="mb-0 text-white"><i class="bi bi-clipboard-check me-2 text-cyan"></i>Attendance Roll</h5>
-                    <form method="GET" action="{{ url_for('teacher_class_attendance', class_id=klass.id) }}" class="d-flex gap-2 align-items-center">
-                        <label class="text-blue small mb-0">Date</label>
-                        <input type="date" name="date" value="{{ attendance_date }}" class="form-control form-control-sm form-cyber att-date-input" onchange="this.form.submit()">
+                    <form method="GET" action="{{ url_for('teacher_class_attendance', class_id=klass.id) }}" class="d-flex gap-2 align-items-center att-date-form">
+                        <label class="text-blue small mb-0 fw-semibold" for="attDatePicker">Session Date</label>
+                        <input type="date" id="attDatePicker" name="date" value="{{ attendance_date }}" class="form-control form-control-sm form-cyber att-date-input" onchange="this.form.submit()">
                     </form>
                 </div>
                 <div class="att-card-body p-0">
@@ -323,6 +327,16 @@
         font-size: 0.85rem;
     }
     .att-date-input { max-width: 11rem; }
+    .att-session-badge {
+        background: rgba(0, 242, 255, 0.12);
+        border: 1px solid rgba(0, 242, 255, 0.35);
+        color: #00f2ff;
+        font-size: 0.78rem;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        padding: 0.4rem 0.75rem;
+    }
+    .att-date-form label { white-space: nowrap; }
     .att-status-group {
         display: flex;
         flex-wrap: wrap;

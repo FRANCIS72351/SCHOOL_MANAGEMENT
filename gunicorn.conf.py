@@ -2,7 +2,12 @@
 import multiprocessing
 import os
 
-bind = os.environ.get('GUNICORN_BIND', '127.0.0.1:8000')
+_default_bind = (
+    '0.0.0.0:8000'
+    if os.environ.get('DOCKER', '').lower() in ('1', 'true', 'yes')
+    else '127.0.0.1:8000'
+)
+bind = os.environ.get('GUNICORN_BIND', _default_bind)
 
 # SQLite works best with a single worker; use more workers only with PostgreSQL.
 _db_url = os.environ.get('DATABASE_URL', '')

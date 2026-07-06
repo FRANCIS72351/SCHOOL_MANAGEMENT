@@ -168,7 +168,16 @@
                 </a>
                 <ul class="dropdown-menu dropdown-menu-end dropdown-menu-custom border-0" aria-labelledby="dashboardDropdown">
                   <li><a class="dropdown-item dropdown-item-custom" href="{{ url_for('dashboard') }}"><i class="fas fa-user-shield fa-sm mr-2"></i>General Dashboard</a></li>
+                  {% if user_role == "admin" %}
+                    <li><a class="dropdown-item dropdown-item-custom font-weight-bold text-dark" href="{{ url_for('business_dashboard') }}"><i class="fas fa-coins fa-sm mr-2 text-success"></i>Business Office</a></li>
+                  {% endif %}
+                  {% if user_role == "business" %}
+                    <li><a class="dropdown-item dropdown-item-custom font-weight-bold text-dark" href="{{ url_for('business_dashboard') }}"><i class="fas fa-coins fa-sm mr-2 text-success"></i>Business Office</a></li>
+                  {% endif %}
                   
+                  {% if user_role == "teacher" %}
+                    <li><a class="dropdown-item dropdown-item-custom font-weight-bold text-dark" href="{{ url_for('teacher_dashboard') }}"><i class="fas fa-chalkboard-teacher fa-sm mr-2 text-primary"></i>Teacher Dashboard</a></li>
+                  {% endif %}
                   {% if user_role == "principal" %}
                     <li><a class="dropdown-item dropdown-item-custom font-weight-bold text-dark" href="{{ url_for('principal_dashboard') }}"><i class="fas fa-crown fa-sm mr-2 text-warning"></i>Principal Portal</a></li>
                   {% endif %}

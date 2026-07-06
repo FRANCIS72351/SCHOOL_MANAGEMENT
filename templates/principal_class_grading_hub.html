@@ -1,0 +1,334 @@
+{% extends 'base.html' %}
+{% block title %}Principal Grade Entry — {{ klass.name }}{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/grading_hub.css') }}">
+
+<style>
+    body { background-color: #0b0f19; color: #e2e8f0; }
+    .principal-grading-hub { max-width: 1140px; margin: 0 auto; padding: 1.5rem 1rem 3rem; }
+    .text-cyan { color: #00f2ff !important; }
+    .text-emerald { color: #10b981 !important; }
+    .text-amber { color: #f59e0b !important; }
+    .text-rose { color: #f43f5e !important; }
+    .glow-title { font-weight: 700; color: #fff; }
+    .form-cyber {
+        background-color: #070a12 !important;
+        border: 1px solid #374151 !important;
+        color: #fff !important;
+        border-radius: 8px !important;
+    }
+    .form-cyber:focus { border-color: #00f2ff !important; }
+    .principal-backup-banner {
+        background: linear-gradient(135deg, rgba(120, 53, 15, 0.35), rgba(30, 58, 95, 0.5));
+        border: 1px solid rgba(245, 158, 11, 0.35);
+        border-radius: 14px;
+        padding: 1rem 1.25rem;
+        margin-bottom: 1.25rem;
+    }
+    .faculty-roster-panel {
+        background: #f8fafc;
+        border: 1px solid #cbd5e1;
+        border-radius: 12px;
+        padding: 1rem 1.25rem;
+        margin-bottom: 1.25rem;
+    }
+    .faculty-roster-panel h6 {
+        color: #1e3a8a !important;
+        font-weight: 700;
+    }
+    .faculty-roster-panel th {
+        color: #1d4ed8 !important;
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        border-color: #e2e8f0 !important;
+        background: #eff6ff;
+    }
+    .faculty-roster-panel td {
+        font-size: 0.9rem;
+        border-color: #e2e8f0 !important;
+        vertical-align: middle;
+    }
+    .faculty-roster-panel .faculty-subject {
+        color: #1d4ed8 !important;
+        font-weight: 600;
+    }
+    .faculty-roster-panel .faculty-teacher {
+        color: #0f172a !important;
+        font-weight: 500;
+    }
+    .faculty-roster-panel tbody tr:hover {
+        background: #eff6ff;
+    }
+    .hub-moe-table thead th { font-size: 0.72rem; text-transform: uppercase; }
+    .hub-score-input { width: 80px; text-align: center; font-family: monospace; font-weight: 600; }
+    .attribution-badge {
+        font-size: 0.62rem;
+        padding: 0.15rem 0.4rem;
+        border-radius: 4px;
+        background: rgba(245, 158, 11, 0.15);
+        border: 1px solid rgba(245, 158, 11, 0.3);
+        color: #f59e0b;
+        white-space: nowrap;
+    }
+    @media (max-width: 576px) {
+        .hub-score-input { width: 64px; font-size: 0.8rem; }
+        .principal-grading-hub { padding: 1rem 0.5rem 2rem; }
+    }
+</style>
+
+<div class="principal-grading-hub principal-terminal">
+    <div class="hub-header mb-3">
+        <a href="{{ url_for('principal_grade_entry') }}" class="small text-decoration-none text-cyan d-inline-block mb-2">
+            <i class="fas fa-arrow-left me-1"></i>All Classes
+        </a>
+        {% if active_year %}
+        <div class="alert bg-dark border border-cyan border-opacity-25 text-white mb-3 py-2 px-3 rounded-3 d-flex flex-wrap align-items-center gap-2" role="status">
+            <i class="fas fa-calendar-check text-cyan"></i>
+            <span>Academic Year: <strong class="text-cyan">{{ active_year.name }}</strong></span>
+            <span class="badge bg-warning bg-opacity-10 text-amber border border-warning border-opacity-25 small">
+                <i class="fas fa-shield-halved me-1"></i>Principal Entry Mode
+            </span>
+        </div>
+        {% endif %}
+        <h1 class="h4 glow-title mb-1">
+            <i class="fas fa-pen-to-square text-amber me-2"></i>Principal Grade Entry
+        </h1>
+        <p class="text-white small mb-0" style="opacity:0.8;">
+            {{ klass.name }} · Grade {{ klass.grade_level }}{% if klass.stream %} · {{ klass.stream }}{% endif %}
+        </p>
+    </div>
+
+    <div class="principal-backup-banner text-white">
+        <div class="d-flex flex-wrap align-items-start gap-3">
+            <i class="fas fa-triangle-exclamation text-amber fa-lg mt-1"></i>
+            <div class="flex-grow-1">
+                <strong class="text-amber d-block mb-1">Backup Grade Entry — Use When Teacher Is Unavailable</strong>
+                <p class="small mb-0" style="opacity:0.9;">
+                    You are entering grades on behalf of the class faculty roster.
+                    Scores use the same MoE model (CA 60 + Exam 40) and flow to report cards when published.
+                    All saves are attributed to your principal account for audit purposes.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    {% if allocations %}
+    <div class="faculty-roster-panel">
+        <h6 class="fw-bold mb-2"><i class="fas fa-chalkboard-teacher text-primary me-2"></i>Faculty Roster</h6>
+        <div class="table-responsive">
+            <table class="table table-sm mb-0 faculty-roster-table">
+                <thead>
+                    <tr>
+                        <th>Subject</th>
+                        <th>Assigned Teacher</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in allocations %}
+                    <tr class="{% if selected_subject == row.subject %}table-primary{% endif %}">
+                        <td class="faculty-subject">{{ row.subject }}</td>
+                        <td class="faculty-teacher">{{ row.teacher_name }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="card border-secondary border-opacity-25 bg-dark mb-4">
+        <div class="card-body">
+            {% if subjects %}
+            <form method="GET" action="{{ url_for('principal_class_grading', class_id=klass.id) }}" class="row g-3 align-items-end">
+                <div class="col-sm-5">
+                    <label for="pge_subject" class="form-label small fw-semibold text-white">Subject</label>
+                    <select id="pge_subject" name="subject" class="form-select form-select-sm form-cyber" onchange="this.form.submit()">
+                        {% for subject in subjects %}
+                        <option value="{{ subject }}" {% if subject == selected_subject %}selected{% endif %}>{{ subject }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-sm-5">
+                    <label for="pge_period" class="form-label small fw-semibold text-white">Marking Period</label>
+                    <select id="pge_period" name="period" class="form-select form-select-sm form-cyber" onchange="this.form.submit()">
+                        {% for period_num, period_name in grading_periods %}
+                        <option value="{{ period_num }}" {% if period_num == selected_period %}selected{% endif %}>{{ period_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-sm-2">
+                    <span class="badge bg-secondary w-100 py-2 text-center d-block">
+                        {{ students|length }} students
+                    </span>
+                </div>
+            </form>
+            {% if selected_subject and subject_teacher %}
+            <p class="small text-white mt-3 mb-0" style="opacity:0.75;">
+                <i class="fas fa-user text-cyan me-1"></i>
+                Assigned teacher for <strong>{{ selected_subject }}</strong>: {{ subject_teacher.full_name }}
+            </p>
+            {% elif selected_subject %}
+            <p class="small text-amber mt-3 mb-0">
+                <i class="fas fa-exclamation-circle me-1"></i>No teacher assigned for {{ selected_subject }} — grades will be recorded without faculty link.
+            </p>
+            {% endif %}
+            {% else %}
+            <div class="alert alert-warning mb-0">No subjects configured for this class. Use Subject Setup first.</div>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if subjects and students %}
+    <div class="grading-workflow-banner mb-4" style="background: linear-gradient(135deg, #1a1a2e, #16213e); border-color: rgba(245,158,11,0.3);">
+        <strong class="text-white d-block mb-2">{{ selected_subject }} · {{ period_label }}</strong>
+        <ol class="workflow-steps">
+            <li><span class="step-num">1</span> Enter CA (max 60) and Exam (max 40) per student</li>
+            <li><span class="step-num">2</span> Save as draft to review, or publish to report cards</li>
+            <li><span class="step-num">3</span> Teacher can update later if they regain access</li>
+        </ol>
+    </div>
+
+    <form method="POST" id="principalMoeForm" action="{{ url_for('principal_save_grades', class_id=klass.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="subject" value="{{ selected_subject }}">
+        <input type="hidden" name="period" value="{{ selected_period }}">
+
+        <div class="card border-secondary border-opacity-25 bg-dark overflow-hidden">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0 hub-moe-table text-white">
+                    <thead class="table-dark">
+                        <tr>
+                            <th class="ps-3">#</th>
+                            <th>Student</th>
+                            <th class="text-center d-none d-sm-table-cell">ID</th>
+                            {% if is_semester_exam %}
+                            <th class="text-center">Exam (100)</th>
+                            {% else %}
+                            <th class="text-center">CA (60)</th>
+                            <th class="text-center">Exam (40)</th>
+                            <th class="text-center d-none d-md-table-cell">Total</th>
+                            {% endif %}
+                            <th class="text-center">Grade</th>
+                            <th class="pe-3">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for student in students %}
+                        {% set existing = grade_rows.get(student.id) %}
+                        {% set attribution = grade_entry_attribution(existing) if existing else none %}
+                        <tr>
+                            <td class="ps-3 text-muted">{{ loop.index }}</td>
+                            <td>
+                                <div class="fw-semibold">{{ student.full_name }}</div>
+                                <div class="small text-muted d-sm-none font-monospace">{{ student.student_id }}</div>
+                            </td>
+                            <td class="text-center font-monospace small d-none d-sm-table-cell">{{ student.student_id }}</td>
+                            {% if is_semester_exam %}
+                            <td class="text-center">
+                                <input type="number" step="0.1" min="0" max="100" name="exam_{{ student.id }}"
+                                       value="{{ existing.score if existing and existing.score is not none else '' }}"
+                                       class="form-control form-control-sm hub-score-input mx-auto bg-dark text-white border-secondary">
+                            </td>
+                            {% set total = existing.score if existing else none %}
+                            {% else %}
+                            <td class="text-center">
+                                <input type="number" step="0.1" min="0" max="60" name="ca_{{ student.id }}"
+                                       value="{{ existing.ca_score if existing and existing.ca_score is not none else '' }}"
+                                       class="form-control form-control-sm hub-score-input mx-auto bg-dark text-white border-secondary hub-ca-input" data-student="{{ student.id }}">
+                            </td>
+                            <td class="text-center">
+                                <input type="number" step="0.1" min="0" max="40" name="exam_{{ student.id }}"
+                                       value="{{ existing.exam_score if existing and existing.exam_score is not none else '' }}"
+                                       class="form-control form-control-sm hub-score-input mx-auto bg-dark text-white border-secondary hub-exam-input" data-student="{{ student.id }}">
+                            </td>
+                            <td class="text-center d-none d-md-table-cell">
+                                <span id="hub_total_{{ student.id }}" class="badge bg-secondary font-monospace">
+                                    {% if existing and existing.score is not none %}{{ '%.1f'|format(existing.score) }}{% else %}--{% endif %}
+                                </span>
+                            </td>
+                            {% set total = existing.score if existing else none %}
+                            {% endif %}
+                            <td class="text-center fw-bold hub-grade-letter">
+                                {% if total is not none and total != '' %}{{ total | grade_letter }}{% else %}--{% endif %}
+                            </td>
+                            <td class="pe-3 small">
+                                {% if existing and existing.submitted %}
+                                <span class="badge bg-success">Published</span>
+                                {% elif existing %}
+                                <span class="badge bg-warning text-dark">Draft</span>
+                                {% else %}
+                                <span class="badge bg-secondary">—</span>
+                                {% endif %}
+                                {% if attribution %}
+                                <div class="attribution-badge mt-1" title="Entry attribution">{{ attribution }}</div>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mt-4">
+            <p class="small text-white mb-0" style="opacity:0.7;">MoE: CA max 60 + Exam max 40 = 100</p>
+            <div class="d-flex flex-wrap gap-2 align-items-center">
+                <button type="submit" name="publish_action" value="draft" class="btn btn-outline-light px-3 px-sm-4">
+                    <i class="fas fa-save me-1"></i>Save Draft
+                </button>
+                <button type="submit" name="publish_action" value="publish" class="btn btn-primary px-3 px-sm-4">
+                    <i class="fas fa-megaphone me-1"></i>Publish
+                </button>
+            </div>
+        </div>
+    </form>
+
+    {% if publish_stats.draft > 0 %}
+    <form method="POST" action="{{ url_for('principal_publish_period_grades', class_id=klass.id) }}" class="d-flex justify-content-end mt-2"
+          onsubmit="return confirm('Publish {{ publish_stats.draft }} draft grade(s) for {{ selected_subject }} · {{ period_label }}?');">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="subject" value="{{ selected_subject }}">
+        <input type="hidden" name="period" value="{{ selected_period }}">
+        <button type="submit" class="btn btn-success btn-sm px-3">
+            <i class="fas fa-megaphone me-1"></i>Publish {{ publish_stats.draft }} Draft{{ 's' if publish_stats.draft != 1 else '' }} (without re-saving)
+        </button>
+    </form>
+    {% endif %}
+    {% elif subjects %}
+    <div class="alert alert-info bg-dark border-info text-white">No students enrolled in this class for the active year.</div>
+    {% endif %}
+</div>
+
+{% if not is_semester_exam and students %}
+<script>
+document.addEventListener('input', function(e) {
+    if (!e.target.classList.contains('hub-ca-input') && !e.target.classList.contains('hub-exam-input')) return;
+    const sid = e.target.dataset.student;
+    const caEl = document.querySelector(`input[name="ca_${sid}"]`);
+    const examEl = document.querySelector(`input[name="exam_${sid}"]`);
+    const badge = document.getElementById(`hub_total_${sid}`);
+    const row = e.target.closest('tr');
+    const gradeCell = row.querySelector('.hub-grade-letter');
+    const ca = parseFloat(caEl.value) || 0;
+    const exam = parseFloat(examEl.value) || 0;
+    if (caEl.value === '' && examEl.value === '') {
+        if (badge) badge.textContent = '--';
+        gradeCell.textContent = '--';
+        return;
+    }
+    if (ca > 60 || exam > 40) {
+        if (badge) { badge.textContent = 'Err'; badge.className = 'badge bg-danger'; }
+        gradeCell.textContent = '--';
+        return;
+    }
+    const total = ca + exam;
+    if (badge) {
+        badge.textContent = total.toFixed(1);
+        badge.className = 'badge bg-secondary font-monospace';
+    }
+    gradeCell.textContent = total >= 90 ? 'A' : total >= 80 ? 'B' : total >= 70 ? 'C' : total >= 60 ? 'D' : 'F';
+});
+</script>
+{% endif %}
+{% endblock %}

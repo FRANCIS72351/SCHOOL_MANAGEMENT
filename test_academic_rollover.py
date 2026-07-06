@@ -5,6 +5,7 @@ from datetime import date
 from app import (
     app,
     check_promotion_criteria,
+    evaluate_promotion_criteria,
     execute_academic_rollover,
     get_class_registration_fee,
     preview_moe_academic_rollover,
@@ -131,6 +132,27 @@ class AcademicRolloverTestCase(unittest.TestCase):
             year = db.session.get(AcademicYear, self.year_id)
             self.assertTrue(check_promotion_criteria(student, year))
 
+    def test_failing_student_preview_counts_failed(self):
+        with self.app.app_context():
+            student = db.session.get(Student, self.student_id)
+            year = db.session.get(AcademicYear, self.year_id)
+
+            Grade.query.filter_by(student_id=student.id).update(
+                {Grade.score: 55},
+                synchronize_session=False,
+            )
+            db.session.commit()
+
+            evaluation = evaluate_promotion_criteria(student, year)
+            self.assertFalse(evaluation['passed'])
+            self.assertLess(evaluation['final_average'], promotion_pass_score())
+
+            preview = preview_moe_academic_rollover(year)
+            self.assertEqual(preview['failed'], 1)
+            self.assertEqual(preview['promoted'], 0)
+            self.assertEqual(preview['graduated'], 0)
+            self.assertEqual(preview['retained'], 1)
+
     def test_preview_page_requires_login(self):
         response = self.client.get('/admin/academic-rollover')
         self.assertIn(response.status_code, (302, 401))
@@ -139,7 +161,7 @@ class AcademicRolloverTestCase(unittest.TestCase):
         self.login()
         response = self.client.get('/admin/academic-rollover')
         self.assertEqual(response.status_code, 200)
-        self.assertIn(b'Promoted', response.data)
+        self.assertIn(b'Did Not Pass', response.data)
         self.assertIn(b'Execute Rollover', response.data)
 
     def test_preview_post_json(self):

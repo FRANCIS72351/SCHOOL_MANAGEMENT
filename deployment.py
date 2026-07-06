@@ -13,6 +13,11 @@ def is_production():
     )
 
 
+def is_container():
+    """True when running inside Docker / ECS / App Runner / EB container."""
+    return os.environ.get('DOCKER', '').lower() in ('1', 'true', 'yes')
+
+
 def configure_app(app):
     """Apply environment-aware settings for VPS / Linux deployment."""
     prod = is_production()
@@ -43,15 +48,23 @@ def configure_app(app):
         )
 
     max_mb = int(os.environ.get('MAX_UPLOAD_MB', '16'))
+    video_max_mb = int(os.environ.get('SCHOOL_VIDEO_MAX_MB', '150'))
     site_url = (os.environ.get('SITE_URL') or '').strip().rstrip('/')
     if site_url:
         app.config['SITE_URL'] = site_url
-    app.config['MAX_CONTENT_LENGTH'] = max_mb * 1024 * 1024
+    app.config['MAX_CONTENT_LENGTH'] = max(max_mb, video_max_mb) * 1024 * 1024
 
-    bind_host = os.environ.get('BIND_HOST', '127.0.0.1')
+    default_bind_host = '0.0.0.0' if is_container() else '127.0.0.1'
+    bind_host = os.environ.get('BIND_HOST', default_bind_host)
     bind_port = int(os.environ.get('PORT', '8000'))
     app.config['BIND_HOST'] = bind_host
     app.config['BIND_PORT'] = bind_port
+
+    if prod and not (os.environ.get('SITE_URL') or '').strip():
+        app.logger.warning(
+            'SITE_URL is not set. Parent report-card QR codes and student ID links '
+            'may not work on phones until you set SITE_URL to your public HTTPS address.'
+        )
 
 
 def configure_sqlite_performance(app, db):

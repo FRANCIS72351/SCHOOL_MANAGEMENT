@@ -14,7 +14,7 @@
             </h2>
             <p class="text-blue mb-0 small">
                 {{ date_label }}
-                {% if display_year %} · {{ display_year.name }}{% endif %}
+                {% if display_year %} · {{ display_year.name }}{% if viewing_archived %} <span class="badge bg-warning text-dark">Archived</span>{% endif %}{% endif %}
                 {% if read_only %} · <span class="text-warning">Read-only</span>{% endif %}
             </p>
         </div>
@@ -74,6 +74,9 @@
                             <td>
                                 <div class="fw-semibold text-white">{{ row.student.full_name }}</div>
                                 <small class="text-blue">{{ row.student.student_id or row.student.id }}</small>
+                                {% if viewing_archived and row.student.status in ('ALUMNI', 'GRADUATED') %}
+                                <span class="badge bg-secondary ms-1" style="font-size:0.6rem;">{{ row.student.status|title }}</span>
+                                {% endif %}
                             </td>
                             <td>
                                 {% if row.status == 'present' %}

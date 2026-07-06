@@ -55,52 +55,12 @@
                 <i class="fas fa-arrow-left me-1"></i>Back to Class Roster
             </a>
             {% else %}
-            <a href="{{ url_for('dashboard', _anchor='student-enrollment') }}" class="btn btn-sm btn-outline-secondary text-white-50">
+            <a href="{{ url_for('register_student') }}" class="btn btn-sm btn-outline-secondary text-white-50">
                 <i class="fas fa-arrow-left me-1"></i>Back to Registrar Dashboard
             </a>
             {% endif %}
         </div>
     </div>
-
-    {% if qr_code_data_uri %}
-    <div class="card sec-card p-4 mb-4">
-        <div class="row align-items-center g-4">
-            <div class="col-md-auto text-center">
-                <img src="{{ qr_code_data_uri }}" alt="Student QR verification code" class="rounded" style="max-width: 140px; background: #fff; padding: 10px;">
-            </div>
-            <div class="col-md">
-                <h3 class="h6 text-white mb-2"><i class="fas fa-qrcode text-cyan me-2"></i>Secure Verification QR</h3>
-                <p class="text-muted small mb-2">Permanent student code <strong class="text-white">{{ student.student_code }}</strong> — print on ID card. Scanning opens the official verification page (no private data exposed).</p>
-                {% if student_verify_url %}
-                <a href="{{ student_verify_url }}" class="btn btn-sm btn-outline-info" target="_blank" rel="noopener">Preview verification page</a>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-    {% endif %}
-
-    {% if parent_report_qr_data_uri %}
-    <div class="card sec-card p-4 mb-4">
-        <div class="row align-items-center g-4">
-            <div class="col-md-auto text-center">
-                <img src="{{ parent_report_qr_data_uri }}" alt="Parent report QR code" class="rounded" style="max-width: 140px; background: #fff; padding: 10px;">
-            </div>
-            <div class="col-md">
-                <h3 class="h6 text-white mb-2"><i class="fas fa-user-shield text-cyan me-2"></i>Parent Report QR</h3>
-                <p class="text-muted small mb-2">
-                    Print on the report card so parents can scan and view grades without logging in.
-                    They verify with the <strong>parent PIN</strong> or <strong>last 4 digits</strong> of the parent phone below.
-                </p>
-                {% if parent_report_url %}
-                <a href="{{ parent_report_url }}" class="btn btn-sm btn-outline-info" target="_blank" rel="noopener">Preview parent gate</a>
-                {% endif %}
-                {% if not parent_report_configured %}
-                <p class="text-warning small mb-0 mt-2"><i class="fas fa-exclamation-triangle me-1"></i>Add parent phone and/or set a report PIN before sharing.</p>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-    {% endif %}
 
     <div class="card sec-card p-4">
         <form method="POST" enctype="multipart/form-data">
@@ -162,11 +122,11 @@
                 <div class="col-sm-6 col-md-4">
                     <label class="text-muted small mb-1">Parent/Guardian Phone</label>
                     {{ form.parent_phone(class_='form-control form-cyber py-2', placeholder='+231 77 123 4567') }}
-                    <div class="form-text text-muted small">Last 4 digits used for QR report access.</div>
+                    <div class="form-text text-muted small">Used for QR report access (last 4 digits).</div>
                 </div>
                 <div class="col-sm-6 col-md-4">
                     <label class="text-muted small mb-1">Parent Report PIN</label>
-                    {{ form.parent_report_pin(class_='form-control form-cyber py-2', placeholder='4–6 digits', autocomplete='new-password') }}
+                    {{ form.parent_report_pin(class_='form-control form-cyber py-2', placeholder='4–6 digits') }}
                     <div class="form-text text-muted small">Leave blank to keep current PIN.</div>
                 </div>
                 <div class="col-sm-6 col-md-4">
@@ -190,6 +150,24 @@
                     {{ form.photo(class_='form-control form-cyber py-2') }}
                 </div>
             </div>
+
+            {% if parent_report_qr_data_uri %}
+            <div class="mb-4 p-3 rounded" style="border:1px dashed rgba(0,242,255,0.25);background:rgba(0,242,255,0.04);">
+                <div class="d-flex flex-wrap align-items-center gap-3">
+                    <img src="{{ parent_report_qr_data_uri }}" alt="Parent report QR preview" width="96" height="96" style="background:#fff;padding:6px;border-radius:8px;">
+                    <div class="flex-grow-1" style="min-width:200px;">
+                        <div class="text-cyan fw-semibold small mb-1">Parent Report QR (printed on report card)</div>
+                        <p class="text-muted small mb-1">Parents scan with a phone camera — no login. Verify with parent PIN or phone last 4 digits.</p>
+                        {% if parent_report_url %}
+                        <p class="text-muted small mb-0 font-monospace" style="word-break:break-all;">{{ parent_report_url }}</p>
+                        {% endif %}
+                        {% if not parent_report_configured %}
+                        <p class="text-warning small mb-0 mt-2"><i class="fas fa-exclamation-triangle me-1"></i>Set parent phone or report PIN above before sharing.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
 
             <div class="fee-highlight mb-4" id="fee">
                 <div class="d-flex align-items-center gap-2 mb-2">
@@ -223,7 +201,7 @@
                 {% if return_to == 'class_roster' and student.klass_id %}
                 <a href="{{ url_for('registrar_class_students', class_id=student.klass_id) }}" class="btn btn-outline-secondary">Cancel</a>
                 {% else %}
-                <a href="{{ url_for('dashboard', _anchor='student-enrollment') }}" class="btn btn-outline-secondary">Cancel</a>
+                <a href="{{ url_for('register_student') }}" class="btn btn-outline-secondary">Cancel</a>
                 {% endif %}
             </div>
         </form>

@@ -418,8 +418,13 @@
                                         {% if submission %}
                                         <div class="alert alert-success py-2 px-3 small mb-2">
                                             <i class="fas fa-check-circle me-1"></i>Submitted {{ submission.submitted_at.strftime('%b %d, %Y') }}
-                                            {% if submission.is_graded %}
+                                            {% if submission.scan_code %}
+                                            <div class="font-monospace text-muted mt-1" style="font-size:0.72rem;">Sheet ID: {{ submission.scan_code }}</div>
+                                            {% endif %}
+                                            {% if submission.is_graded and submission.score_published %}
                                             <div class="fw-bold mt-1">Score: {{ submission.score }}/{{ activity.max_score or 100 }}</div>
+                                            {% elif submission.is_graded %}
+                                            <div class="mt-1 text-muted">Graded — pending publish</div>
                                             {% else %}
                                             <div class="mt-1 text-muted">Waiting for teacher</div>
                                             {% endif %}

@@ -473,6 +473,16 @@
                             </div>
                         </div>
                     </a>
+
+                    <a href="{{ url_for('principal_grade_entry') }}" class="btn-command cmd-amber text-decoration-none" title="Backup MoE grade entry for the current operating year">
+                        <div class="d-flex align-items-center w-100">
+                            <div class="cmd-icon-box text-amber me-3"><i class="fas fa-pen-to-square fa-lg"></i></div>
+                            <div>
+                                <div class="fw-bold text-white small">Principal Grade Entry</div>
+                                <div class="cmd-desc text-blue small" style="font-size:0.75rem;">Backup MoE grades per class when teachers are unavailable</div>
+                            </div>
+                        </div>
+                    </a>
                 </div>
             </div>
         </div> <div class="col-xl-8 col-lg-7 d-flex flex-column gap-4 fade-glide-in delay-2">
@@ -580,7 +590,7 @@
                                 <div class="vault-health-ring {{ ring_class }}">{{ portfolio.health_pct }}%</div>
                             </div>
                             <div class="d-flex flex-wrap gap-2">
-                                <span class="vault-stat-pill text-white"><i class="fas fa-users text-cyan me-1"></i>{{ portfolio.student_count }} enrolled</span>
+                                <span class="vault-stat-pill text-white"><i class="fas fa-users text-cyan me-1"></i>{{ portfolio.student_count }} {% if viewing_archived %}on record{% else %}enrolled{% endif %}</span>
                                 <span class="vault-stat-pill text-emerald"><i class="fas fa-circle-check me-1"></i>{{ portfolio.optimal_count }} optimal</span>
                                 <span class="vault-stat-pill text-amber"><i class="fas fa-triangle-exclamation me-1"></i>{{ portfolio.at_risk_count }} at risk</span>
                                 {% if portfolio.suspended_count %}
@@ -615,7 +625,8 @@
                             <div class="fw-bold text-white fs-5 mb-0">{{ selected_class.name }}</div>
                             <div class="small" style="opacity:0.75;">
                                 Grade {{ selected_class.grade_level }}{% if selected_class.stream %} &middot; {{ selected_class.stream }}{% endif %}
-                                &middot; {{ students|length }} student{{ 's' if students|length != 1 else '' }} in view
+                                {% if viewing_archived and display_year %} &middot; {{ display_year.name }} <span class="badge bg-warning text-dark ms-1">Archived</span>{% endif %}
+                                &middot; {{ students|length }}{% if selected_class_stats and selected_class_stats.student_count > students|length %} of {{ selected_class_stats.student_count }}{% endif %} student{{ 's' if (selected_class_stats.student_count if selected_class_stats else students|length) != 1 else '' }} in view
                             </div>
                             {% endif %}
                         </div>
@@ -626,6 +637,11 @@
                             {% if selected_class_stats.suspended_count %}
                             <span class="vault-stat-pill text-rose">{{ selected_class_stats.suspended_count }} suspended</span>
                             {% endif %}
+                            {% endif %}
+                            {% if selected_class and not viewing_archived %}
+                            <a href="{{ url_for('principal_class_grading', class_id=selected_class.id) }}" class="btn btn-sm btn-outline-warning text-amber border-amber border-opacity-40 rounded-3 px-2.5 py-1" style="font-size:0.75rem;">
+                                <i class="fas fa-pen-to-square me-1"></i>Enter Grades
+                            </a>
                             {% endif %}
                         </div>
                     </div>
@@ -645,6 +661,7 @@
                         <select name="status" class="form-select form-cyber py-2">
                             <option value="">All students in class</option>
                             <option value="failing" {% if request.args.get('status') == 'failing' %}selected{% endif %}>Academic alert (&lt;70%)</option>
+                            <option value="failed" {% if request.args.get('status') == 'failed' %}selected{% endif %}>Year-end failed</option>
                             <option value="suspended" {% if request.args.get('status') == 'suspended' %}selected{% endif %}>Suspended holds</option>
                         </select>
                     </div>
@@ -669,6 +686,9 @@
                                 <td>
                                     <div class="fw-bold text-white">{{ student.full_name }}</div>
                                     <div class="text-white small" style="font-size:0.75rem;">ID: #{{ student.student_id }}</div>
+                                    {% if viewing_archived and student.status in ('ALUMNI', 'GRADUATED') %}
+                                    <span class="badge bg-secondary bg-opacity-25 text-white border border-secondary border-opacity-25 mt-1" style="font-size:0.65rem;">{{ student.status|title }}</span>
+                                    {% endif %}
                                 </td>
                                 <td>
                                     <span class="fw-semibold text-{{ 'rose' if student.average < 70 else 'emerald' }}">
@@ -678,6 +698,8 @@
                                 <td>
                                     {% if student.status == 'SUSPENDED' %}
                                         <span class="badge bg-rose bg-opacity-10 text-rose border border-rose border-opacity-10 rounded-pill px-2.5 py-1">Suspended</span>
+                                    {% elif student.status == 'FAILED' %}
+                                        <span class="badge bg-rose bg-opacity-10 text-rose border border-rose border-opacity-10 rounded-pill px-2.5 py-1">Failed — Repeat Year</span>
                                     {% elif student.average < 70 %}
                                         <span class="badge bg-amber bg-opacity-10 text-amber border border-amber border-opacity-10 rounded-pill px-2.5 py-1">At Risk</span>
                                     {% else %}
@@ -691,7 +713,13 @@
                             {% else %}
                             <tr>
                                 <td colspan="4" class="text-center py-4 text-white small">
+                                    {% if viewing_archived %}
+                                    <i class="fas fa-archive opacity-25 me-1.5"></i>No students are recorded in this class for {{ display_year.name }}. Alumni and graduated learners appear here when their enrollment history matches this folder.
+                                    {% elif request.args.get('search') or request.args.get('status') %}
                                     <i class="fas fa-inbox opacity-25 me-1.5"></i>No students in this class match your search or filter.
+                                    {% else %}
+                                    <i class="fas fa-inbox opacity-25 me-1.5"></i>No students are currently assigned to this class for the active year.
+                                    {% endif %}
                                 </td>
                             </tr>
                             {% endfor %}

@@ -331,7 +331,7 @@ class Student(db.Model):
     photo = db.Column(db.String(200), nullable=True)
     photo_filename = db.Column(db.String(200), default='default_student.png')
 
-    status = db.Column(db.String(20), default='ACTIVE', nullable=False)  # ACTIVE, REPEAT, SUSPENDED, ALUMNI, GRADUATED
+    status = db.Column(db.String(20), default='ACTIVE', nullable=False)  # ACTIVE, REPEAT, FAILED, SUSPENDED, ALUMNI, GRADUATED
     grade_level = db.Column(db.String(50), nullable=True)
     level = db.Column(db.String(50), nullable=True)                      # Elementary, Junior High, Senior High
     registration_type = db.Column(db.String(20), default='New', nullable=False)
@@ -603,6 +603,8 @@ class Submission(db.Model):
     score = db.Column(db.Float, nullable=True)
     teacher_feedback = db.Column(db.Text, nullable=True)
     is_graded = db.Column(db.Boolean, default=False, nullable=False)
+    scan_code = db.Column(db.String(36), unique=True, nullable=True, index=True)
+    score_published = db.Column(db.Boolean, default=False, nullable=False)
 
     # Modern field aliases mapped to legacy SQLite columns
     assessment_id = synonym('activity_id')
@@ -696,10 +698,17 @@ class Grade(db.Model):
     is_finalized = db.Column(db.Boolean, default=False, nullable=False)  # Locked entry flag
     remarks = db.Column(db.String(200), nullable=True)
 
+    # Attribution — who last entered or edited scores (teacher vs principal backup)
+    entered_by_user_id = db.Column(
+        db.Integer, db.ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    entered_by_role = db.Column(db.String(30), nullable=True)
+
     # ORM Relationships mapping
     student = db.relationship("Student", backref=db.backref("grades_ledger", lazy="dynamic", cascade="all, delete-orphan"))
     teacher = db.relationship("Teacher", backref=db.backref("grades_ledger", lazy="dynamic"))
     klass = db.relationship("Class", backref=db.backref("grades_ledger", lazy="dynamic"))
+    entered_by_user = db.relationship("User", foreign_keys=[entered_by_user_id])
 
     @property
     def final_average(self):
@@ -1021,6 +1030,8 @@ class SchoolMedia(db.Model):
     is_published = db.Column(db.Boolean, default=True, nullable=False)
     author_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+
+    duration_seconds = db.Column(db.Integer, nullable=True)
 
     academic_year = db.relationship("AcademicYear", backref=db.backref("school_media_items", lazy="dynamic"))
     author = db.relationship("User", backref=db.backref("school_media_posts", lazy="dynamic"))

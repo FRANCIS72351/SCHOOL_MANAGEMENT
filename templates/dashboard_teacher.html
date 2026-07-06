@@ -2,29 +2,7 @@
 {% block content %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/grading_hub.css') }}">
 <div class="container my-5 teacher-terminal">
-
-    {% if not display_year %}
-    <div class="alert alert-warning bg-warning bg-opacity-10 border-warning border-opacity-50 text-white mb-4 py-3 px-4 rounded-3 teacher-year-banner" role="alert">
-        <i class="bi bi-exclamation-triangle-fill me-2"></i>
-        <strong>No active academic year configured.</strong>
-        <span class="text-white-50 ms-1">Grades and activities are unavailable until an administrator activates an academic year.</span>
-    </div>
-    {% else %}
-    
-    <div class="alert bg-dark border border-cyan border-opacity-25 text-white mb-4 shadow-sm rounded-3 teacher-year-banner teacher-year-banner-prominent d-flex align-items-center" role="status">
-        <div class="p-2 bg-cyan bg-opacity-10 rounded-3 me-3 text-cyan border border-cyan border-opacity-10">
-            <i class="bi bi-calendar-check fa-fw fs-5"></i>
-        </div>
-        <div>
-            <span class="text-white-50 small d-block text-uppercase" style="font-size:0.7rem;letter-spacing:0.05em;">Academic Year</span>
-            <strong class="text-cyan">{{ display_year.name }}</strong>
-            <span class="badge teacher-year-badge-current ms-2">Current</span>
-            {% if display_year.start_date %}
-            <span class="text-muted ms-2 small">({{ display_year.start_date }}{% if display_year.end_date %} — {{ display_year.end_date }}{% endif %})</span>
-            {% endif %}
-        </div>
-    </div>
-    {% endif %}
+    {% set year_param = {'academic_year_id': display_year.id} if display_year else {} %}
     
     <div class="card dashboard-card profile-card mb-4">
         <div class="card-body p-4">
@@ -52,13 +30,26 @@
                                 {% endif %}
                             </p>
                         </div>
-                        <div class="mt-3 mt-lg-0 text-end">
-                            {% if pending_grading_count|default(0) %}
-                            <a href="{{ url_for('teacher_dashboard', tab='activities') }}" class="btn btn-cyber-sm btn-sm">
-                                <i class="bi bi-inbox me-1"></i>{{ pending_grading_count }} to grade
-                            </a>
-                            {% elif class_cards %}
-                            <span class="text-blue small"><i class="bi bi-check-circle me-1"></i>All caught up</span>
+                        <div class="mt-3 mt-lg-0 text-md-end">
+                            <form method="get" class="d-inline-flex align-items-center gap-2 flex-wrap justify-content-md-end">
+                                <input type="hidden" name="tab" value="{{ active_tab }}">
+                                {% if grade_class_id %}<input type="hidden" name="grade_class_id" value="{{ grade_class_id }}">{% endif %}
+                                {% if activity_class_id %}<input type="hidden" name="activity_class_id" value="{{ activity_class_id }}">{% endif %}
+                                {% if grade_subject %}<input type="hidden" name="grade_subject" value="{{ grade_subject }}">{% endif %}
+                                {% if grade_period %}<input type="hidden" name="grade_period" value="{{ grade_period }}">{% endif %}
+                                {% if ledger_class_id %}<input type="hidden" name="ledger_class_id" value="{{ ledger_class_id }}">{% endif %}
+                                {% if ledger_subject %}<input type="hidden" name="ledger_subject" value="{{ ledger_subject }}">{% endif %}
+                                <label for="teacherYearSelect" class="small text-muted mb-0">Academic year</label>
+                                <select id="teacherYearSelect" name="academic_year_id" class="form-select form-select-sm form-cyber" style="min-width: 180px;" onchange="this.form.submit()">
+                                    {% for y in (years or []) %}
+                                    <option value="{{ y.id }}" {% if display_year and y.id == display_year.id %}selected{% endif %}>{{ y.name }}{% if y.is_active %} (Active){% endif %}</option>
+                                    {% endfor %}
+                                </select>
+                            </form>
+                            {% if viewing_archived %}
+                            <span class="badge bg-warning text-dark mt-2">Viewing archived year</span>
+                            {% elif display_year and display_year.is_active %}
+                            <span class="badge bg-success mt-2">Active year</span>
                             {% endif %}
                         </div>
                     </div>
@@ -67,66 +58,27 @@
         </div>
     </div>
 
-    {% set qa_class = activity_class_id or grade_class_id or (class_cards[0].id if class_cards else none) %}
-    <section class="teacher-quick-actions" aria-label="Quick actions">
-        <div class="qa-heading"><i class="bi bi-lightning-charge-fill me-2 text-cyan"></i>Quick Actions</div>
-        <p class="qa-subtitle mb-0">Enter activity grades fast, document work when needed, or open the MoE period sheet{% if display_year %} for <strong class="text-cyan">{{ display_year.name }}</strong>{% endif %}.</p>
-        <div class="teacher-quick-actions-grid mt-3">
-            {% if qa_class %}
-            <a href="{{ url_for('teacher_class_attendance', class_id=qa_class) }}" class="teacher-qa-card qa-primary">
-                <span class="qa-icon"><i class="bi bi-calendar-check"></i></span>
-                <span class="qa-label">Take Attendance</span>
-                <span class="qa-hint">Daily roll — present, late, absent</span>
-            </a>
-            <a href="{{ url_for('manual_activity_grades', class_id=qa_class) }}" class="teacher-qa-card qa-primary">
-                <span class="qa-icon"><i class="bi bi-lightning-charge"></i></span>
-                <span class="qa-label">Enter Activity Grades</span>
-                <span class="qa-hint">Score students — no setup required</span>
-            </a>
-            <a href="{{ url_for('record_classroom_activity', class_id=qa_class) }}" class="teacher-qa-card qa-secondary">
-                <span class="qa-icon"><i class="bi bi-journal-plus"></i></span>
-                <span class="qa-label">Create Activity</span>
-                <span class="qa-hint">Document work with notes or Drive</span>
-            </a>
-            <a href="{{ url_for('teacher_dashboard', tab='grades', grade_class_id=qa_class) }}" class="teacher-qa-card qa-secondary">
-                <span class="qa-icon"><i class="bi bi-table"></i></span>
-                <span class="qa-label">Period Grade Sheet</span>
-                <span class="qa-hint">CA &amp; exam totals by period</span>
-            </a>
-            {% else %}
+    <div class="teacher-quick-actions">
+        <div class="qa-heading"><i class="bi bi-lightning-charge me-2"></i>Quick Actions</div>
+        <p class="qa-subtitle">Your most common tasks{% if display_year %} · {{ display_year.name }}{% if display_year.is_active %} (active){% endif %}{% endif %}</p>
+        <div class="teacher-quick-actions-grid">
             <a href="{{ url_for('teacher_attendance_picker') }}" class="teacher-qa-card qa-primary">
                 <span class="qa-icon"><i class="bi bi-calendar-check"></i></span>
                 <span class="qa-label">Take Attendance</span>
-                <span class="qa-hint">Pick a class first</span>
+                <span class="qa-hint">{% if class_cards|length == 1 %}Open today's roll{% else %}Pick a class roll{% endif %}</span>
             </a>
-            <a href="{{ url_for('teacher_dashboard', tab='activities') }}" class="teacher-qa-card qa-primary">
-                <span class="qa-icon"><i class="bi bi-journal-plus"></i></span>
-                <span class="qa-label">Create Activity</span>
-                <span class="qa-hint">Pick a class first</span>
-            </a>
-            <a href="{{ url_for('teacher_dashboard', tab='activities') }}" class="teacher-qa-card qa-secondary">
+            <a href="{{ url_for('teacher_dashboard', tab='grades', grade_class_id=grade_class_id if grade_class_id else none, grade_subject=grade_subject if grade_subject else none, grade_period=grade_period if grade_period else none, **year_param) }}" class="teacher-qa-card qa-secondary">
                 <span class="qa-icon"><i class="bi bi-pencil-square"></i></span>
-                <span class="qa-label">Enter Activity Grades</span>
-                <span class="qa-hint">Pick a class first</span>
+                <span class="qa-label">Grade Entry</span>
+                <span class="qa-hint">Period CA &amp; exam scores</span>
             </a>
-            <a href="{{ url_for('teacher_dashboard', tab='grades') }}" class="teacher-qa-card qa-secondary">
-                <span class="qa-icon"><i class="bi bi-table"></i></span>
-                <span class="qa-label">Period Grade Sheet</span>
-                <span class="qa-hint">CA &amp; exam totals by period</span>
-            </a>
-            {% endif %}
-            <a href="{{ url_for('teacher_dashboard', tab='classes') }}" class="teacher-qa-card qa-secondary">
-                <span class="qa-icon"><i class="bi bi-folder2-open"></i></span>
-                <span class="qa-label">View Classes</span>
-                <span class="qa-hint">Roster, subjects &amp; report cards</span>
-            </a>
-            <a href="{{ url_for('teacher_dashboard', tab='grades', grade_class_id=qa_class, ledger_class_id=qa_class) if qa_class else url_for('teacher_dashboard', tab='grades') }}#gradeRecordsLedger" class="teacher-qa-card qa-secondary">
-                <span class="qa-icon"><i class="bi bi-journal-text"></i></span>
-                <span class="qa-label">Grade Ledger</span>
-                <span class="qa-hint">Browse entered grades</span>
+            <a href="{{ url_for('teacher_dashboard', tab='activities', activity_class_id=activity_class_id if activity_class_id else none, **year_param) }}" class="teacher-qa-card qa-secondary">
+                <span class="qa-icon"><i class="bi bi-cloud-upload"></i></span>
+                <span class="qa-label">Class Activities</span>
+                <span class="qa-hint">{% if pending_grading_count|default(0) %}{{ pending_grading_count }} submission{{ 's' if pending_grading_count != 1 else '' }} to grade{% else %}Upload &amp; assign work{% endif %}</span>
             </a>
         </div>
-    </section>
+    </div>
 
     <div class="grading-stat-row">
         <div class="grading-stat-card">
@@ -134,20 +86,12 @@
             <div class="stat-label">My Classes</div>
         </div>
         <div class="grading-stat-card">
-            <div class="stat-value">{{ assigned_subjects|length }}</div>
-            <div class="stat-label">My Subjects</div>
+            <div class="stat-value">{{ total_activity_count|default(0) }}</div>
+            <div class="stat-label">Activities</div>
         </div>
         <div class="grading-stat-card">
             <div class="stat-value text-success">{{ published_grade_count|default(0) }}</div>
-            <div class="stat-label">Published</div>
-        </div>
-        <div class="grading-stat-card">
-            <div class="stat-value">{{ grades|length }}</div>
-            <div class="stat-label">Grade Records</div>
-        </div>
-        <div class="grading-stat-card">
-            <div class="stat-value">{{ total_activity_count|default(0) }}</div>
-            <div class="stat-label">Activities</div>
+            <div class="stat-label">Published Grades</div>
         </div>
         <div class="grading-stat-card {% if pending_grading_count|default(0) %}stat-alert{% endif %}">
             <div class="stat-value {% if pending_grading_count|default(0) %}text-warning{% endif %}">{{ pending_grading_count|default(0) }}</div>
@@ -158,34 +102,24 @@
     <ul class="nav grading-hub-tabs" role="tablist">
         <li class="nav-item">
             <a class="nav-link {% if active_tab == 'classes' %}active{% endif %}"
-               href="{{ url_for('teacher_dashboard', tab='classes', grade_class_id=grade_class_id) }}">
-                <i class="bi bi-folder2-open me-1"></i>Classes
+               href="{{ url_for('teacher_dashboard', tab='classes', **year_param) }}">
+                <i class="bi bi-folder2-open me-1"></i>My Classes
             </a>
         </li>
         <li class="nav-item">
             <a class="nav-link {% if active_tab == 'activities' %}active{% endif %}"
-               href="{{ url_for('teacher_dashboard', tab='activities') }}">
-                <i class="bi bi-cloud-upload me-1"></i>Activities
+               href="{{ url_for('teacher_dashboard', tab='activities', **year_param) }}">
+                <i class="bi bi-cloud-upload me-1"></i>Class Activities
                 {% if total_activity_count %}<span class="tab-badge bg-primary">{{ total_activity_count }}</span>{% endif %}
-                {% if pending_grading_count|default(0) %}<span class="tab-badge bg-warning text-dark">{{ pending_grading_count }}</span>{% endif %}
             </a>
         </li>
         <li class="nav-item">
             <a class="nav-link {% if active_tab == 'grades' %}active{% endif %}"
-               href="{{ url_for('teacher_dashboard', tab='grades', grade_class_id=grade_class_id, grade_subject=grade_subject, grade_period=grade_period) }}">
-                <i class="bi bi-pencil-square me-1"></i>Enter Grades
+               href="{{ url_for('teacher_dashboard', tab='grades', grade_class_id=grade_class_id, grade_subject=grade_subject, grade_period=grade_period, **year_param) }}">
+                <i class="bi bi-pencil-square me-1"></i>Grade Entry
             </a>
         </li>
     </ul>
-    <p class="teacher-tab-hint" role="note">
-        {% if active_tab == 'classes' %}
-        <strong>Classes</strong> — See your assigned classes, open rosters, and view student report cards.
-        {% elif active_tab == 'activities' %}
-        <strong>Activities</strong> — Enter activity grades directly (no setup required), or optionally create named activities and manage digital submissions. MoE period totals are on the Enter Grades tab.
-        {% else %}
-        <strong>Enter Grades</strong> — Enter period scores (CA + exam), save drafts, and publish to report cards.
-        {% endif %}
-    </p>
 
     <div class="tab-content">
 
@@ -194,11 +128,8 @@
         <div class="col-lg-12">
             <div class="card dashboard-card mb-4 h-100">
                 <div class="card-header d-flex align-items-center justify-content-between">
-                    <div>
-                        <h5 class="mb-0 text-white"><i class="bi bi-journal-bookmark me-2 text-cyber"></i>Assigned Classes</h5>
-                        <p class="teacher-section-lead">Your classes and subjects for this year. Use primary actions to grade or open a roster.</p>
-                    </div>
-                    <span class="badge bg-secondary rounded-pill align-self-start">{{ class_cards|length if class_cards else teaching_classes|length }}</span>
+                    <h5 class="mb-0 text-white"><i class="bi bi-journal-bookmark me-2 text-cyber"></i>Assigned Classes</h5>
+                    <span class="badge bg-secondary rounded-pill">{{ class_cards|length if class_cards else teaching_classes|length }}</span>
                 </div>
                 <div class="card-body px-3 py-3">
                     {% if class_cards %}
@@ -232,37 +163,40 @@
                             {% endif %}
                             <div class="class-card-actions">
                                 <div class="class-card-actions-primary">
-                                    <span class="class-card-actions-label">Common tasks</span>
+                                    <span class="class-card-actions-label">Daily tasks</span>
                                     <a href="{{ url_for('teacher_class_attendance', class_id=card.id) }}" class="btn btn-cyber-primary btn-sm">
-                                        <i class="bi bi-calendar-check me-1"></i>Take Attendance
+                                        <i class="bi bi-calendar-check me-1"></i>Attendance
                                     </a>
-                                    <a href="{{ url_for('manual_activity_grades', class_id=card.id) }}" class="btn btn-cyber-sm btn-sm">
-                                        <i class="bi bi-pencil-square me-1"></i>Enter Activity Grades
+                                    <a href="{{ url_for('teacher_dashboard', tab='grades', grade_class_id=card.id, **year_param) }}" class="btn btn-cyber-sm btn-sm">
+                                        <i class="bi bi-pencil-square me-1"></i>Grades
                                     </a>
-                                    <a href="{{ url_for('teacher_class_folder', class_id=card.id) }}" class="btn btn-cyber-sm btn-sm">
-                                        <i class="bi bi-people me-1"></i>View Roster
+                                    <a href="{{ url_for('teacher_dashboard', tab='activities', activity_class_id=card.id, **year_param) }}" class="btn btn-cyber-sm btn-sm">
+                                        <i class="bi bi-cloud-upload me-1"></i>Activities
                                     </a>
                                 </div>
                                 <div class="class-card-actions-secondary">
-                                    <span class="class-card-actions-label">More options</span>
+                                    <span class="class-card-actions-label">Class tools</span>
+                                    <a href="{{ url_for('teacher_class_folder', class_id=card.id) }}" class="btn btn-cyber-sm btn-sm">
+                                        <i class="bi bi-people me-1"></i>Roster
+                                    </a>
+                                    <a href="{{ url_for('class_grading_hub', class_id=card.id) }}" class="btn btn-outline-light btn-sm">
+                                        <i class="bi bi-mortarboard me-1"></i>Grading Hub
+                                    </a>
                                     {% if 'Sponsor' in card.role_labels or 'Homeroom' in card.role_labels %}
                                     <a href="{{ url_for('sponsor_class_hub', class_id=card.id) }}" class="btn btn-warning btn-sm text-dark fw-semibold">
                                         <i class="bi bi-shield-check me-1"></i>Sponsor Hub
                                     </a>
                                     {% endif %}
-                                    <a href="{{ url_for('teacher_dashboard', tab='activities', activity_class_id=card.id) }}" class="btn btn-cyber-sm btn-sm">
-                                        <i class="bi bi-cloud-upload me-1"></i>Activities
-                                    </a>
                                 </div>
                             </div>
                         </div>
                         {% endfor %}
                     </div>
                     {% else %}
-                    <div class="grade-empty-state">
-                        <i class="bi bi-inbox empty-icon"></i>
-                        <h6>No class assignments yet</h6>
-                        <p>You are not assigned to any classes this year. Ask the principal to assign you in <strong>Provision Core Class</strong>, then refresh this page.</p>
+                    <div class="text-center text-blue py-4 small">
+                        <i class="bi bi-inbox d-block fs-3 mb-2 opacity-50"></i>
+                        No class assignments yet.<br>
+                        Ask the principal to assign you to a class or subject in <strong>Provision Core Class</strong>.
                     </div>
                     {% endif %}
                 </div>
@@ -285,7 +219,7 @@
                                 <span class="badge bg-warning text-blue px-2 py-1">Sponsor</span>
                             </div>
                             <a href="{{ url_for('sponsor_class_hub', class_id=c.id) }}" class="btn btn-warning btn-sm text-dark fw-semibold w-100">
-                                <i class="bi bi-shield-check me-1"></i>Open Sponsor Hub
+                                <i class="bi bi-shield-check me-1"></i>Open Sponsor Command Center
                             </a>
                         </li>
                         {% endfor %}
@@ -294,12 +228,13 @@
             </div>
             {% endif %}
 
-    <div class="card dashboard-card my-4">
-        <div class="card-header">
+    <details class="card dashboard-card my-4 teacher-collapsible-panel">
+        <summary class="card-header d-flex align-items-center justify-content-between" style="cursor: pointer; list-style: none;">
             <h5 class="mb-0 text-white"><i class="bi bi-file-earmark-person me-2 text-cyber"></i>Student Report Cards</h5>
-            <p class="teacher-section-lead">Quick access to report cards for students in your classes.</p>
-        </div>
+            <span class="badge bg-secondary rounded-pill">{{ students|length }}</span>
+        </summary>
         <div class="card-body p-4">
+            <p class="text-blue small mb-3">Quick access to report cards for students in your classes. For full rosters, use <strong>Open Class → Roster</strong>.</p>
             <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-xl-4 g-3">
                 {% for s in students %}
                 <div class="col">
@@ -314,17 +249,11 @@
                     </div>
                 </div>
                 {% else %}
-                <div class="col-12">
-                    <div class="grade-empty-state py-3">
-                        <i class="bi bi-people empty-icon"></i>
-                        <h6>No students yet</h6>
-                        <p>Students will appear here once they are enrolled in your classes.</p>
-                    </div>
-                </div>
+                <div class="col-12 text-center text-blue py-3 small">No students in your classes yet.</div>
                 {% endfor %}
             </div>
         </div>
-    </div>
+    </details>
         </div>
     </div>
     </div><!-- /tab-classes -->
@@ -333,17 +262,13 @@
         <div class="drive-workflow-banner">
             <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
                 <strong class="text-white"><i class="bi bi-cloud-upload me-2"></i>Class Activities</strong>
-                <span class="small opacity-75">
-                    {% if display_year %}<span class="badge teacher-year-badge-current me-1">{{ display_year.name }}</span>{% endif %}
-                    Create activities and score student work
-                </span>
+                <span class="small opacity-75">Pick a class folder → drop activity files → assign to students</span>
             </div>
-            <p class="small text-blue mb-2 mb-md-3">Enter activity grades directly — no setup required. Create named activities only when you want to document work or collect digital submissions. MoE period totals live on the <strong>Period Grade Sheet</strong> tab.</p>
             <ol class="workflow-steps">
-                <li><span class="step-num">1</span> <strong>Enter activity grades</strong> — score students immediately (recommended)</li>
-                <li><span class="step-num">2</span> <em>Optional:</em> create a named activity with notes or files</li>
-                <li><span class="step-num">3</span> Review digital submissions and use AI scan when configured</li>
-                <li><span class="step-num">4</span> <em>Separate:</em> MoE CA + exam totals on Period Grade Sheet</li>
+                <li><span class="step-num">1</span> Open a class folder</li>
+                <li><span class="step-num">2</span> Drop or upload activity files</li>
+                <li><span class="step-num">3</span> Set title, subject, period &amp; due date</li>
+                <li><span class="step-num">4</span> Grade submissions in Grading Hub</li>
             </ol>
         </div>
 
@@ -369,27 +294,21 @@
         {% if not class_cards %}
         <div class="drive-empty-state">
             <i class="bi bi-folder-x empty-icon"></i>
-            <h6>No classes assigned</h6>
-            <p>Once the principal assigns you to a class, you can upload and manage activities here.</p>
-            <a href="{{ url_for('teacher_dashboard', tab='classes') }}" class="btn btn-cyber-sm mt-2">
-                <i class="bi bi-folder2-open me-1"></i>View Classes
-            </a>
+            <h6>No class folders yet</h6>
+            <p>Ask the principal to assign you to a class or subject in <strong>Provision Core Class</strong>.</p>
         </div>
 
         {% elif not selected_activity_class %}
         <div class="card dashboard-card">
             <div class="card-header d-flex align-items-center justify-content-between">
-                <div>
-                    <h5 class="mb-0 text-white"><i class="bi bi-folder2 me-2 text-cyber"></i>Choose a Class</h5>
-                    <p class="teacher-section-lead">Open a class folder to create activities, enter activity grades, or upload assignment files.</p>
-                </div>
-                <span class="badge bg-secondary rounded-pill align-self-start">{{ class_cards|length }}</span>
+                <h5 class="mb-0 text-white"><i class="bi bi-folder2 me-2 text-cyber"></i>My Class Folders</h5>
+                <span class="badge bg-secondary rounded-pill">{{ class_cards|length }}</span>
             </div>
             <div class="card-body p-4">
-                <p class="text-blue small mb-3 d-none d-md-block">Each folder holds that class's activities — like Google Drive.</p>
+                <p class="text-blue small mb-3">Click a folder to open its activity space — like Google Drive.</p>
                 <div class="drive-folder-grid">
                     {% for card in class_cards %}
-                    <a href="{{ url_for('teacher_dashboard', tab='activities', activity_class_id=card.id) }}"
+                    <a href="{{ url_for('teacher_dashboard', tab='activities', activity_class_id=card.id, **year_param) }}"
                        class="drive-folder-tile">
                         {% set act_count = activity_count_by_class.get(card.id, 0) %}
                         {% set pending_count = activity_count_by_class.get('pending_' ~ card.id, 0) %}
@@ -413,30 +332,25 @@
 
         {% else %}
         <nav class="drive-breadcrumb" aria-label="Activity folder path">
-            <a href="{{ url_for('teacher_dashboard', tab='activities') }}">
+            <a href="{{ url_for('teacher_dashboard', tab='activities', **year_param) }}">
                 <i class="bi bi-house-door me-1"></i>All Classes
             </a>
             <span class="sep">/</span>
-            <span class="current"><i class="bi bi-folder-fill me-1 text-warning"></i>{{ selected_activity_class.name }}{% if display_year %} <span class="text-cyan small">· {{ display_year.name }}</span>{% endif %}</span>
+            <span class="current"><i class="bi bi-folder-fill me-1 text-warning"></i>{{ selected_activity_class.name }}</span>
         </nav>
 
         <div class="card dashboard-card mb-4">
-            <div class="card-header d-flex flex-wrap justify-content-between align-items-start gap-2">
-                <div>
-                    <h5 class="mb-0 text-white">
-                        <i class="bi bi-folder2-open me-2 text-warning"></i>{{ selected_activity_class.name }}
-                    </h5>
-                    <p class="teacher-section-lead">Enter activity grades directly, or document work first when you need notes, files, or Drive links.</p>
-                </div>
-                <div class="class-card-actions border-0 pt-0 mt-0">
-                    <div class="class-card-actions-secondary">
-                        <a href="{{ url_for('teacher_dashboard', tab='grades', grade_class_id=activity_class_id) }}" class="btn btn-cyber-sm btn-sm">
-                            <i class="bi bi-table me-1"></i>Period Grade Sheet
-                        </a>
-                        <a href="{{ url_for('class_grading_hub', class_id=activity_class_id) }}" class="btn btn-cyber-sm btn-sm">
-                            <i class="bi bi-mortarboard me-1"></i>Grading Hub
-                        </a>
-                    </div>
+            <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+                <h5 class="mb-0 text-white">
+                    <i class="bi bi-folder2-open me-2 text-warning"></i>{{ selected_activity_class.name }}
+                </h5>
+                <div class="d-flex flex-wrap gap-2">
+                    <a href="{{ url_for('class_grading_hub', class_id=activity_class_id) }}" class="btn btn-cyber-sm btn-sm">
+                        <i class="bi bi-mortarboard me-1"></i>Grading Hub
+                    </a>
+                    <a href="{{ url_for('teacher_dashboard', tab='grades', grade_class_id=activity_class_id, **year_param) }}" class="btn btn-cyber-primary btn-sm">
+                        <i class="bi bi-pencil-square me-1"></i>Period Grades
+                    </a>
                 </div>
             </div>
             <div class="card-body p-4">
@@ -450,28 +364,6 @@
                 </div>
 
                 {% if activity_subjects %}
-                <div class="activity-path-grid mb-4">
-                    <a href="{{ url_for('manual_activity_grades', class_id=activity_class_id) }}" class="activity-path-card path-recommended">
-                        <span class="path-badge path-badge-recommended">Recommended</span>
-                        <span class="path-card-icon"><i class="bi bi-lightning-charge-fill"></i></span>
-                        <h3 class="path-card-title">Enter Activity Grades</h3>
-                        <p class="path-card-hint">Score students now — pick class, subject &amp; period. No activity setup required.</p>
-                        <span class="path-card-action">Start grading <i class="bi bi-arrow-right ms-1"></i></span>
-                    </a>
-                    <a href="{{ url_for('record_classroom_activity', class_id=activity_class_id) }}" class="activity-path-card path-optional">
-                        <span class="path-badge path-badge-optional">Optional</span>
-                        <span class="path-card-icon"><i class="bi bi-journal-plus"></i></span>
-                        <h3 class="path-card-title">Create Activity</h3>
-                        <p class="path-card-hint">Document blackboard work, instructions, or Google Drive materials before grading.</p>
-                        <span class="path-card-action">Document first <i class="bi bi-arrow-right ms-1"></i></span>
-                    </a>
-                </div>
-                <p class="text-muted small mb-3">
-                    MoE period CA + exam totals:
-                    <a href="{{ url_for('teacher_dashboard', tab='grades', grade_class_id=activity_class_id) }}" class="text-cyan text-decoration-none">open Period Grade Sheet</a>
-                    — separate from activity scoring.
-                </p>
-
                 <div class="drive-dropzone" id="activityDropzone" role="button" tabindex="0"
                      aria-label="Drop activity files here or tap to upload">
                     <i class="bi bi-cloud-arrow-up drop-icon"></i>
@@ -644,12 +536,7 @@
                         <i class="bi bi-journal-text file-type-icon"></i>
                         {% endif %}
                         <div class="file-info">
-                            <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
-                                <div class="file-title mb-0" title="{{ act.title }}">{{ act.title }}</div>
-                                <span class="badge activity-delivery-badge {% if act.is_classroom_activity %}classroom{% else %}digital{% endif %}">
-                                    {{ act.delivery_badge }}
-                                </span>
-                            </div>
+                            <div class="file-title" title="{{ act.title }}">{{ act.title }}</div>
                             <div class="file-meta">
                                 {{ act.subject_name or '—' }} · {{ (act.marking_period or 1) | marking_period_label }}<br>
                                 {{ act.activity_type or 'Assignment' }}
@@ -658,16 +545,6 @@
                                 · Due {{ act.due_date }}{% if act.is_overdue %} <span class="text-danger fw-semibold">(Overdue)</span>{% endif %}
                                 {% endif %}
                             </div>
-                            {% if act.classroom_notes %}
-                            <p class="classroom-notes-preview mb-0">{{ act.classroom_notes[:120] }}{% if act.classroom_notes|length > 120 %}…{% endif %}</p>
-                            {% elif act.description and act.is_classroom_activity %}
-                            <p class="classroom-notes-preview mb-0">{{ act.description }}</p>
-                            {% endif %}
-                            {% if act.external_url %}
-                            <a href="{{ act.external_url }}" target="_blank" rel="noopener" class="classroom-link-chip">
-                                <i class="bi bi-google"></i> Shared link
-                            </a>
-                            {% endif %}
                             <div class="activity-stat-badges">
                                 {% if stats.class_size %}
                                 <span class="activity-stat-badge submitted">
@@ -693,10 +570,7 @@
                                 </a>
                                 {% endif %}
                                 <a href="{{ url_for('activity_detail', assessment_id=act.id) }}" class="file-action-btn">
-                                    <i class="bi bi-inbox me-1"></i>Submissions{% if act.scan_keywords %} <i class="bi bi-camera-fill text-info ms-1" title="AI scanner configured"></i>{% endif %}
-                                </a>
-                                <a href="{{ url_for('manual_activity_grades', class_id=activity_class_id, subject=act.subject_name, period=act.marking_period or 1, assessment_id=act.id) }}" class="file-action-btn">
-                                    <i class="bi bi-pencil-square me-1"></i>Enter Activity Grades
+                                    <i class="bi bi-pencil-square me-1"></i>Grade{% if act.scan_keywords %} <i class="bi bi-camera-fill text-info ms-1" title="AI scanner configured"></i>{% endif %}
                                 </a>
                                 <button type="button" class="file-action-btn btn-edit-activity"
                                         data-id="{{ act.id }}"
@@ -707,10 +581,7 @@
                                         data-type="{{ act.activity_type or 'Assignment' }}"
                                         data-mode="{{ act.submission_mode or 'file_upload' }}"
                                         data-due="{{ act.due_date or '' }}"
-                                        data-keywords="{{ (act.scan_keywords or '')|e }}"
-                                        data-external="{{ (act.external_url or '')|e }}"
-                                        data-notes="{{ (act.classroom_notes or '')|e }}"
-                                        data-max="{{ act.max_score or 100 }}">
+                                        data-keywords="{{ (act.scan_keywords or '')|e }}">
                                     <i class="bi bi-pencil me-1"></i>Edit
                                 </button>
                                 <form action="{{ url_for('duplicate_activity', assessment_id=act.id) }}" method="POST" class="d-inline">
@@ -736,15 +607,9 @@
                 </div>
                 {% else %}
                 <div class="drive-empty-state">
-                    <i class="bi bi-lightning-charge empty-icon"></i>
-                    <h6>Ready to grade</h6>
-                    <p>No named activities yet — that is fine. Enter activity grades directly, or create an activity when you want to document work first.</p>
-                    <a href="{{ url_for('manual_activity_grades', class_id=activity_class_id) }}" class="btn btn-cyber-primary btn-sm mt-2 me-2">
-                        <i class="bi bi-lightning-charge me-1"></i>Enter Activity Grades
-                    </a>
-                    <a href="{{ url_for('record_classroom_activity', class_id=activity_class_id) }}" class="btn btn-cyber-sm btn-sm mt-2">
-                        <i class="bi bi-journal-plus me-1"></i>Create Activity
-                    </a>
+                    <i class="bi bi-cloud-arrow-up empty-icon"></i>
+                    <h6>Drop your first activity here</h6>
+                    <p>Drag a worksheet, PDF, or image into the drop zone above — or tap to browse files.</p>
                 </div>
                 {% endif %}
 
@@ -816,20 +681,6 @@
                                 <label for="edit_activity_description" class="form-label">Instructions</label>
                                 <input type="text" id="edit_activity_description" name="description" class="form-control custom-input" maxlength="250">
                             </div>
-                            <div class="col-md-3">
-                                <label for="edit_max_score" class="form-label">Max Score</label>
-                                <input type="number" id="edit_max_score" name="max_score" class="form-control custom-input" min="1" max="1000" step="0.5">
-                            </div>
-                            <div class="col-12">
-                                <label for="edit_classroom_notes" class="form-label">Classroom Notes</label>
-                                <textarea id="edit_classroom_notes" name="classroom_notes" class="form-control custom-input" rows="3"
-                                          placeholder="Blackboard content or in-class instructions"></textarea>
-                            </div>
-                            <div class="col-12">
-                                <label for="edit_external_url" class="form-label">Google Drive / Shared Link</label>
-                                <input type="url" id="edit_external_url" name="external_url" class="form-control custom-input"
-                                       placeholder="https://drive.google.com/...">
-                            </div>
                             <div class="col-12">
                                 <label for="edit_scan_keywords" class="form-label">AI scan keywords</label>
                                 <input type="text" id="edit_scan_keywords" name="scan_keywords" class="form-control custom-input"
@@ -850,11 +701,8 @@
     <div class="tab-pane {% if active_tab == 'grades' %}show active{% endif %}" id="tab-grades">
         <div class="grading-workflow-banner mb-4">
             <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
-                <strong class="text-white"><i class="bi bi-diagram-3 me-2"></i>How period grading works</strong>
-                <span class="small opacity-75">
-                    {% if display_year %}<span class="badge teacher-year-badge-current me-1">{{ display_year.name }}</span>{% endif %}
-                    4 simple steps
-                </span>
+                <strong class="text-white"><i class="bi bi-diagram-3 me-2"></i>Period Grade Entry</strong>
+                <span class="small opacity-75">Class → Subject &amp; Period → Enter scores → Save or publish</span>
             </div>
             <ol class="workflow-steps">
                 <li><span class="step-num">1</span> Select your class</li>
@@ -863,23 +711,18 @@
                 <li><span class="step-num">4</span> Save draft or publish to report cards</li>
             </ol>
         </div>
+
         <div class="row g-4">
         <div class="col-lg-12">
     <div class="card dashboard-card h-100" id="gradeEntryCard">
-        <div class="card-header d-flex flex-wrap justify-content-between align-items-start gap-2">
-            <div>
-                <h5 class="mb-0 text-white"><i class="bi bi-table me-2 text-cyber"></i>Period Grade Sheet{% if display_year %} <small class="text-muted fs-6">· {{ display_year.name }}</small>{% endif %}</h5>
-                <p class="teacher-section-lead">Enter CA and exam scores, then save as draft or publish to student report cards.</p>
-            </div>
+        <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <h5 class="mb-0 text-white"><i class="bi bi-table me-2 text-cyber"></i>Period Grade Sheet</h5>
             <div class="d-flex align-items-center gap-2">
                 <span class="grade-loading-spinner" id="gradeLoadingSpinner" aria-live="polite">
                     <span class="spinner-border spinner-border-sm text-cyan" role="status" aria-hidden="true"></span>
                     Loading…
                 </span>
                 {% if grade_class_id %}
-                <a href="{{ url_for('manual_activity_grades', class_id=grade_class_id, subject=grade_subject, period=grade_period) }}" class="btn btn-cyber-sm btn-sm">
-                    <i class="bi bi-lightning-charge me-1"></i>Quick Period Entry
-                </a>
                 <a href="{{ url_for('class_grading_hub', class_id=grade_class_id, subject=grade_subject, period=grade_period) }}" class="btn btn-cyber-sm">
                     <i class="bi bi-mortarboard me-1"></i> Full Grading Hub
                 </a>
@@ -915,7 +758,7 @@
                         <div class="text-blue small mb-2 fw-semibold text-uppercase" style="letter-spacing:0.04em;">Step 1 — Class</div>
                         <div class="d-flex flex-wrap gap-2" id="gradeClassTabs">
                             {% for card in class_cards %}
-                            <a href="{{ url_for('teacher_dashboard', tab='grades', grade_class_id=card.id, ledger_class_id=ledger_class_id, grade_subject=grade_subject if grade_class_id == card.id else none, grade_period=grade_period) }}"
+                            <a href="{{ url_for('teacher_dashboard', tab='grades', grade_class_id=card.id, ledger_class_id=ledger_class_id, grade_subject=grade_subject if grade_class_id == card.id else none, grade_period=grade_period, **year_param) }}"
                                class="grade-class-tab grade-nav-link {% if grade_class_id == card.id %}active{% endif %}"
                                data-loading="true">
                                 <i class="bi bi-folder2-open me-1"></i>{{ card.name }}
@@ -929,6 +772,7 @@
                     {% if selected_grade_class and grade_entry_subjects %}
                     <form method="GET" action="{{ url_for('teacher_dashboard') }}" class="row g-3 align-items-end mt-3" id="gradeFilterForm">
                         <input type="hidden" name="tab" value="grades">
+                        {% if display_year %}<input type="hidden" name="academic_year_id" value="{{ display_year.id }}">{% endif %}
                         <input type="hidden" name="grade_class_id" value="{{ grade_class_id }}">
                         <div class="col-md-5">
                             <label for="grade_subject" class="form-label">Step 2 — Subject</label>
@@ -958,7 +802,6 @@
                             <i class="bi bi-mortarboard me-1 text-cyber"></i>
                             <strong class="text-cyber">{{ selected_grade_class.name }}</strong>
                             · {{ grade_subject }} · {{ period_label }}
-                            {% if display_year %}· <span class="text-cyan">{{ display_year.name }}</span>{% endif %}
                         </span>
                         <span class="text-muted small">
                             {% if is_semester_exam %}Exam score max 100{% else %}MoE: CA 60 + Exam 40 = 100 · Pass ≥ 70%{% endif %}
@@ -1127,11 +970,11 @@
     <div class="card dashboard-card mt-4" id="gradeRecordsLedger">
         <div class="card-header bg-transparent py-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
             <div>
-                <h5 class="mb-0 text-white"><i class="bi bi-collection me-2 text-cyber"></i>Grade Records Ledger{% if display_year %} <small class="text-muted text-sm fs-6">· {{ display_year.name }}</small>{% endif %}</h5>
+                <h5 class="mb-0 text-white"><i class="bi bi-collection me-2 text-cyber"></i>Grade Records Ledger <small class="text-muted text-sm fs-6">(Current Academic Cycle)</small></h5>
                 <p class="text-blue small mb-0 mt-1">Browse grades you have entered, organized by class, student, subject, and marking period.</p>
             </div>
             {% if selected_ledger_class and ledger_stats.total_entries %}
-            <a href="{{ url_for('teacher_dashboard', tab='grades', grade_class_id=ledger_class_id) }}"
+            <a href="{{ url_for('teacher_dashboard', tab='grades', grade_class_id=ledger_class_id, **year_param) }}"
                class="btn btn-cyber-sm btn-sm">
                 <i class="bi bi-pencil-square me-1"></i>Edit Grades
             </a>
@@ -1145,7 +988,7 @@
                     {% for card in class_cards %}
                     {% set card_ledger = grade_ledger_by_class.get(card.id, {}) %}
                     {% set card_stats = card_ledger.get('stats', {}) %}
-                    <a href="{{ url_for('teacher_dashboard', tab='grades', grade_class_id=grade_class_id, ledger_class_id=card.id, grade_subject=grade_subject, grade_period=grade_period, ledger_subject=ledger_subject if ledger_class_id == card.id else none) }}"
+                    <a href="{{ url_for('teacher_dashboard', tab='grades', grade_class_id=grade_class_id, ledger_class_id=card.id, grade_subject=grade_subject, grade_period=grade_period, ledger_subject=ledger_subject if ledger_class_id == card.id else none, **year_param) }}"
                        class="grade-class-tab grade-nav-link {% if ledger_class_id == card.id %}active{% endif %}"
                        data-loading="true">
                         <i class="bi bi-journal-text me-1"></i>{{ card.name }}
@@ -1163,7 +1006,7 @@
                 <span>
                     <i class="bi bi-mortarboard me-1 text-cyber"></i>
                     <strong class="text-cyber">{{ selected_ledger_class.name }}</strong>
-                    · {{ display_year.name if display_year else 'No year configured' }}
+                    · {{ active_year.name if active_year else 'Current cycle' }}
                 </span>
                 {% if ledger_stats %}
                 <div class="grade-entry-progress-pills ms-md-auto">
@@ -1190,6 +1033,7 @@
             {% if ledger_subjects %}
             <form method="GET" action="{{ url_for('teacher_dashboard') }}" class="row g-3 align-items-end mb-3" id="ledgerFilterForm">
                 <input type="hidden" name="tab" value="grades">
+                {% if display_year %}<input type="hidden" name="academic_year_id" value="{{ display_year.id }}">{% endif %}
                 <input type="hidden" name="grade_class_id" value="{{ grade_class_id }}">
                 <input type="hidden" name="ledger_class_id" value="{{ ledger_class_id }}">
                 <input type="hidden" name="grade_subject" value="{{ grade_subject }}">
@@ -1294,7 +1138,7 @@
                     {% endif %}
                     Use the grade entry section above or the Full Grading Hub to add scores.
                 </p>
-                <a href="{{ url_for('teacher_dashboard', tab='grades', grade_class_id=ledger_class_id) }}" class="btn btn-cyber-sm mt-2">
+                <a href="{{ url_for('teacher_dashboard', tab='grades', grade_class_id=ledger_class_id, **year_param) }}" class="btn btn-cyber-sm mt-2">
                     <i class="bi bi-pencil-square me-1"></i>Enter Period Grades
                 </a>
             </div>
@@ -1468,6 +1312,16 @@
     .text-cyber-dim { color: rgba(0, 242, 255, 0.5); }
     .border-cyber-dim { border-color: rgba(0, 242, 255, 0.1) !important; }
 
+    .teacher-collapsible-panel summary::-webkit-details-marker { display: none; }
+    .teacher-collapsible-panel summary::after {
+        content: '\F282';
+        font-family: 'bootstrap-icons';
+        color: var(--cyber-blue);
+        font-size: 0.85rem;
+        transition: transform 0.2s ease;
+    }
+    .teacher-collapsible-panel[open] summary::after { transform: rotate(180deg); }
+
     /* CORE COMPONENT GLASSMORPHISM */
     .dashboard-card {
         background: var(--bg-glass);
@@ -1530,21 +1384,6 @@
         padding: 0.5rem 1rem;
         border-radius: 0 8px 8px 0;
     }
-    .teacher-year-banner {
-        backdrop-filter: blur(4px);
-    }
-    .teacher-year-badge-current {
-        background: rgba(0, 242, 255, 0.12);
-        border: 1px solid rgba(0, 242, 255, 0.35);
-        color: var(--cyber-cyan);
-        font-size: 0.7rem;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.04em;
-        vertical-align: middle;
-    }
-    .teacher-terminal .teacher-section-lead { color: #94a3b8 !important; }
-    #gradeRecordsLedger { scroll-margin-top: 1.25rem; }
 
     /* FORM ELEMENTS overrides */
     .custom-input, .custom-select {
@@ -1968,8 +1807,7 @@
         return (bytes / 1048576).toFixed(1) + ' MB';
     }
 
-    function titleFromFilename(name) {
-        const base = name.replace(/\.[^/.]+$/, '');
+    function titleFromFilename(name) {        const base = name.replace(/\.[^/.]+$/, '');
         return base.replace(/[_-]+/g, ' ').replace(/\b\w/g, function(c) { return c.toUpperCase(); });
     }
 
@@ -2132,12 +1970,6 @@
             document.getElementById('edit_activity_type').value = btn.dataset.type || 'Assignment';
             document.getElementById('edit_submission_mode').value = btn.dataset.mode || 'file_upload';
             document.getElementById('edit_scan_keywords').value = btn.dataset.keywords || '';
-            const maxEl = document.getElementById('edit_max_score');
-            if (maxEl) maxEl.value = btn.dataset.max || '100';
-            const notesEl = document.getElementById('edit_classroom_notes');
-            if (notesEl) notesEl.value = btn.dataset.notes || '';
-            const extEl = document.getElementById('edit_external_url');
-            if (extEl) extEl.value = btn.dataset.external || '';
             if (window.bootstrap && bootstrap.Modal) {
                 bootstrap.Modal.getOrCreateInstance(editModalEl).show();
             } else {

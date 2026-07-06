@@ -29,9 +29,66 @@
     .badge-pass { background: rgba(16,185,129,0.12); color: #10b981; border: 1px solid rgba(16,185,129,0.2); }
     .badge-fail { background: rgba(244,63,94,0.12); color: #f43f5e; border: 1px solid rgba(244,63,94,0.2); }
     .badge-none { background: rgba(148,163,184,0.12); color: #94a3b8; border: 1px solid rgba(148,163,184,0.2); }
+    .registry-student-name {
+        color: #fbbf24 !important;
+        font-weight: 600;
+    }
+    .registry-student-class {
+        color: #0f172a !important;
+        font-weight: 500;
+        background: rgba(251, 191, 36, 0.15);
+        display: inline-block;
+        padding: 0.15rem 0.45rem;
+        border-radius: 4px;
+    }
+    .recent-grade-student-name {
+        color: #fbbf24 !important;
+        font-weight: 600;
+    }
+    .recent-grade-subject {
+        color: #0f172a !important;
+        font-weight: 500;
+        background: rgba(255, 255, 255, 0.88);
+        display: inline-block;
+        padding: 0.1rem 0.4rem;
+        border-radius: 4px;
+    }
+    .recent-grade-score {
+        color: #2563eb !important;
+        font-weight: 700;
+    }
+    .top-performer-name {
+        color: #0f172a !important;
+        font-weight: 600;
+        background: rgba(255, 255, 255, 0.9);
+        display: inline-block;
+        padding: 0.1rem 0.4rem;
+        border-radius: 4px;
+    }
+    .top-performer-class {
+        color: #2563eb !important;
+        font-weight: 600;
+    }
+    .recent-assessment-title {
+        color: #2563eb !important;
+        font-weight: 600;
+    }
+    .recent-assessment-class {
+        color: #0f172a !important;
+        font-weight: 500;
+        background: rgba(255, 255, 255, 0.88);
+        display: inline-block;
+        padding: 0.1rem 0.4rem;
+        border-radius: 4px;
+    }
+    .recent-assessment-subject {
+        color: #fbbf24 !important;
+        font-weight: 600;
+    }
 </style>
 
 <div class="container-fluid py-4 px-md-4 vpa-terminal">
+    {% set year_param = {'academic_year_id': display_year.id} if display_year else {} %}
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4 pb-3 border-bottom border-secondary border-opacity-10">
         <div>
             <h2 class="glow-title mb-0"><i class="fas fa-graduation-cap text-violet me-2"></i>VPA Academic Command Center</h2>
@@ -40,13 +97,25 @@
         <form method="get" class="d-flex gap-2 mt-2 mt-md-0 flex-wrap">
             {% if class_id %}<input type="hidden" name="class_id" value="{{ class_id }}">{% endif %}
             {% if search_q %}<input type="hidden" name="q" value="{{ search_q }}">{% endif %}
-            <select name="year" class="form-select form-cyber form-select-sm" onchange="this.form.submit()">
+            <select name="academic_year_id" class="form-select form-cyber form-select-sm" onchange="this.form.submit()">
                 {% for y in years %}
-                <option value="{{ y.name }}" {% if y.name == selected_year_name %}selected{% endif %}>{{ y.name }}</option>
+                <option value="{{ y.id }}" {% if display_year and y.id == display_year.id %}selected{% endif %}>{{ y.name }}{% if y.is_active %} (Active){% endif %}</option>
                 {% endfor %}
             </select>
         </form>
     </div>
+
+    {% if viewing_archived and display_year %}
+    <div class="alert bg-dark border border-warning border-opacity-40 text-white mb-4 rounded-3 d-flex flex-wrap align-items-center justify-content-between gap-2">
+        <div>
+            <span class="badge bg-warning text-dark me-2">Archived</span>
+            <strong>Historical academic view — {{ display_year.name }}</strong>
+        </div>
+        {% if active_year %}
+        <a href="{{ url_for('vpa_dashboard', academic_year_id=active_year.id) }}" class="btn btn-sm btn-outline-success">Active Year ({{ active_year.name }})</a>
+        {% endif %}
+    </div>
+    {% endif %}
 
     <div class="row g-3 mb-4">
         <div class="col-6 col-xl-2"><div class="metric-card"><span class="text-muted small d-block">Enrolled Students</span><h4 class="text-violet mb-0">{{ stats.total_students }}</h4></div></div>
@@ -123,17 +192,17 @@
                 <h6 class="fw-bold mb-3"><i class="fas fa-layer-group text-violet me-2"></i>Class Academic Matrix</h6>
                 <div class="row g-2">
                     <div class="col-12 mb-1">
-                        <a href="{{ url_for('vpa_dashboard', year=selected_year_name) }}" class="class-academic-card{% if not selected_class %} active{% endif %}">
+                        <a href="{{ url_for('vpa_dashboard', **year_param) }}" class="class-academic-card{% if not selected_class %} active{% endif %}">
                             <div class="fw-semibold small">All Classes</div>
-                            <div class="text-muted small">{{ stats.total_students }} students · {{ selected_year_name }}</div>
+                            <div class="text-muted small">{{ stats.total_students }} {% if viewing_archived %}on record{% else %}students{% endif %} · {{ selected_year_name }}</div>
                         </a>
                     </div>
                     {% for snap in class_snapshots[:8] %}
                     <div class="col-md-6">
-                        <a href="{{ url_for('vpa_dashboard', class_id=snap.klass.id, year=selected_year_name) }}" class="class-academic-card{% if selected_class and selected_class.id == snap.klass.id %} active{% endif %}">
+                        <a href="{{ url_for('vpa_dashboard', class_id=snap.klass.id, **year_param) }}" class="class-academic-card{% if selected_class and selected_class.id == snap.klass.id %} active{% endif %}">
                             <div class="fw-semibold small">{{ snap.klass.name }}</div>
                             <div class="d-flex flex-wrap gap-1 mt-2">
-                                <span class="stat-pill">{{ snap.student_count }} enrolled</span>
+                                <span class="stat-pill">{{ snap.student_count }} {% if viewing_archived %}on record{% else %}enrolled{% endif %}</span>
                                 <span class="stat-pill text-violet">{{ snap.subject_count }} subjects</span>
                                 {% if snap.class_avg is not none %}<span class="stat-pill text-emerald">{{ snap.class_avg }}% avg</span>{% endif %}
                                 {% if snap.failing_count %}<span class="stat-pill text-rose">{{ snap.failing_count }} below MoE</span>{% endif %}
@@ -164,15 +233,24 @@
             <div class="card sec-card p-4">
                 <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2 mb-3">
                     <div>
+                        {% if selected_class %}
+                        <a href="{{ url_for('vpa_dashboard', **year_param) }}" class="small text-decoration-none text-violet d-inline-block mb-2">
+                            <i class="fas fa-arrow-left me-1"></i>Back to all classes
+                        </a>
+                        {% endif %}
                         <h5 class="fw-bold mb-0"><i class="fas fa-search text-violet me-2"></i>Student Academic Registry</h5>
                         <p class="text-muted small mb-0">
-                            {% if selected_class %}Viewing <strong class="text-violet">{{ selected_class.name }}</strong>{% else %}All enrolled students{% endif %}
+                            {% if selected_class %}
+                            Class drill-down — <strong class="text-violet">{{ selected_class.name }}</strong>
+                            {% if selected_class_stats %} · {{ selected_class_stats.student_count }} student{{ 's' if selected_class_stats.student_count != 1 else '' }} on record{% endif %}
+                            {% else %}All {% if viewing_archived %}students on record{% else %}enrolled students{% endif %}{% endif %}
                             · {{ selected_year_name }}
+                            {% if viewing_archived and display_year %}<span class="badge bg-warning text-dark ms-1">Archived</span>{% endif %}
                         </p>
                     </div>
                 </div>
                 <form method="get" class="row g-2 mb-3">
-                    <input type="hidden" name="year" value="{{ selected_year_name }}">
+                    {% if display_year %}<input type="hidden" name="academic_year_id" value="{{ display_year.id }}">{% endif %}
                     <div class="col-md-4">
                         <select name="class_id" class="form-select form-cyber form-select-sm">
                             <option value="">All classes</option>
@@ -204,10 +282,15 @@
                             {% for student in students[:25] %}
                             <tr>
                                 <td>
-                                    <div class="small fw-semibold">{{ student.full_name }}</div>
+                                    <div class="small registry-student-name">{{ student.full_name }}</div>
                                     <div class="text-muted" style="font-size:0.7rem;">{{ student.student_id or '—' }}</div>
+                                    {% if viewing_archived and student.status in ('ALUMNI', 'GRADUATED') %}
+                                    <span class="badge bg-secondary mt-1" style="font-size:0.6rem;">{{ student.status|title }}</span>
+                                    {% elif student.status == 'FAILED' %}
+                                    <span class="badge bg-rose bg-opacity-10 text-rose border border-rose border-opacity-10 mt-1" style="font-size:0.6rem;">Failed</span>
+                                    {% endif %}
                                 </td>
-                                <td class="small">{{ student.klass.name if student.klass else 'Unassigned' }}</td>
+                                <td class="small"><span class="registry-student-class">{{ student.display_klass.name if student.display_klass else (student.klass.name if student.klass else 'Unassigned') }}</span></td>
                                 <td class="small fw-bold {% if student.academic_average is not none and student.academic_average >= stats.moe_standard %}text-emerald{% elif student.academic_average is not none %}text-rose{% endif %}">
                                     {% if student.academic_average is not none %}{{ student.academic_average }}%{% else %}—{% endif %}
                                 </td>
@@ -222,13 +305,19 @@
                                     {% endif %}
                                 </td>
                                 <td class="text-end">
-                                    <a href="{{ url_for('report_card', student_id=student.id) }}" class="btn btn-sm btn-outline-light py-0 px-2" title="Report card">
+                                    <a href="{{ url_for('report_card', student_id=student.id) }}?academic_year_id={{ display_year.id if display_year else '' }}" class="btn btn-sm btn-outline-light py-0 px-2" title="Report card">
                                         <i class="fas fa-file-alt"></i>
                                     </a>
                                 </td>
                             </tr>
                             {% else %}
-                            <tr><td colspan="6" class="text-muted small text-center py-3">No students match this filter.</td></tr>
+                            <tr><td colspan="6" class="text-muted small text-center py-3">
+                                {% if selected_class and viewing_archived and display_year %}
+                                No students are recorded in this class for {{ display_year.name }}. Alumni and graduated learners appear here when their enrollment history matches this folder.
+                                {% else %}
+                                No students match this filter.
+                                {% endif %}
+                            </td></tr>
                             {% endfor %}
                         </tbody>
                     </table>
@@ -253,7 +342,7 @@
                                             <div class="small fw-semibold">{{ row.student.full_name }}</div>
                                             <div class="text-muted" style="font-size:0.7rem;">{{ row.student.student_id or '—' }}</div>
                                         </td>
-                                        <td class="small">{{ row.student.klass.name if row.student.klass else 'Unassigned' }}</td>
+                                        <td class="small">{{ (row.student.display_klass or row.student.klass).name if (row.student.display_klass or row.student.klass) else 'Unassigned' }}</td>
                                         <td class="small text-rose fw-bold">{{ row.average }}%</td>
                                     </tr>
                                     {% endfor %}
@@ -276,10 +365,10 @@
                                     {% for row in top_students %}
                                     <tr>
                                         <td>
-                                            <div class="small fw-semibold">{{ row.student.full_name }}</div>
+                                            <div class="small top-performer-name">{{ row.student.full_name }}</div>
                                             <div class="text-muted" style="font-size:0.7rem;">{{ row.student.student_id or '—' }}</div>
                                         </td>
-                                        <td class="small">{{ row.student.klass.name if row.student.klass else 'Unassigned' }}</td>
+                                        <td class="small top-performer-class">{{ (row.student.display_klass or row.student.klass).name if (row.student.display_klass or row.student.klass) else 'Unassigned' }}</td>
                                         <td class="small text-emerald fw-bold">{{ row.average }}%</td>
                                     </tr>
                                     {% endfor %}
@@ -303,9 +392,9 @@
                                 <tbody>
                                     {% for grade in recent_grades %}
                                     <tr>
-                                        <td class="small">{{ grade.student.full_name if grade.student else '—' }}</td>
-                                        <td class="small">{{ grade.subject_name or grade.subject or '—' }}</td>
-                                        <td class="small fw-bold">{{ grade.score|round(1) if grade.score is not none else '—' }}%</td>
+                                        <td class="small recent-grade-student-name">{{ grade.student.full_name if grade.student else '—' }}</td>
+                                        <td class="small"><span class="recent-grade-subject">{{ grade.subject_name or grade.subject or '—' }}</span></td>
+                                        <td class="small recent-grade-score">{{ grade.score|round(1) if grade.score is not none else '—' }}%</td>
                                         <td>
                                             {% if grade.submitted %}
                                             <span class="badge badge-pass small">Published</span>
@@ -331,9 +420,9 @@
                                 <tbody>
                                     {% for assessment in recent_assessments %}
                                     <tr>
-                                        <td class="small fw-semibold">{{ assessment.title }}</td>
-                                        <td class="small">{{ assessment.klass.name if assessment.klass else '—' }}</td>
-                                        <td class="small">{{ assessment.subject_name or '—' }}</td>
+                                        <td class="small recent-assessment-title">{{ assessment.title }}</td>
+                                        <td class="small"><span class="recent-assessment-class">{{ assessment.klass.name if assessment.klass else '—' }}</span></td>
+                                        <td class="small recent-assessment-subject">{{ assessment.subject_name or '—' }}</td>
                                         <td><span class="badge bg-dark border border-secondary small">{{ assessment.activity_type or 'Assignment' }}</span></td>
                                     </tr>
                                     {% else %}

@@ -108,22 +108,24 @@
                 </select>
             </form>
             {% endif %}
+            {% if show_admin_hub_link %}
+            <a href="{{ url_for('dashboard') }}" class="btn btn-sm btn-outline-dark"><i class="fas fa-user-shield me-1"></i> Admin Hub</a>
+            {% endif %}
             <a href="{{ url_for('business_management') }}" class="btn btn-sm btn-outline-secondary">Advanced Ledger</a>
-            <a href="{{ url_for('attendance_overview', academic_year_id=display_year.id if display_year else None) }}" class="btn btn-sm btn-outline-info">Attendance Summary</a>
             <a href="{{ url_for('export_business', year=selected_year) }}" class="btn btn-sm btn-outline-primary">Export CSV</a>
         </div>
     </div>
 
     <div class="biz-card mb-4">
         <div class="d-flex flex-wrap border-bottom">
-            <a href="{{ url_for('dashboard', tab='tuition', class_id=selected_class_id or '', student_id=selected_student_id or '', **year_param) }}"
+            <a href="{{ url_for('business_dashboard', tab='tuition', class_id=selected_class_id or '', student_id=selected_student_id or '', **year_param) }}"
                class="biz-tab-btn {% if active_tab == 'tuition' %}active{% endif %}">
                 <i class="fas fa-hand-holding-dollar me-1"></i> Collect Tuition
             </a>
-            <a href="{{ url_for('dashboard', tab='summary', **year_param) }}" class="biz-tab-btn {% if active_tab == 'summary' %}active{% endif %}">
+            <a href="{{ url_for('business_dashboard', tab='summary', **year_param) }}" class="biz-tab-btn {% if active_tab == 'summary' %}active{% endif %}">
                 <i class="fas fa-chart-pie me-1"></i> Summary
             </a>
-            <a href="{{ url_for('dashboard', tab='ledger', **year_param) }}" class="biz-tab-btn {% if active_tab == 'ledger' %}active{% endif %}">
+            <a href="{{ url_for('business_dashboard', tab='ledger', **year_param) }}" class="biz-tab-btn {% if active_tab == 'ledger' %}active{% endif %}">
                 <i class="fas fa-list me-1"></i> Recent Activity
             </a>
         </div>
@@ -160,7 +162,7 @@
                     </form>
                     <div class="d-flex flex-column gap-2" style="max-height: 420px; overflow-y: auto;">
                         {% for klass in classes %}
-                        <a href="{{ url_for('dashboard', tab='tuition', class_id=klass.id, **year_param) }}"
+                        <a href="{{ url_for('business_dashboard', tab='tuition', class_id=klass.id, **year_param) }}"
                            class="class-pick {% if selected_class_id == klass.id %}selected{% endif %}">
                             <div class="fw-bold">{{ klass.name }}</div>
                             <div class="small text-muted">{{ klass.student_count }} students · Fee ${{ "{:,.2f}".format(klass.yearly_fees) }}</div>
@@ -182,7 +184,7 @@
                     {% else %}
                     <div class="d-flex flex-column gap-2" style="max-height: 480px; overflow-y: auto;">
                         {% for s in class_roster %}
-                        <a href="{{ url_for('dashboard', tab='tuition', class_id=selected_class_id, student_id=s.id, **year_param) }}"
+                        <a href="{{ url_for('business_dashboard', tab='tuition', class_id=selected_class_id, student_id=s.id, **year_param) }}"
                            class="student-row {% if selected_student_id == s.id %}selected{% endif %}">
                             <div class="d-flex justify-content-between align-items-start gap-2">
                                 <div>
@@ -257,7 +259,7 @@
                     </div>
                     {% endif %}
                     {% endif %}
-                    <form method="post" action="{{ url_for('dashboard', tab='tuition', class_id=selected_class_id, student_id=selected_student_id, **year_param) }}">
+                    <form method="post" action="{{ url_for('business_dashboard', tab='tuition', class_id=selected_class_id, student_id=selected_student_id, **year_param) }}">
                         {{ payment_form.hidden_tag() }}
                         <input type="hidden" name="class_id" value="{{ selected_class_id }}">
                         <input type="hidden" name="student_id" value="{{ selected_student_id }}">
@@ -346,7 +348,7 @@
                         {% for klass in classes %}
                         <tr>
                             <td>
-                                <a href="{{ url_for('dashboard', tab='tuition', class_id=klass.id, **year_param) }}" class="fw-semibold text-decoration-none">
+                                <a href="{{ url_for('business_dashboard', tab='tuition', class_id=klass.id, **year_param) }}" class="fw-semibold text-decoration-none">
                                     {{ klass.name }}
                                 </a>
                             </td>
@@ -440,7 +442,7 @@
                 <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
                 <form method="post" action="{{ url_for('finance_activate_student', student_id=s.id) }}" class="d-inline">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <input type="hidden" name="next" value="{{ url_for('dashboard', tab='tuition', class_id=selected_class_id, student_id=s.id, **year_param) }}">
+                    <input type="hidden" name="next" value="{{ url_for('business_dashboard', tab='tuition', class_id=selected_class_id, student_id=s.id, **year_param) }}">
                     <button type="submit" class="btn btn-primary">
                         <i class="fas fa-check me-1"></i> Confirm Activation
                     </button>

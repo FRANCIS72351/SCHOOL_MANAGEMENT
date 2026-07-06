@@ -31,6 +31,10 @@ announcements, payments, sponsors, discipline records, PDF transcript generation
 
 See **[DEPLOYMENT.md](DEPLOYMENT.md)** for full VPS setup with Gunicorn, Nginx, and systemd.
 
+## Production (AWS)
+
+See **[DEPLOY_AWS.md](DEPLOY_AWS.md)** for EC2 + Docker (recommended), Elastic Beanstalk, App Runner, RDS PostgreSQL, and EBS persistence notes.
+
 Quick start on Linux:
 
 ```bash

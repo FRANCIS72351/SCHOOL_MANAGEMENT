@@ -288,12 +288,18 @@
             <i class="fas fa-shield-check text-success me-1"></i> Verified parent access · session expires in {{ 2 }} hours
         </span>
         {% endif %}
-        <a class="btn-print" href="{{ url_for('download_report_card', student_id=student.id) }}?academic_year_id={{ display_year.id if display_year else '' }}" style="text-decoration:none;margin-right:10px;">
+        {% if not parent_qr_view %}
+        <a class="btn-print" href="{{ url_for('download_report_card', student_id=student.id) }}?academic_year_id={{ display_year.id if display_year else '' }}" style="text-decoration:none;margin-right:10px;" title="PDF export does not include the parent QR block">
             <i class="fas fa-download"></i> Download PDF
         </a>
         <button class="btn-print" onclick="window.print()">
             <i class="fas fa-print"></i> Print Report Card
         </button>
+        {% else %}
+        <button class="btn-print" onclick="window.print()">
+            <i class="fas fa-print"></i> Print Report Card
+        </button>
+        {% endif %}
     </div>
 
     <div class="report-card">
@@ -361,6 +367,23 @@
             </tbody>
         </table>
 
+        {% if data.promotion %}
+        <div style="margin-top:2rem;padding:1.25rem 1.5rem;border-radius:12px;border:1px solid {% if data.promotion.outcome == 'PROMOTED' %}#86efac{% else %}#fecaca{% endif %};background:{% if data.promotion.outcome == 'PROMOTED' %}#f0fdf4{% else %}#fef2f2{% endif %};">
+            <div style="font-size:0.75rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#64748b;margin-bottom:0.35rem;">
+                Year-End Promotion Result
+            </div>
+            <div style="font-size:1.1rem;font-weight:800;color:{% if data.promotion.outcome == 'PROMOTED' %}#166534{% else %}#b91c1c{% endif %};margin-bottom:0.35rem;">
+                {{ data.promotion.label }}
+            </div>
+            <p style="margin:0;font-size:0.9rem;color:#475569;line-height:1.5;">{{ data.promotion.detail }}</p>
+            {% if data.promotion.enrollment_status == 'FAILED' %}
+            <p style="margin:0.65rem 0 0;font-size:0.85rem;font-weight:600;color:#b91c1c;">
+                Enrollment status: Failed — repeat grade for the next academic year.
+            </p>
+            {% endif %}
+        </div>
+        {% endif %}
+
         {% if not parent_qr_view and parent_report_qr_data_uri %}
         <div class="parent-report-qr-block" style="margin-top:2rem;padding:1.25rem;border:1px dashed #cbd5e1;border-radius:12px;display:flex;flex-wrap:wrap;align-items:center;gap:1.25rem;background:#f8fafc;">
             <img src="{{ parent_report_qr_data_uri }}" alt="Parent report QR code" width="120" height="120" style="background:#fff;padding:8px;border-radius:8px;">
@@ -376,6 +399,13 @@
                 </p>
                 {% endif %}
             </div>
+        </div>
+        {% elif not parent_qr_view and parent_report_configured %}
+        <div class="parent-report-qr-block" style="margin-top:2rem;padding:1rem 1.25rem;border:1px dashed #fbbf24;border-radius:12px;background:#fffbeb;">
+            <p style="margin:0;font-size:0.85rem;color:#92400e;">
+                <i class="fas fa-exclamation-triangle"></i>
+                Parent QR could not be generated. Set <strong>SITE_URL</strong> in your server environment to your public school address (e.g. <code>https://school.example.com</code>) so printed QR codes work on parent phones.
+            </p>
         </div>
         {% endif %}
 

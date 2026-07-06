@@ -78,6 +78,52 @@ def ocr_engine_ready():
         return False
 
 
+def get_ocr_setup_status():
+    """Detailed OCR readiness for teacher setup banners."""
+    status = {
+        'libraries_installed': ocr_libraries_available(),
+        'engine_ready': False,
+        'tesseract_path': None,
+        'tesseract_version': None,
+        'barcode_scanner': False,
+        'install_steps': [],
+    }
+    if not status['libraries_installed']:
+        status['install_steps'] = [
+            'Install Python packages: pip install pytesseract Pillow',
+            'Install Tesseract OCR (Windows: winget install UB-Mannheim.TesseractOCR)',
+            'Restart the school server after installing Tesseract',
+        ]
+        return status
+
+    configure_tesseract()
+    cmd = getattr(pytesseract.pytesseract, 'tesseract_cmd', None)
+    status['tesseract_path'] = cmd
+    try:
+        status['tesseract_version'] = str(pytesseract.get_tesseract_version())
+        status['engine_ready'] = True
+    except Exception:
+        status['install_steps'] = [
+            'Python packages are installed, but the Tesseract program was not found.',
+            'Windows: install from https://github.com/UB-Mannheim/tesseract/wiki',
+            'Or set TESSERACT_CMD in .env to the full path of tesseract.exe',
+            'Restart the server after installation.',
+        ]
+
+    try:
+        from student_scanner import barcode_scanner_available
+        status['barcode_scanner'] = barcode_scanner_available()
+    except Exception:
+        status['barcode_scanner'] = False
+
+    if status['engine_ready'] and not status['barcode_scanner']:
+        status['install_steps'].append(
+            'Optional: pip install pyzbar for faster QR/barcode matching on answer sheets.'
+        )
+
+    return status
+
+
 def parse_scan_keywords(raw_value):
     """Split comma/newline-separated keywords into a normalized list."""
     if not raw_value:

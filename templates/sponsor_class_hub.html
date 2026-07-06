@@ -11,10 +11,14 @@
             <h2 class="text-white fw-bold mt-2 mb-1">
                 <i class="bi bi-shield-check text-warning me-2"></i>{{ role_title }} Command Center
             </h2>
-            <p class="text-blue mb-0 small">
+            <p class="text-blue mb-2 small">
                 {{ klass.name }} · Grade {{ klass.grade_level }}{% if klass.stream %} · {{ klass.stream }}{% endif %}
-                {% if active_year %} · {{ active_year.name }}{% endif %}
             </p>
+            {% if active_year %}
+            <span class="badge att-session-badge">
+                <i class="bi bi-mortarboard me-1"></i>Current Session: {{ active_year.name }}
+            </span>
+            {% endif %}
         </div>
         <div class="d-flex flex-wrap gap-2">
             <a href="{{ url_for('grade_entry_class', class_id=klass.id) }}" class="btn btn-cyber-sm">
@@ -65,13 +69,22 @@
                 <div class="hub-card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
                     <h5 class="mb-0 text-white"><i class="bi bi-calendar-check me-2 text-cyan"></i>Daily Attendance Roll</h5>
                     <form method="GET" action="{{ url_for('sponsor_class_hub', class_id=klass.id) }}" class="d-flex gap-2 align-items-center">
-                        <input type="date" name="date" value="{{ attendance_date }}" class="form-control form-control-sm form-cyber" onchange="this.form.submit()">
+                        <label class="text-blue small mb-0 fw-semibold" for="sponsorAttDate">Session Date</label>
+                        <input type="date" id="sponsorAttDate" name="date" value="{{ attendance_date }}" class="form-control form-control-sm form-cyber" style="max-width: 11rem;" onchange="this.form.submit()">
                     </form>
                 </div>
                 <div class="hub-card-body p-0">
-                    <form method="POST" action="{{ url_for('sponsor_save_attendance', class_id=klass.id) }}">
+                    <form method="POST" action="{{ url_for('sponsor_save_attendance', class_id=klass.id) }}" id="sponsorAttendanceForm">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <input type="hidden" name="attendance_date" value="{{ attendance_date }}">
+                        <div class="px-3 py-2 d-flex flex-wrap gap-2 align-items-center justify-content-between border-bottom border-cyber-dim">
+                            <span class="text-blue small">Quick mark entire class:</span>
+                            <div class="d-flex flex-wrap gap-2">
+                                <button type="button" class="btn btn-sm att-quick-btn" data-mark-all="present"><i class="bi bi-check-circle me-1"></i>All Present</button>
+                                <button type="button" class="btn btn-sm att-quick-btn" data-mark-all="late"><i class="bi bi-clock me-1"></i>All Late</button>
+                                <button type="button" class="btn btn-sm att-quick-btn" data-mark-all="absent"><i class="bi bi-x-circle me-1"></i>All Absent</button>
+                            </div>
+                        </div>
                         <div class="table-responsive">
                             <table class="table hub-table mb-0">
                                 <thead>
@@ -84,31 +97,45 @@
                                 </thead>
                                 <tbody>
                                     {% for row in roster %}
-                                    <tr>
-                                        <td class="ps-4 fw-semibold text-white">{{ row.student.full_name }}</td>
+                                    <tr class="att-row">
+                                        <td class="ps-4">
+                                            <div class="fw-semibold text-white">{{ row.student.full_name }}</div>
+                                            {% if not row.is_marked %}
+                                            <span class="badge bg-dark border border-secondary text-secondary att-unmarked-badge">Not saved</span>
+                                            {% endif %}
+                                        </td>
                                         <td>
-                                            <select name="attendance_{{ row.student.id }}" class="form-select form-select-sm form-cyber att-select att-{{ row.attendance_status }}">
-                                                <option value="present" {% if row.attendance_status == 'present' %}selected{% endif %}>Present</option>
-                                                <option value="late" {% if row.attendance_status == 'late' %}selected{% endif %}>Late</option>
-                                                <option value="absent" {% if row.attendance_status == 'absent' %}selected{% endif %}>Absent</option>
-                                                <option value="excused" {% if row.attendance_status == 'excused' %}selected{% endif %}>Excused</option>
-                                            </select>
+                                            <div class="att-status-group" role="group">
+                                                {% for value, label, icon in [
+                                                    ('present', 'Present', 'check-circle'),
+                                                    ('late', 'Late', 'clock'),
+                                                    ('absent', 'Absent', 'x-circle'),
+                                                    ('excused', 'Excused', 'shield-check')
+                                                ] %}
+                                                <label class="att-status-chip att-chip-{{ value }} {% if row.attendance_status == value %}active{% endif %}">
+                                                    <input type="radio" name="attendance_{{ row.student.id }}" value="{{ value }}" {% if row.attendance_status == value %}checked{% endif %} class="att-status-input">
+                                                    <i class="bi bi-{{ icon }}"></i>
+                                                    <span>{{ label }}</span>
+                                                </label>
+                                                {% endfor %}
+                                            </div>
                                         </td>
                                         <td class="text-blue">
                                             {% if row.attendance_rate is not none %}{{ row.attendance_rate }}%{% else %}—{% endif %}
                                         </td>
                                         <td class="pe-4">
-                                            <input type="text" name="notes_{{ row.student.id }}" class="form-control form-control-sm form-cyber" placeholder="Optional">
+                                            <input type="text" name="notes_{{ row.student.id }}" value="{{ row.notes or '' }}" class="form-control form-control-sm form-cyber" placeholder="Optional">
                                         </td>
                                     </tr>
                                     {% else %}
-                                    <tr><td colspan="4" class="text-center text-blue py-4">No students in this class.</td></tr>
+                                    <tr><td colspan="4" class="text-center text-blue py-4">No students in this class for the active year.</td></tr>
                                     {% endfor %}
                                 </tbody>
                             </table>
                         </div>
                         {% if roster %}
-                        <div class="p-3 border-top border-cyber-dim text-end">
+                        <div class="p-3 border-top border-cyber-dim d-flex flex-wrap justify-content-between align-items-center gap-2">
+                            <span class="text-blue small"><i class="bi bi-info-circle me-1"></i>Changes apply to <strong class="text-white">{{ attendance_date }}</strong> only.</span>
                             <button type="submit" class="btn btn-cyber-primary btn-sm">
                                 <i class="bi bi-save me-1"></i>Save Attendance
                             </button>
@@ -329,9 +356,54 @@
     .border-cyber-dim { border-color: rgba(0,242,255,0.12) !important; }
     .btn-cyber-primary { background: linear-gradient(135deg, #00f2ff, #0ea5e9); border: none; color: #0b0f19; font-weight: 600; }
     .btn-cyber-sm { background: rgba(0,242,255,0.12); border: 1px solid rgba(0,242,255,0.35); color: #00f2ff; font-size: 0.85rem; }
-    .att-present { border-color: #4ade80 !important; }
-    .att-late { border-color: #fbbf24 !important; }
-    .att-absent { border-color: #f87171 !important; }
+    .att-session-badge {
+        background: rgba(0, 242, 255, 0.12);
+        border: 1px solid rgba(0, 242, 255, 0.35);
+        color: #00f2ff;
+        font-size: 0.78rem;
+        font-weight: 600;
+        padding: 0.4rem 0.75rem;
+    }
+    .att-status-group { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+    .att-status-chip {
+        display: inline-flex; align-items: center; gap: 0.25rem;
+        padding: 0.25rem 0.5rem; border-radius: 999px;
+        border: 1px solid rgba(148, 163, 184, 0.35);
+        background: rgba(15, 23, 42, 0.8); color: #94a3b8;
+        font-size: 0.72rem; cursor: pointer; user-select: none;
+    }
+    .att-status-chip input { position: absolute; opacity: 0; pointer-events: none; }
+    .att-status-chip.active.att-chip-present { border-color: #4ade80; color: #4ade80; background: rgba(74, 222, 128, 0.12); }
+    .att-status-chip.active.att-chip-late { border-color: #fbbf24; color: #fbbf24; background: rgba(251, 191, 36, 0.12); }
+    .att-status-chip.active.att-chip-absent { border-color: #f87171; color: #f87171; background: rgba(248, 113, 113, 0.12); }
+    .att-status-chip.active.att-chip-excused { border-color: #38bdf8; color: #38bdf8; background: rgba(56, 189, 248, 0.12); }
+    .att-quick-btn { border: 1px solid rgba(148, 163, 184, 0.35); background: rgba(15, 23, 42, 0.8); color: #cbd5e1; }
+    .att-unmarked-badge { font-size: 0.65rem; }
     .text-xs { font-size: 0.7rem; }
 </style>
+<script>
+(function () {
+    const form = document.getElementById('sponsorAttendanceForm');
+    if (!form) return;
+    function setChipActive(input) {
+        const group = input.closest('.att-status-group');
+        if (!group) return;
+        group.querySelectorAll('.att-status-chip').forEach(function (chip) {
+            chip.classList.toggle('active', chip.contains(input) && input.checked);
+        });
+    }
+    form.querySelectorAll('.att-status-input').forEach(function (input) {
+        input.addEventListener('change', function () { setChipActive(input); });
+    });
+    form.querySelectorAll('[data-mark-all]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            const value = btn.getAttribute('data-mark-all');
+            form.querySelectorAll('.att-status-input[value="' + value + '"]').forEach(function (input) {
+                input.checked = true;
+                setChipActive(input);
+            });
+        });
+    });
+})();
+</script>
 {% endblock %}
