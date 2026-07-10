@@ -214,6 +214,32 @@ class AcademicRolloverTestCase(unittest.TestCase):
         # Page renders and the leaked unscoped relationship count is not shown.
         self.assertNotIn(b'c.students.count', response.data)
 
+    def test_class_student_count_property_scoped_to_active_year(self):
+        """Regression: the Class.student_count model property (used across many
+        dashboards/templates) must reflect the active year only after rollover."""
+        with self.app.app_context():
+            old_year = db.session.get(AcademicYear, self.year_id)
+            old_year.is_active = False
+            fresh = AcademicYear(
+                name=f'FRESH-{uuid.uuid4().hex[:6]}',
+                start_date=date(2026, 9, 1),
+                end_date=date(2027, 6, 30),
+                is_active=False,
+                created_by=self.admin_id,
+            )
+            db.session.add(fresh)
+            db.session.flush()
+            self.created_ids['years'].append(fresh.id)
+            _set_active_academic_year(fresh)
+            db.session.commit()
+
+            klass = db.session.get(Class, self.class_id)
+            # Active year is fresh -> property must report 0.
+            self.assertEqual(klass.student_count, 0)
+            # Records for the ended year are still retained and countable.
+            self.assertEqual(klass.student_count_for_year(old_year.id), 1)
+            self.assertEqual(klass.student_count_for_year(fresh.id), 0)
+
     def test_save_class_registration_fees(self):
         with self.app.app_context():
             saved = save_class_registration_fees(

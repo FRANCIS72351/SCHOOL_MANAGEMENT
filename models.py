@@ -195,8 +195,30 @@ class Class(db.Model):
             raise ValueError("Structural Constraint Violation: Grade level must be 50 characters or fewer.")
         return text
 
+    def student_count_for_year(self, academic_year_id):
+        """Roster size for this class in a specific academic year."""
+        if not academic_year_id:
+            return self.students.count()
+        return self.students.filter(
+            Student.academic_year_id == academic_year_id
+        ).count()
+
     @property
     def student_count(self):
+        """Active-year roster size.
+
+        The ``students`` relationship joins on ``klass_id`` only, so without a
+        year filter it keeps counting students left over from previous years
+        after an academic-year rollover. Scope to the active academic year so
+        class rosters/counts across the app reflect the current year only.
+        """
+        active = (
+            AcademicYear.query.filter_by(is_active=True)
+            .order_by(AcademicYear.start_date.desc())
+            .first()
+        )
+        if active:
+            return self.student_count_for_year(active.id)
         return self.students.count()
 
     @property
