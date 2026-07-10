@@ -7,11 +7,14 @@ from app import (
     check_promotion_criteria,
     evaluate_promotion_criteria,
     execute_academic_rollover,
+    get_active_academic_year,
     get_class_registration_fee,
     preview_moe_academic_rollover,
     promotion_pass_score,
     max_failing_subjects_for_promotion,
     save_class_registration_fees,
+    _roster_sizes_for_display_year,
+    _set_active_academic_year,
 )
 from constants import ROLE_ADMIN
 from models import (
@@ -174,6 +177,42 @@ class AcademicRolloverTestCase(unittest.TestCase):
         payload = response.get_json()
         self.assertIn('promoted', payload)
         self.assertEqual(payload['student_total'], 1)
+
+    def test_class_roster_count_scoped_to_active_year_after_rollover(self):
+        """Regression: after ending a year and activating a fresh one, the admin
+        Classes page must not count students left tagged to the ended year."""
+        with self.app.app_context():
+            old_year = db.session.get(AcademicYear, self.year_id)
+            old_year.is_active = False
+
+            fresh = AcademicYear(
+                name=f'FRESH-{uuid.uuid4().hex[:6]}',
+                start_date=date(2026, 9, 1),
+                end_date=date(2027, 6, 30),
+                is_active=False,
+                created_by=self.admin_id,
+            )
+            db.session.add(fresh)
+            db.session.flush()
+            self.created_ids['years'].append(fresh.id)
+            _set_active_academic_year(fresh)
+            db.session.commit()
+
+            active = get_active_academic_year()
+            self.assertEqual(active.id, fresh.id)
+
+            klass = db.session.get(Class, self.class_id)
+            # The student still carries klass_id but remains tagged to the ended year.
+            self.assertGreaterEqual(klass.students.count(), 1)
+            # The year-scoped roster (what the fixed page uses) must be empty.
+            scoped = _roster_sizes_for_display_year(active, viewing_archived=False)
+            self.assertEqual(scoped.get(self.class_id, 0), 0)
+
+        self.login()
+        response = self.client.get('/admin/classes/create')
+        self.assertEqual(response.status_code, 200)
+        # Page renders and the leaked unscoped relationship count is not shown.
+        self.assertNotIn(b'c.students.count', response.data)
 
     def test_save_class_registration_fees(self):
         with self.app.app_context():
