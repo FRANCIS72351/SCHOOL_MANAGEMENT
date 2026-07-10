@@ -409,7 +409,7 @@
                                 <td class="text-end align-top">
                                     <div class="d-flex flex-column align-items-end justify-content-between h-100 gap-4">
                                         <span class="badge bg-secondary bg-opacity-25 text-white border border-secondary border-opacity-25 px-2.5 py-1.5 small">
-                                            <i class="fas fa-user-graduate text-cyan me-1.5"></i>{{ c.students.count() if c.students else 0 }} Roll
+                                            <i class="fas fa-user-graduate text-cyan me-1.5"></i>{{ roster_counts.get(c.id, 0) if roster_counts is defined else (c.students.count() if c.students else 0) }} Roll
                                         </span>
                                         <a href="{{ url_for('class_edit', class_id=c.id) }}" class="btn btn-xs btn-outline-info rounded-2 px-2 py-1" style="font-size: 0.75rem;">
                                             <i class="fas fa-edit me-1"></i>Modify Parameters

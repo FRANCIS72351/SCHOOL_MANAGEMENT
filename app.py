@@ -12862,11 +12862,20 @@ def class_create():
     rooms = Room.query.order_by(Room.name.asc()).all()
     classes = Class.query.order_by(Class.grade_level.asc(), Class.name.asc()).all()
     teachers = Teacher.query.filter_by(status='ACTIVE').order_by(Teacher.first_name.asc(), Teacher.last_name.asc()).all()
+    # Roster counts must reflect the active academic year only. The Class.students
+    # relationship is joined on klass_id alone, so it would otherwise keep counting
+    # students left over from previous years after an academic-year rollover.
+    active_year = get_active_academic_year()
+    roster_counts = (
+        _roster_sizes_for_display_year(active_year, viewing_archived=False)
+        if active_year else {}
+    )
     return render_template(
         'class_create.html',
         rooms=rooms,
         classes=classes,
         teachers=teachers,
+        roster_counts=roster_counts,
         sponsor_matrix=_build_class_sponsor_matrix(classes),
     )
 
