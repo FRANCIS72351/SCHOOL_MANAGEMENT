@@ -1785,6 +1785,19 @@ def get_students_for_class_ids(class_ids, academic_year_id=None):
     return sorted(students_map.values(), key=lambda s: (s.last_name or '', s.first_name or ''))
 
 
+def roster_year_id_for_assessment(assessment):
+    """Academic year used to scope an assessment/activity roster.
+
+    Prefer the assessment's own year so rosters never include students left
+    over from a previous year after an academic-year rollover; fall back to
+    the active year.
+    """
+    if assessment is not None and getattr(assessment, 'academic_year_id', None):
+        return assessment.academic_year_id
+    active = get_active_academic_year()
+    return active.id if active else None
+
+
 # Single source of truth — see constants.GRADING_PERIODS
 MOE_GRADING_PERIODS = GRADING_PERIODS
 
@@ -2084,7 +2097,13 @@ def build_sponsor_hub_context(teacher_profile, user, klass, active_year, attenda
         .all()
     )
 
-    open_tasks = Assessment.query.filter_by(klass_id=klass.id).count() if klass else 0
+    if klass:
+        open_tasks_query = Assessment.query.filter_by(klass_id=klass.id)
+        if active_year:
+            open_tasks_query = open_tasks_query.filter_by(academic_year_id=active_year.id)
+        open_tasks = open_tasks_query.count()
+    else:
+        open_tasks = 0
     is_sponsor = user and klass.sponsor_id == user.id
     is_homeroom = teacher_profile and klass.teacher_id == teacher_profile.id
 
@@ -2569,10 +2588,16 @@ def get_class_subjects_for_student(student, academic_year_id=None):
     for row in ClassSubject.query.filter_by(class_id=class_id).all():
         if row.subject_name:
             subjects.add(row.subject_name)
-    for assessment in Assessment.query.filter_by(klass_id=class_id).all():
+    assessment_query = Assessment.query.filter_by(klass_id=class_id)
+    if academic_year_id:
+        assessment_query = assessment_query.filter_by(academic_year_id=academic_year_id)
+    for assessment in assessment_query.all():
         if assessment.subject_name:
             subjects.add(assessment.subject_name)
-    for grade in Grade.query.filter_by(student_id=student.id).all():
+    grade_query = Grade.query.filter_by(student_id=student.id)
+    if academic_year_id:
+        grade_query = grade_query.filter_by(academic_year_id=academic_year_id)
+    for grade in grade_query.all():
         name = grade.subject_name or grade.subject
         if name:
             subjects.add(name)
@@ -4813,7 +4838,7 @@ def grade_entry_class(class_id):
             'stream': card.get('stream'),
             'active': card['id'] == class_id,
         }
-        for card in get_teacher_class_cards(teacher, current_user)
+        for card in get_teacher_class_cards(teacher, current_user, active_year.id)
     ]
 
     return render_template(
@@ -5166,7 +5191,12 @@ def download_grades(class_id):
         Grade.marking_period.asc(),
         Grade.student_id.asc(),
     ).all()
-    student_map = {s.id: s for s in Student.query.filter_by(klass_id=class_id).all()}
+    student_map = {
+        s.id: s
+        for s in Student.query.filter_by(
+            klass_id=class_id, academic_year_id=active_year.id
+        ).all()
+    }
 
     def generate():
         buf = StringIO()
@@ -5408,7 +5438,7 @@ def activity_detail(assessment_id):
         return redirect(url_for('teacher_dashboard'))
 
     class_students = sorted(
-        get_students_for_class_ids([klass.id]),
+        get_students_for_class_ids([klass.id], academic_year_id=roster_year_id_for_assessment(assessment)),
         key=lambda s: ((s.last_name or '').lower(), (s.first_name or '').lower()),
     )
     submissions = Submission.query.filter_by(assessment_id=assessment.id).all()
@@ -7842,7 +7872,12 @@ def teacher_attendance_picker():
                 'name': klass.name,
                 'grade_level': klass.grade_level,
                 'stream': klass.stream,
-                'student_count': Student.query.filter_by(klass_id=klass.id).count(),
+                'student_count': (
+                    Student.query.filter_by(
+                        klass_id=klass.id, academic_year_id=active_year.id
+                    ).count()
+                    if active_year else Student.query.filter_by(klass_id=klass.id).count()
+                ),
                 'role_labels': ['Administrator'],
                 'subjects': [],
             }
@@ -8770,7 +8805,7 @@ def activity_batch_scan(assessment_id):
         return redirect(url_for('teacher_dashboard'))
 
     class_students = sorted(
-        get_students_for_class_ids([klass.id]),
+        get_students_for_class_ids([klass.id], academic_year_id=roster_year_id_for_assessment(assessment)),
         key=lambda s: ((s.last_name or '').lower(), (s.first_name or '').lower()),
     )
     by_scan_code, by_student_id, _student_id_codes = _build_submission_scan_lookup(
@@ -8830,7 +8865,7 @@ def activity_batch_scan_process(assessment_id):
         }), 503
 
     class_students = sorted(
-        get_students_for_class_ids([klass.id]),
+        get_students_for_class_ids([klass.id], academic_year_id=roster_year_id_for_assessment(assessment)),
         key=lambda s: ((s.last_name or '').lower(), (s.first_name or '').lower()),
     )
     by_scan_code, by_student_id, student_id_codes = _build_submission_scan_lookup(
@@ -9657,9 +9692,13 @@ def _reset_group_by_key(role_key):
 
 
 def _reset_build_class_folders():
+    active_year = get_active_academic_year()
     folders = []
     for klass in Class.query.order_by(Class.grade_level.asc(), Class.name.asc()).all():
-        students = Student.query.filter_by(klass_id=klass.id).all()
+        folder_query = Student.query.filter_by(klass_id=klass.id)
+        if active_year:
+            folder_query = folder_query.filter_by(academic_year_id=active_year.id)
+        students = folder_query.all()
         portal_count = sum(1 for student in students if student.user_id)
         folders.append({
             'klass': klass,
@@ -9671,8 +9710,12 @@ def _reset_build_class_folders():
 
 def _reset_build_class_students(klass, search_q, operator):
     rows = []
+    active_year = get_active_academic_year()
+    student_query = Student.query.filter_by(klass_id=klass.id)
+    if active_year:
+        student_query = student_query.filter_by(academic_year_id=active_year.id)
     students = (
-        Student.query.filter_by(klass_id=klass.id)
+        student_query
         .order_by(Student.last_name.asc(), Student.first_name.asc())
         .all()
     )
@@ -12862,11 +12905,20 @@ def class_create():
     rooms = Room.query.order_by(Room.name.asc()).all()
     classes = Class.query.order_by(Class.grade_level.asc(), Class.name.asc()).all()
     teachers = Teacher.query.filter_by(status='ACTIVE').order_by(Teacher.first_name.asc(), Teacher.last_name.asc()).all()
+    # Roster counts must reflect the active academic year only. The Class.students
+    # relationship is joined on klass_id alone, so it would otherwise keep counting
+    # students left over from previous years after an academic-year rollover.
+    active_year = get_active_academic_year()
+    roster_counts = (
+        _roster_sizes_for_display_year(active_year, viewing_archived=False)
+        if active_year else {}
+    )
     return render_template(
         'class_create.html',
         rooms=rooms,
         classes=classes,
         teachers=teachers,
+        roster_counts=roster_counts,
         sponsor_matrix=_build_class_sponsor_matrix(classes),
     )
 
@@ -14541,7 +14593,16 @@ def payroll():
 @login_required
 def report_card_pdf(student_id):
     student = Student.query.get_or_404(student_id)
-    grades = Grade.query.filter_by(student_id=student_id).all()
+    # Scope a report card to a single academic year (defaults to the active year)
+    # so it never mixes in grades from previous years after a rollover.
+    report_year_id = request.args.get('academic_year_id', type=int)
+    if not report_year_id:
+        active_year = get_active_academic_year()
+        report_year_id = active_year.id if active_year else None
+    grades_query = Grade.query.filter_by(student_id=student_id)
+    if report_year_id:
+        grades_query = grades_query.filter_by(academic_year_id=report_year_id)
+    grades = grades_query.all()
 
     buffer = BytesIO()
     p = canvas.Canvas(buffer)
@@ -14662,7 +14723,11 @@ def analytics_grades():
     _require_analytics_access()
     from collections import defaultdict
     subject_counts = defaultdict(float)
-    grades = Grade.query.all()
+    active_year = get_active_academic_year()
+    grades_query = Grade.query
+    if active_year:
+        grades_query = grades_query.filter_by(academic_year_id=active_year.id)
+    grades = grades_query.all()
     for g in grades:
         subject_counts[str(g.subject)] += g.score
     return jsonify({

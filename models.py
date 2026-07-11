@@ -149,6 +149,36 @@ class AcademicYear(db.Model):
         return f"<AcademicYear {self.name} (Active: {self.is_active})>"
 
 
+def resolve_active_academic_year():
+    """Operating academic year, mirroring app.get_active_academic_year().
+
+    Prefers the row flagged ``is_active=True``; otherwise falls back to the
+    latest year whose end date has not passed, then the latest by start date.
+    Kept in models so model properties scope correctly even when no year is
+    explicitly flagged active (e.g. right after a year is ended).
+    """
+    explicit = (
+        AcademicYear.query.filter_by(is_active=True)
+        .order_by(AcademicYear.start_date.desc())
+        .first()
+    )
+    if explicit:
+        return explicit
+
+    today = datetime.now(timezone.utc).date()
+    open_year = (
+        AcademicYear.query.filter(
+            (AcademicYear.end_date.is_(None)) | (AcademicYear.end_date >= today)
+        )
+        .order_by(AcademicYear.start_date.desc())
+        .first()
+    )
+    if open_year:
+        return open_year
+
+    return AcademicYear.query.order_by(AcademicYear.start_date.desc()).first()
+
+
 class Class(db.Model):
     """
     Academic Infrastructure Node:
@@ -195,8 +225,26 @@ class Class(db.Model):
             raise ValueError("Structural Constraint Violation: Grade level must be 50 characters or fewer.")
         return text
 
+    def student_count_for_year(self, academic_year_id):
+        """Roster size for this class in a specific academic year."""
+        if not academic_year_id:
+            return self.students.count()
+        return self.students.filter(
+            Student.academic_year_id == academic_year_id
+        ).count()
+
     @property
     def student_count(self):
+        """Active-year roster size.
+
+        The ``students`` relationship joins on ``klass_id`` only, so without a
+        year filter it keeps counting students left over from previous years
+        after an academic-year rollover. Scope to the active academic year so
+        class rosters/counts across the app reflect the current year only.
+        """
+        active = resolve_active_academic_year()
+        if active:
+            return self.student_count_for_year(active.id)
         return self.students.count()
 
     @property
