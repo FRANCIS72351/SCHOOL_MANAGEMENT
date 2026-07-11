@@ -240,6 +240,36 @@ class AcademicRolloverTestCase(unittest.TestCase):
             self.assertEqual(klass.student_count_for_year(old_year.id), 1)
             self.assertEqual(klass.student_count_for_year(fresh.id), 0)
 
+    def test_class_student_count_scoped_when_no_year_flagged_active(self):
+        """Regression: after ending a year WITHOUT flagging a new active year,
+        the fallback active-year resolution must still scope roster counts so
+        previous-year students don't leak into the current view."""
+        with self.app.app_context():
+            old_year = db.session.get(AcademicYear, self.year_id)
+            old_year.is_active = False
+            old_year.end_date = date(2025, 6, 30)
+            # A newer, not-yet-flagged year exists and has no students.
+            fresh = AcademicYear(
+                name=f'FRESH-{uuid.uuid4().hex[:6]}',
+                start_date=date(2026, 9, 1),
+                end_date=date(2027, 6, 30),
+                is_active=False,
+                created_by=self.admin_id,
+            )
+            db.session.add(fresh)
+            db.session.flush()
+            self.created_ids['years'].append(fresh.id)
+            db.session.commit()
+
+            # No AcademicYear is flagged is_active=True now.
+            self.assertIsNone(AcademicYear.query.filter_by(is_active=True).first())
+
+            klass = db.session.get(Class, self.class_id)
+            # student left over in the ended year must not be counted for the
+            # fallback-resolved active year.
+            self.assertEqual(klass.student_count, 0)
+            self.assertEqual(klass.student_count_for_year(old_year.id), 1)
+
     def test_save_class_registration_fees(self):
         with self.app.app_context():
             saved = save_class_registration_fees(
