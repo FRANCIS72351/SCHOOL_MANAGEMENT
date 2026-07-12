@@ -262,13 +262,7 @@ def repair_misclassified_alumni(student, graduation_year_id=None) -> bool:
         if klass:
             grade = klass.grade_level
 
-    needs_repair = (
-        status in ALUMNI_STATUSES and student.klass_id is not None
-    ) or (
-        status not in ALUMNI_STATUSES
-        and grade == 12
-        and student.klass_id is not None
-    )
+    needs_repair = status in ALUMNI_STATUSES and student.klass_id is not None
     if not needs_repair:
         return False
 

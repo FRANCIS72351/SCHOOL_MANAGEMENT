@@ -639,7 +639,7 @@
                             {% endif %}
                             {% endif %}
                             {% if selected_class and not viewing_archived %}
-                            <a href="{{ url_for('principal_class_grading', class_id=selected_class.id) }}" class="btn btn-sm btn-outline-warning text-amber border-amber border-opacity-40 rounded-3 px-2.5 py-1" style="font-size:0.75rem;">
+                            <a href="{{ url_for('principal_grade_entry', academic_year_id=display_year.id if display_year else None, search_class=selected_class.name) }}" class="btn btn-sm btn-outline-warning text-amber border-amber border-opacity-40 rounded-3 px-2.5 py-1" style="font-size:0.75rem;">
                                 <i class="fas fa-pen-to-square me-1"></i>Enter Grades
                             </a>
                             {% endif %}

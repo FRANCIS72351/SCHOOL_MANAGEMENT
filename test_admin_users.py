@@ -81,6 +81,11 @@ class AdminUserEditTestCase(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn(b'Target User', response.data)
 
+    def test_business_dashboard_renders_for_admin(self):
+        self._login(self.admin_id)
+        response = self.client.get('/business/dashboard')
+        self.assertEqual(response.status_code, 200)
+
     def test_principal_can_edit_user(self):
         self._login(self.principal_id)
         response = self.client.post(

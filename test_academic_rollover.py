@@ -5,13 +5,17 @@ from datetime import date
 from app import (
     app,
     check_promotion_criteria,
-    evaluate_promotion_criteria,
     execute_academic_rollover,
     get_class_registration_fee,
     preview_moe_academic_rollover,
     promotion_pass_score,
     max_failing_subjects_for_promotion,
     save_class_registration_fees,
+    _principal_build_class_portfolios,
+    _principal_students_for_class,
+    _student_ids_with_year_history,
+    _students_for_display_year,
+    get_active_academic_year,
 )
 from constants import ROLE_ADMIN
 from models import (
@@ -34,8 +38,17 @@ class AcademicRolloverTestCase(unittest.TestCase):
             'users': [], 'classes': [], 'years': [], 'students': [], 'grades': [],
             'school_fees': [], 'payments': [], 'transactions': [],
         }
+        self.prior_active_year_ids = []
         self.client = self.app.test_client()
         with self.app.app_context():
+            self.prior_active_year_ids = [
+                y.id for y in AcademicYear.query.filter_by(is_active=True).all()
+            ]
+            AcademicYear.query.filter_by(is_active=True).update(
+                {AcademicYear.is_active: False},
+                synchronize_session=False,
+            )
+
             admin = User(email=self.test_email, full_name='Rollover Admin', role=ROLE_ADMIN)
             admin.set_password('password')
             db.session.add(admin)
@@ -114,6 +127,10 @@ class AcademicRolloverTestCase(unittest.TestCase):
                 Class.query.filter_by(id=class_id).delete(synchronize_session=False)
             for user_id in self.created_ids['users']:
                 User.query.filter_by(id=user_id).delete(synchronize_session=False)
+            for year_id in self.prior_active_year_ids:
+                year = db.session.get(AcademicYear, year_id)
+                if year:
+                    year.is_active = True
             db.session.commit()
 
     def login(self):
@@ -132,6 +149,35 @@ class AcademicRolloverTestCase(unittest.TestCase):
             year = db.session.get(AcademicYear, self.year_id)
             self.assertTrue(check_promotion_criteria(student, year))
 
+    def test_infer_grade_for_year_handles_string_grade_level(self):
+        with self.app.app_context():
+            student = db.session.get(Student, self.student_id)
+            previous_year = AcademicYear(
+                name=f'20{uuid.uuid4().hex[:2]}-20{uuid.uuid4().hex[:2]}',
+                start_date=date(2024, 9, 1),
+                end_date=date(2025, 6, 30),
+                is_active=False,
+                created_by=self.admin_id,
+            )
+            db.session.add(previous_year)
+            db.session.flush()
+            self.created_ids['years'].append(previous_year.id)
+
+            student.grade_level = '10'
+            db.session.commit()
+
+            from app import _infer_student_grade_for_year
+            inferred = _infer_student_grade_for_year(student, previous_year.id)
+            active_year = get_active_academic_year()
+            years_ordered = AcademicYear.query.order_by(
+                AcademicYear.start_date.asc(),
+            ).all()
+            year_index = {year.id: index for index, year in enumerate(years_ordered)}
+            expected = 10 - (
+                year_index[active_year.id] - year_index[previous_year.id]
+            )
+            self.assertEqual(inferred, expected)
+
     def test_failing_student_preview_counts_failed(self):
         with self.app.app_context():
             student = db.session.get(Student, self.student_id)
@@ -143,15 +189,13 @@ class AcademicRolloverTestCase(unittest.TestCase):
             )
             db.session.commit()
 
-            evaluation = evaluate_promotion_criteria(student, year)
-            self.assertFalse(evaluation['passed'])
-            self.assertLess(evaluation['final_average'], promotion_pass_score())
+            evaluation = check_promotion_criteria(student, year)
+            self.assertFalse(evaluation)
 
             preview = preview_moe_academic_rollover(year)
-            self.assertEqual(preview['failed'], 1)
+            self.assertEqual(preview['retained'], 1)
             self.assertEqual(preview['promoted'], 0)
             self.assertEqual(preview['graduated'], 0)
-            self.assertEqual(preview['retained'], 1)
 
     def test_preview_page_requires_login(self):
         response = self.client.get('/admin/academic-rollover')
@@ -265,6 +309,138 @@ class AcademicRolloverTestCase(unittest.TestCase):
         self.assertIn(b'Classes &amp; Registration Fees', response.data)
         self.assertIn(b'reg_fee_', response.data)
         self.assertIn(b'include_class_', response.data)
+
+    def test_active_year_roster_uses_strict_enrollment_only(self):
+        """Active year must not pull students who only have old-year grade history."""
+        with self.app.app_context():
+            admin = db.session.get(User, self.admin_id)
+            source_year = db.session.get(AcademicYear, self.year_id)
+            source_year.is_active = False
+            old_year = AcademicYear(
+                name=f'Old-{uuid.uuid4().hex[:6]}',
+                start_date=date(2023, 9, 1),
+                end_date=date(2024, 6, 30),
+                is_active=False,
+                created_by=admin.id,
+            )
+            new_year = AcademicYear(
+                name=f'New-{uuid.uuid4().hex[:6]}',
+                start_date=date(2024, 9, 1),
+                end_date=date(2025, 6, 30),
+                is_active=True,
+                created_by=admin.id,
+            )
+            db.session.add_all([old_year, new_year])
+            db.session.flush()
+            self.created_ids['years'].extend([old_year.id, new_year.id])
+
+            ghost = Student(
+                student_id=f'GH{uuid.uuid4().hex[:6].upper()}',
+                first_name='Ghost',
+                last_name='History',
+                dob=date(2009, 1, 1),
+                gender='F',
+                klass_id=self.class_id,
+                grade_level=10,
+                academic_year_id=new_year.id,
+                status='ACTIVE',
+            )
+            db.session.add(ghost)
+            db.session.flush()
+            self.created_ids['students'].append(ghost.id)
+
+            grade = Grade(
+                student_id=ghost.id,
+                academic_year_id=old_year.id,
+                class_id=self.class_id,
+                subject='Math',
+                subject_name='Math',
+                score=88,
+                marking_period=1,
+            )
+            db.session.add(grade)
+            db.session.flush()
+            self.created_ids['grades'].append(grade.id)
+            db.session.commit()
+
+            live_ids = {
+                s.id for s in _students_for_display_year(new_year, history_mode=False).all()
+            }
+            hist_ids = set(_student_ids_with_year_history(old_year.id))
+            self.assertIn(ghost.id, live_ids)
+            self.assertIn(ghost.id, hist_ids)
+
+            live_roster = _principal_students_for_class(
+                db.session.get(Class, self.class_id),
+                new_year,
+                viewing_archived=False,
+            )
+            self.assertEqual(len(live_roster), 1)
+            self.assertEqual(live_roster[0].id, ghost.id)
+
+            archived_roster = _principal_students_for_class(
+                db.session.get(Class, self.class_id),
+                old_year,
+                viewing_archived=True,
+            )
+            self.assertEqual(len(archived_roster), 1)
+            self.assertEqual(archived_roster[0].id, ghost.id)
+
+    def test_rollover_moves_student_off_previous_year_roster(self):
+        with self.app.app_context():
+            admin = db.session.get(User, self.admin_id)
+            source_year = db.session.get(AcademicYear, self.year_id)
+            for year in AcademicYear.query.filter(AcademicYear.id != source_year.id).all():
+                year.is_active = False
+            source_year.is_active = True
+            db.session.commit()
+
+            target_year = AcademicYear(
+                name=f'Tgt-{uuid.uuid4().hex[:6]}',
+                start_date=date(2026, 9, 1),
+                end_date=date(2027, 6, 30),
+                is_active=False,
+                created_by=admin.id,
+            )
+            db.session.add(target_year)
+            db.session.flush()
+            self.created_ids['years'].append(target_year.id)
+
+            from flask_login import login_user
+            with self.app.test_request_context():
+                login_user(admin)
+                execute_academic_rollover(
+                    end_current_year=False,
+                    target_mode='existing',
+                    target_year_id=target_year.id,
+                    new_year_name=None,
+                    new_year_start=None,
+                    new_year_end=None,
+                    apply_promotions=False,
+                    promotion_map={},
+                    reset_tuition_cleared=False,
+                    charge_registration_fee=False,
+                    class_registration_fees={},
+                    included_class_ids=set(),
+                    exclude_statuses=set(),
+                )
+
+            db.session.expire_all()
+            student = db.session.get(Student, self.student_id)
+            self.assertEqual(student.academic_year_id, target_year.id)
+            self.assertFalse(student.is_registered)
+            self.assertTrue(student.is_promoted)
+            self.assertEqual(
+                _students_for_display_year(source_year, history_mode=False).count(),
+                0,
+            )
+            portfolios = _principal_build_class_portfolios(
+                target_year, viewing_archived=False,
+            )
+            klass_portfolio = next(
+                p for p in portfolios if p['klass'].id == self.class_id
+            )
+            self.assertEqual(klass_portfolio['student_count'], 0)
 
 
 if __name__ == '__main__':

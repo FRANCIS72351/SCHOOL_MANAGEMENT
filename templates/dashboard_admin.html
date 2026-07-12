@@ -195,6 +195,9 @@
     {% elif display_year and display_year.is_active %}
     <div class="alert alert-success bg-success bg-opacity-10 border-success border-opacity-25 mb-4 py-2 px-3" data-aos="fade-down">
         <i class="fas fa-check-circle me-2"></i>Viewing: <strong>{{ display_year.name }}</strong> <span class="badge year-view-badge-active ms-1">Active</span>
+        {% if counts and counts.students is defined %}
+        <span class="text-muted small ms-2">{{ counts.students }} student{{ 's' if counts.students != 1 else '' }} enrolled{% if counts.pending_registration %} · {{ counts.pending_registration }} awaiting re-registration{% endif %}</span>
+        {% endif %}
     </div>
     {% endif %}
 

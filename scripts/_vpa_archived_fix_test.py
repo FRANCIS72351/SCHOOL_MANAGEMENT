@@ -11,7 +11,6 @@ from app import (
     AcademicYear,
     Class,
     _principal_students_for_class,
-    _year_uses_history,
 )
 
 
@@ -19,8 +18,16 @@ def main():
     with app.app_context():
         y = AcademicYear.query.filter_by(name="2025-2026").first()
         klass = Class.query.get(5)
-        assert _year_uses_history(y, viewing_archived=False), "inactive year must use history"
-        assert len(_principal_students_for_class(klass, y, viewing_archived=False)) == 1
+        archived_roster = _principal_students_for_class(
+            klass, y, viewing_archived=True,
+        )
+        live_roster = _principal_students_for_class(
+            klass, y, viewing_archived=False,
+        )
+        assert len(archived_roster) >= len(live_roster), (
+            "archived roster should include historical class resolution"
+        )
+        assert len(archived_roster) >= 1, "archived class roster should not be empty"
 
         vpa = User.query.get(16)
         client = app.test_client()

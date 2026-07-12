@@ -450,9 +450,11 @@ class Enrollment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     student_id = db.Column(db.Integer, db.ForeignKey("students.id", ondelete="CASCADE"), nullable=False)
     class_id = db.Column(db.Integer, db.ForeignKey("classes.id", ondelete="CASCADE"), nullable=False)
+    academic_year_id = db.Column(db.Integer, db.ForeignKey("academic_years.id"), nullable=True)
 
     student = db.relationship("Student", backref=db.backref("class_enrollments", cascade="all, delete-orphan"))
     klass = db.relationship("Class", backref=db.backref("class_enrollments", cascade="all, delete-orphan"))
+    academic_year = db.relationship("AcademicYear", backref=db.backref("class_enrollments", lazy="dynamic"))
 
     def __repr__(self):
         return f"<Enrollment ID {self.id}: Student {self.student_id} -> Class {self.class_id}>"

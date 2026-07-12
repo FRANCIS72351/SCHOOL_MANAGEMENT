@@ -390,6 +390,12 @@
             <span class="text-white-50 small d-block uppercase tracking-wider" style="font-size:0.7rem;">Active System Academic Term Session</span>
             <strong class="text-cyan">Viewing: {{ display_year.name }} (Active)</strong>
             <span class="badge bg-cyan bg-opacity-10 text-cyan small border border-cyan border-opacity-10 ms-2">Active</span>
+            {% if counts and counts.students is defined %}
+            <span class="text-emerald small ms-2"><i class="fas fa-user-check me-1"></i>{{ counts.students }} student{{ 's' if counts.students != 1 else '' }} enrolled this year</span>
+            {% if counts.pending_registration %}
+            <span class="text-amber small ms-2"><i class="fas fa-hourglass-half me-1"></i>{{ counts.pending_registration }} awaiting re-registration</span>
+            {% endif %}
+            {% endif %}
             {% if display_year.start_date %}
             <span class="text-muted ms-2">({{ display_year.start_date }}{% if display_year.end_date %} to {{ display_year.end_date }}{% endif %})</span>
             {% endif %}
@@ -798,6 +804,49 @@
                     </table>
                 </div>
             </div>
+
+            {% if pending_registration_students and not viewing_archived %}
+            <div class="card sec-card p-4 border border-amber border-opacity-25">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="text-amber font-weight-bold mb-0">
+                        <i class="fas fa-hourglass-half me-2"></i>Re-registration Queue
+                    </h6>
+                    <span class="badge bg-warning text-dark">{{ pending_registration_students|length }} pending</span>
+                </div>
+                <p class="text-muted small mb-3">
+                    Promoted students tagged to {{ display_year.name }} who must be re-registered before they appear in class folders and staff dashboards.
+                </p>
+                <div class="table-responsive rounded-3 border border-secondary border-opacity-10">
+                    <table class="table table-cyber table-sm mb-0">
+                        <thead>
+                            <tr>
+                                <th>Student</th>
+                                <th>ID</th>
+                                <th>Class (assigned)</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for s in pending_registration_students[:25] %}
+                            <tr>
+                                <td>{{ s.full_name }}</td>
+                                <td><code class="text-cyan">{{ s.student_id or '—' }}</code></td>
+                                <td>{{ student_class_labels.get(s.id) if student_class_labels else (s.klass.name if s.klass else 'Unassigned') }}</td>
+                                <td>
+                                    <a href="{{ url_for('register_student', academic_year_id=display_year.id if display_year else None) }}?lookup={{ s.student_id or s.parent_email or '' }}" class="btn btn-sm btn-outline-warning text-white py-0 px-2" style="font-size:0.72rem;">
+                                        Re-register
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% if pending_registration_students|length > 25 %}
+                <p class="text-muted small mt-2 mb-0">Showing first 25 of {{ pending_registration_students|length }} — use Register Student to process the queue.</p>
+                {% endif %}
+            </div>
+            {% endif %}
 
             <div class="card sec-card p-4">
                 <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-3">
