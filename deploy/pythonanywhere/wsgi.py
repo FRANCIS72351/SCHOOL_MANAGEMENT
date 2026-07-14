@@ -4,15 +4,22 @@
 # Replace YOUR_USERNAME with your PythonAnywhere username (e.g. francis72351).
 
 import os
+import site
 import sys
 
 USERNAME = "YOUR_USERNAME"
 PROJECT_HOME = f"/home/{USERNAME}/SCHOOL_MANAGEMENT"
 
+USER_SITE = site.getusersitepackages()
+if USER_SITE not in sys.path:
+    sys.path.insert(0, USER_SITE)
+
 if PROJECT_HOME not in sys.path:
     sys.path.insert(0, PROJECT_HOME)
 
 os.chdir(PROJECT_HOME)
+
+os.environ.setdefault("GHOST_ADMIN_USER", "ghost_admin")
 
 try:
     from dotenv import load_dotenv
@@ -21,3 +28,4 @@ except ImportError:
     pass
 
 from wsgi import application
+app = application
